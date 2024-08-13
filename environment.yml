@@ -1,0 +1,13 @@
+name: rag-project
+channels:
+  - conda-forge
+dependencies:
+  - glib
+  - pip~=24.0
+  - python~=3.12
+  - pydantic
+  - conda
+  - numpy
+  - langchain
+  - qdrant-client
+prefix: /opt/homebrew/Caskroom/mambaforge/base/envs/rag-project

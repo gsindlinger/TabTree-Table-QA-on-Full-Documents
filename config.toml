@@ -1,0 +1,149 @@
+[run]
+qa = false
+qa_prompt = false
+qa_ir = true
+qa_llm = false
+qa_rag = false
+qa_dataset = false
+
+api = true
+
+
+[api]
+
+host = "0.0.0.0"
+port = 8000
+
+
+[opensearch]
+
+# hostname (inside docker network) from Python/askecj perspective
+# set to "localhost" if and only if you are working outside docker
+# (if needed temporarily only, consider using --opensearch.host=localhost instead)
+#hostname = "localhost"
+hostname = "opensearch-node"
+
+# Set the following value to the port inside docker network (default: 9200).
+# This setting may differ from the port bound on host set in .env!
+port = 9200
+
+base_index = "base_index"
+emb_index = ""                         # empty string means: name after retrieval model
+search_mode = "search_scored_combined"
+#search_mode = "search_two_stage"
+
+[ollama]
+
+# hostname (inside docker network) from Python/askecj perspective
+# set to "localhost" if and only if you are working outside docker
+# (if needed temporarily only, consider using --ollama.host=localhost instead)
+#host = "localhost"
+host = "ollama"
+port = 11434
+
+
+[crawler]
+
+# If true, write a json file containing metadata to disk, for each document.
+write_json = false
+# Path to the directory to store json metadata in.
+# Directory will be created if necessary. Files are overwritten.
+dir_json = "data/json/"
+
+# If true, write an overview table for all crawled data to disk as csv.
+write_csv = false
+# Path inside container to store this csv file.
+file_csv = "data/scraping_info.csv"
+
+# If true, index crawled documents and metadata in opensearch base_index and embeddings to emb_index
+write_to_index = true
+
+log_file = "data/crawl.log"
+log_level = "INFO"
+log_overwrite = true
+
+
+[qa]
+openai_api_key = "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"
+ragas = false
+bertscorer = "microsoft/mpnet-base"
+search_modes = [
+    "search_two_stage",
+    "search_scored_combined",
+] # "search_two_stage", 
+llms = ["llama2", "gemma", "qwen"] #"llama2", "gemma:2b", "qwen:0.5b"
+ragsllm = ["llama2", "qwen", "llama2", "qwen"]
+ragsir = [
+    "search_two_stage",
+    "search_two_stage",
+    "search_scored_combined",
+    "search_scored_combined",
+]
+
+template = '''
+You are a helpful, respectful and honest assistant. Use three sentences maximum and keep the answer concise.
+
+If a question does not make any sense, or is not factually coherent, explain why instead of answering something not correct. 
+If you don't know the answer to a question, please don't share false information.
+
+Again, please limit your answer to 3 sentences or 40 words.
+
+Retrieved Documents:
+{context}
+
+User Input: {question}
+'''
+prompts = [
+    '''
+    You are a helpful, respectful and honest assistant. Use three sentences maximum and keep the answer concise.
+
+    If a question does not make any sense, or is not factually coherent, explain why instead of answering something not correct. 
+    If you don't know the answer to a question, please don't share false information.
+
+    Again, please limit your answer to 3 sentences or 40 words.
+
+    Retrieved Documents:
+    {context}
+
+    User Input: {question}
+    ''',
+    '''
+    DOCUMENT:
+    {context}
+
+    QUESTION:
+    {question}
+
+    INSTRUCTIONS:
+    Answer the users QUESTION using the DOCUMENT text above.
+    Keep your answer ground in the facts of the DOCUMENT.
+    If the DOCUMENT doesn’t contain the facts to answer the QUESTION state so.
+    ''',
+]
+
+[pipeline]
+rag_template = '''
+You are a helpful, respectful and honest assistant. Use three sentences maximum and keep the answer concise.
+
+If a question does not make any sense, or is not factually coherent, explain why instead of answering something not correct. 
+If you don't know the answer to a question, please don't share false information.
+
+Again, please limit your answer to 3 sentences or 40 words.
+
+Retrieved Documents:
+{context}
+
+User Input: {question}
+'''
+
+# choose out of "llama2:7b", "gemma:2b", "qwen:0.5b"
+text_generation_model = "gemma:2b"
+
+n_context = 3
+verbose = false
+
+# choose out of "nlpaueb/legal-bert-base-uncased", "sentence-transformers/all-MiniLM-L12-v2" "paraphrase-MiniLM-L6-v2"
+retrieval_model = "sentence-transformers/all-MiniLM-L12-v1"
+
+# default number of documents to search in base index (first stage)
+n_docs_max = 10

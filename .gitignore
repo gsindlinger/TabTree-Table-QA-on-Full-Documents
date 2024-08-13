@@ -123,6 +123,7 @@ celerybeat.pid
 *.sage.py
 
 # Environments
+.env
 .venv
 env/
 venv/
@@ -165,3 +166,4 @@ chroma_db/
 
 # Ignore old project which is only needed for inspiration
 askEUGH-INLPT-WS2023/
+

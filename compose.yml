@@ -1,0 +1,48 @@
+version: "3"
+services:
+  qdrant:
+    image: qdrant/qdrant:latest
+    restart: always
+    container_name: qdrant
+    ports:
+      - ${QDRANT_API_PORT}:6333
+      - ${QDRANT_GRPC_PORT}:6334
+    expose:
+      - 6333
+      - 6334
+      - 6335
+    configs:
+      - source: qdrant_config
+        target: /qdrant/config/production.yaml
+    volumes:
+      - ./data/qdrant-data:/qdrant/storage
+
+  ollama-pull:
+    image: &image-ollama docker.io/ollama/ollama:latest
+    volumes: &volumes-ollama
+      - ./data/ollama:/root/.ollama
+    entrypoint: bash -c "set -em; ollama serve & for model in ${OLLAMA_PULL_MODELS}; do ollama pull $$model; done"
+    restart: on-failure
+    networks: &networks
+      - rag-project # All of the containers will join the same Docker bridge network
+
+  ollama:
+    image: *image-ollama
+    volumes: *volumes-ollama
+    ports:
+      - ${OLLAMA_BIND_HOST}:${OLLAMA_PORT}:11434
+    networks: *networks
+    depends_on:
+      ollama-pull:
+        condition: service_completed_successfully
+
+networks:
+  rag-project:
+
+volumes:
+  qdrant-data:
+
+configs:
+  qdrant_config:
+    content: |
+      log_level: INFO 
