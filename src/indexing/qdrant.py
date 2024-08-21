@@ -1,4 +1,7 @@
+from qdrant_client.http.models import Distance, VectorParams
 from qdrant_client import QdrantClient as _QdrantClient
+
+from .qdrant_document import QdrantDocumentCollection
 from ..config import Config
 from itertools import count
 from time import sleep
@@ -47,3 +50,39 @@ class QdrantClient(_QdrantClient):
         else:
             logging.info(f"index {collection} exists")
             return True
+
+    def create_index(
+        self,
+        collection_name: str,
+        vector_size: int,
+        distance_metric: Distance = Distance.COSINE,
+    ) -> None:
+        if not self.collection_exists(collection_name):
+            self.create_collection(
+                collection_name=collection_name,
+                vectors_config=VectorParams(
+                    size=vector_size,
+                    distance=distance_metric,
+                ),
+            )
+            logging.info(f"index {collection_name} created")
+        else:
+            logging.info(f"index {collection_name} already exists")
+
+    def add_documents(
+        self, collection_name: str, documents: QdrantDocumentCollection
+    ) -> None:
+        self.add(
+            collection_name=collection_name,
+            documents=documents.texts,
+            metadata=documents.metadata,
+            ids=documents.ids,
+        )
+        logging.info(f"added {len(documents)} documents to {collection_name}")
+
+    def query(self, collection_name: str, query_text: str, top_k: int = 4) -> dict:
+        return super().query(
+            collection_name=collection_name,
+            query=query_text,
+            top=top_k,
+        )

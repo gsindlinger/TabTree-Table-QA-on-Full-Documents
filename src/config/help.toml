@@ -1,66 +1,64 @@
 [run]
+pipeline = """
+Determines whether the pipeline should be executed.
+Set to true to enable the pipeline, or false to disable it.
+"""
 
-qa = "run test suite"
-qa_prompt = "test prompts"
-qa_ir = "test IR systems"
-qa_llm = "test LLMs"
-qa_rag = "test rag pipelines"
-qa_dataset = "regenerate datasets"
-
-api = "Run HTTP api"
-
-
-[api]
-
-host = "listen to this host ip"
-port = "listen to this port"
-
-
-[opensearch]
-
-hostname = "hostname inside (docker/local) network; set to 'localhost' if and only if you are working outside docker"
-port = "port number where opensearch node is available"
-
-base_index = "name of base index"
-emb_index = "name of embedding index; if empty, it will automatically be named after pipeline.retrieval_model"
-search_mode = "search_scored_combined or search_two_stage"
-
-
-[crawler]
-
-write_json = "If true, write a json file containing metadata to disk, for each document."
-dir_json = "Path to the directory to store json metadata in. Directory will be created if necessary. Files are overwritten."
-
-write_csv = "If true, write an overview table for all crawled data to disk as csv."
-file_csv = "Path inside container to store this csv file."
-
-write_to_index = "If true, index crawled documents and metadata in opensearch base_index and embeddings to emb_index"
-
-log_file = "path to scrapy log file"
-log_level = "scrapy log level"
-log_overwrite = "overwrite scrapy log file"
-
-
-[qa]
-openai_api_key = "API key for OpenAI, needed for evaluation"
-ragas = "set if ragas should be run"
-bertscorer = "Huggingface model to use to compute bertscore"
-search_modes = 'list of strings containing the search-functions to test'
-llms = 'list of strings containing the llms to test.'
-ragsllm = "list of llms to use with corresponding ir systems"
-ragsir = "list of ir systems to use with corresponding llms"
-template = 'prompt template for rag'
-prompts = "list of proompts to try"
-
-[pipeline]
-rag_template = 'string containing "<QUERY>", "<CONTEXT>" placeholders'
-n_context = 'number of documents to base answer on'
-verbose = '(0/1) directs if pipeline should be verbose'
-text_generation_model = "model name"
-retrieval_model = "model name"
-n_docs_max = "default number of documents to search in base index (first stage)"
+[qdrant]
+host = """
+Specifies the hostname for Qdrant.
+If running inside a Docker network, set this to the container's name (e.g., "qdrant").
+Set to "localhost" if running outside Docker.
+"""
+port = """
+Specifies the port Qdrant should listen on.
+Ensure this matches the port configured inside the Docker network.
+"""
 
 [ollama]
+host = """
+Specifies the hostname for Ollama.
+If running inside a Docker network, set this to the container's name (e.g., "ollama").
+Set to "localhost" if running outside Docker.
+"""
+port = """
+Specifies the port Ollama should listen on.
+Ensure this matches the port configured inside the Docker network.
+"""
+model = """
+Specifies the model to use with Ollama.
+Options include "llama2:7b", "gemma:2b", and "qwen:0.5b".
+"""
 
-host = "Hostname for Ollama Container"
-port = "Port for Ollama Container"
+temperature = """
+Specifies the temperature parameter for the model.
+The temperature controls the randomness of the model's output.
+Higher values (e.g., 1.0) make the output more random, while lower values (e.g., 0.5) make it more focused and deterministic.
+"""
+
+[huggingface]
+model = """
+Specifies the Hugging Face model to use.
+Provide the model's full name (e.g., "mistralai/Mistral-7B-Instruct-v0.2").
+"""
+
+[pipeline]
+llm_implementation = """
+Specifies the LLM implementation to use in the pipeline.
+Options are "ollama" or "huggingface".
+"""
+template = """
+Defines the prompt template for the pipeline.
+This template is used to structure the assistant's responses.
+"""
+
+embedding_model = """
+Specifies the model used for embeddings in the pipeline.
+An example option is "sentence-transformers/all-MiniLM-L6-v2".
+"""
+
+[data]
+path_local = """
+Specifies the local path where data files are stored.
+Provide the relative or absolute path to the data directory.
+"""
