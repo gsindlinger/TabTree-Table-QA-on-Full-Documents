@@ -1,5 +1,6 @@
 [run]
-pipeline = true
+pipeline = false
+indexing = true
 
 [qdrant]
 
@@ -9,10 +10,14 @@ pipeline = true
 host = "localhost"
 # host = "qdrant"
 
-# Set the following value to the port inside docker network (default: 6333).
+# Set the following value to the ports inside docker network (default: 6333, 6334).
 # This setting may differ from the port bound on host set in .env!
 port = 6333
+grpc_port = 6334
 
+# Name of the qdrant collection on which 
+# indexing and retrieving will be based on.
+index_name = "sec-filings-baseline"
 
 [ollama]
 
@@ -28,7 +33,17 @@ temperature = 0
 model = "gemma:2b"
 
 [huggingface]
-model = "mistralai/Mistral-7B-Instruct-v0.2"
+api_key = "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"
+
+# choose out of "mistralai/Mistral-7B-Instruct-v0.2"
+generation_model = "mistralai/Mistral-7B-Instruct-v0.2"
+
+# choose out of "sentence-transformers/all-MiniLM-l6-v2"
+embedding_model = "sentence-transformers/all-MiniLM-l6-v2"
+
+[sentence_transformers]
+# choose out of "sentence-transformers/all-MiniLM-l6-v2"
+embedding_model = "sentence-transformers/all-MiniLM-l6-v2"
 
 [pipeline]
 # choose out of ollama or huggingface
@@ -47,10 +62,6 @@ Retrieved Documents:
 
 User Input: {question}
 '''
-
-# choose out of "sentence-transformers/all-MiniLM-L6-v2"
-embedding_model = "sentence-transformers/all-MiniLM-L6-v2"
-
 
 [data]
 path_local = "./data/sec_filings/"

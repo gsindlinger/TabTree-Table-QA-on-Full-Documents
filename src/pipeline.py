@@ -42,7 +42,5 @@ class Pipeline(BaseModel):
             llm_chain=llm_chain,
         )
 
-    def invoke(
-        self, context: str = "", question: str = "What is deep learning?"
-    ) -> str:
+    def invoke(self, context: str = "", question: str = "What is love?") -> str:
         return self.llm_chain.invoke({"context": context, "question": question})

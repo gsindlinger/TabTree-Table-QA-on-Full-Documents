@@ -4,6 +4,13 @@ Determines whether the pipeline should be executed.
 Set to true to enable the pipeline, or false to disable it.
 """
 
+indexing = """
+Determines whether the indexing procedure for embedding of documents should be run.
+Set to true to enable the pipeline, or false to disable it.
+
+Note: The indexing stage will always run before anything else.
+"""
+
 [qdrant]
 host = """
 Specifies the hostname for Qdrant.
@@ -13,6 +20,15 @@ Set to "localhost" if running outside Docker.
 port = """
 Specifies the port Qdrant should listen on.
 Ensure this matches the port configured inside the Docker network.
+"""
+
+grpc_port = """
+Specifies the port for gRPC communication with Qdrant.
+Ensure this matches the port configured for gRPC inside the Docker network
+"""
+
+index_name = """
+Specifies the name of the collection used for embedding and retrieval.
 """
 
 [ollama]
@@ -37,9 +53,26 @@ Higher values (e.g., 1.0) make the output more random, while lower values (e.g.,
 """
 
 [huggingface]
-model = """
-Specifies the Hugging Face model to use.
+
+api_key = """
+Specifies the API key to use for authentication. 
+This key is required to access the API endpoints. 
+"""
+
+generation_model = """
+Specifies the Hugging Face text generation model to use.
 Provide the model's full name (e.g., "mistralai/Mistral-7B-Instruct-v0.2").
+"""
+
+embedding_model = """
+Specifies the model used for embeddings of documents.
+An example option is "sentence-transformers/all-MiniLM-L6-v2".
+"""
+
+[sentence_transformers]
+embedding_model = """
+Specifies the model used for embeddings of documents.
+An example option is "sentence-transformers/all-MiniLM-L6-v2".
 """
 
 [pipeline]
