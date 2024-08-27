@@ -1,11 +1,11 @@
 from qdrant_client.http.models import Distance, VectorParams, PointStruct
 from qdrant_client import QdrantClient as _QdrantClient
 
-from ..model.qdrant_document import QdrantDocument, QdrantDocumentCollection
+from ..model.custom_document import CustomDocument
 from ..config import Config
 from itertools import count
 from time import sleep
-from typing import Optional, Self
+from typing import List, Self
 import logging
 import uuid
 
@@ -73,42 +73,24 @@ class QdrantClient(_QdrantClient):
     def add_documents(
         self,
         collection_name: str,
-        documents: QdrantDocumentCollection,
-        vector_size: Optional[int] = None,
+        documents: List[CustomDocument],
+        vectors: List[List[float]],
     ) -> None:
-        if not self.is_populated(collection=collection_name, accept_empty=True):
-            if not vector_size:
-                vector_size = len(documents[0].vector)
 
+        assert len(documents) == len(vectors)
+
+        if not self.is_populated(collection=collection_name, accept_empty=True):
             self.create_index(
                 collection_name=collection_name,
-                vector_size=vector_size,
+                vector_size=len(vectors[0]),
             )
         points = [
             PointStruct(
-                id=str(uuid.uuid4()), vector=doc.vector, payload=doc.payload.__dict__
+                id=str(uuid.uuid4()),
+                vector=vec,
+                payload=doc.to_payload(),
             )
-            for doc in documents
+            for doc, vec in zip(documents, vectors)
         ]
         self.upload_points(collection_name=collection_name, points=points)
         logging.info(f"added {len(documents)} documents to {collection_name}")
-
-    def add_document(self, collection_name: str, document: QdrantDocument) -> None:
-        if not self.is_populated(collection=collection_name, accept_empty=True):
-            self.create_index(
-                collection_name=collection_name,
-                vector_size=document.vector_size,
-            )
-        points = [
-            PointStruct(
-                id=document.id, vector=document.vector, payload=document.payload
-            )
-        ]
-        self.add_documents(collection_name=collection_name, points=points)
-
-    def query(self, collection_name: str, query_text: str, top_k: int = 4) -> dict:
-        return super().query(
-            collection_name=collection_name,
-            query=query_text,
-            top=top_k,
-        )

@@ -6,6 +6,8 @@ from typing import Union, NoReturn
 from abc import ABCMeta, abstractclassmethod
 from collections.abc import Hashable
 
+from distutils.util import strtobool
+
 
 def _readonly(self, *args, **kwargs) -> NoReturn:
     """

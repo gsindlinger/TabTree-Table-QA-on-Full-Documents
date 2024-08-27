@@ -1,6 +1,6 @@
 [run]
-pipeline = false
-indexing = true
+pipeline = true
+indexing = false
 
 [qdrant]
 
@@ -41,13 +41,13 @@ generation_model = "mistralai/Mistral-7B-Instruct-v0.2"
 # choose out of "sentence-transformers/all-MiniLM-l6-v2"
 embedding_model = "sentence-transformers/all-MiniLM-l6-v2"
 
-[sentence_transformers]
-# choose out of "sentence-transformers/all-MiniLM-l6-v2"
-embedding_model = "sentence-transformers/all-MiniLM-l6-v2"
 
 [pipeline]
 # choose out of ollama or huggingface
 llm_implementation = "ollama"
+
+# choose out of HuggingFaceEmbeddings, ...
+embedding_tool = "HuggingFaceEmbeddings"
 
 template = '''
 You are a helpful, respectful and honest assistant. Use three sentences maximum and keep the answer concise.

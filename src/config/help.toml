@@ -69,17 +69,18 @@ Specifies the model used for embeddings of documents.
 An example option is "sentence-transformers/all-MiniLM-L6-v2".
 """
 
-[sentence_transformers]
-embedding_model = """
-Specifies the model used for embeddings of documents.
-An example option is "sentence-transformers/all-MiniLM-L6-v2".
-"""
-
 [pipeline]
 llm_implementation = """
 Specifies the LLM implementation to use in the pipeline.
 Options are "ollama" or "huggingface".
 """
+
+embedding_tool = """
+Specifies the wrapper to use for generating embeddings.
+This is relevant since langchain chains use the corresponding wrapper
+as retriever and apart from that we use it for indexing.
+"""
+
 template = """
 Defines the prompt template for the pipeline.
 This template is used to structure the assistant's responses.

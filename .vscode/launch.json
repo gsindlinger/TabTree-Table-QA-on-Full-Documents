@@ -5,12 +5,28 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python: Run App",
+            "name": "Run Pipeline",
             "type": "debugpy",
             "request": "launch",
             "module": "src",
             "console": "integratedTerminal",
-            "cwd": "${workspaceFolder}"
+            "cwd": "${workspaceFolder}",
+            "args": [
+                "--run.pipeline=true",
+                "--run.indexing=false"
+            ]
         },
+        {
+            "name": "Run Indexing",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "src",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "args": [
+                "--run.indexing=true",
+                "--run.pipeline=false"
+            ]
+        }
     ]
 }

@@ -5,17 +5,17 @@ from langchain_text_splitters import Language
 from pydantic import BaseModel
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
-from ..model.document import Document
+from ..model.custom_document import CustomDocument, FullMetadata
 from ..model.sec_filing import SECFiling
 
 
 class DocumentSplitter(ABC, BaseModel):
 
     @abstractmethod
-    def split_document(self, document: Document) -> List[Document]:
+    def split_document(self, document: CustomDocument) -> List[CustomDocument]:
         pass
 
-    def split_documents(self, documents: List[Document]) -> List[Document]:
+    def split_documents(self, documents: List[CustomDocument]) -> List[CustomDocument]:
         splitted_documents = []
         for document in documents:
             splitted_documents.extend(self.split_document(document))
@@ -27,17 +27,15 @@ class DocumentSplitter(ABC, BaseModel):
 
 
 class SECFilingSplitter(DocumentSplitter):
-    def split_document(self, document: Document) -> List[SECFiling]:
+    def split_document(self, document: CustomDocument) -> List[CustomDocument]:
         text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=1000, chunk_overlap=200
         )
-        splitted_text = text_splitter.split_text(document.text)
+        splitted_text = text_splitter.split_text(document.page_content)
         return [
-            SECFiling(
-                text=chunk,
-                metadata=document.metadata,
-                doc_id=document.doc_id,
-                chunk_id=i + 1,
+            CustomDocument(
+                page_content=chunk,
+                metadata=document.extend_metadata(chunk_id=i),
             )
             for i, chunk in enumerate(splitted_text)
         ]
