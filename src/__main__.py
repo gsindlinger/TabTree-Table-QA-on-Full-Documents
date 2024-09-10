@@ -1,6 +1,8 @@
 import logging
 import sys
 
+from .evaluation.evaluator import Evaluator
+
 from .retrieval.qdrant_store import QdrantVectorStore
 from .retrieval.indexing_service import IndexingService
 
@@ -12,20 +14,28 @@ def main() -> None:
     logging.getLogger().setLevel(logging.INFO)
 
     vector_store = QdrantVectorStore.from_config()
+    pipeline = Pipeline.from_config(vector_store=vector_store)
+    indexing_service = IndexingService(qdrant_store=vector_store)
+
+    if Config.run.analysis:
+        indexing_service.analyze_documents()
+
     if Config.run.indexing:
-        indexing_service = IndexingService(qdrant_store=vector_store)
         indexing_service.embed_documents()
 
     if Config.run.pipeline:
-        pipeline = Pipeline.from_config(vector_store=vector_store)
-
         while True:
             question = input("Please enter your input. To exit, type 'exit': ")
             if question == "exit":
                 break
             print(pipeline.invoke(question=question))
-    else:
-        print("Not running pipeline")
+
+    elif Config.run.evaluation:
+        evaluator = Evaluator.from_config(pipeline=pipeline)
+        evaluation_results = evaluator.evaluate()
+        logging.info(
+            f"Accuracy: {evaluation_results.accuracy}, F1: {evaluation_results.f1_score}"
+        )
 
 
 if __name__ == "__main__":

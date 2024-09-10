@@ -25,7 +25,20 @@
             "cwd": "${workspaceFolder}",
             "args": [
                 "--run.indexing=true",
-                "--run.pipeline=false"
+                "--run.pipeline=false",
+            ]
+        },
+        {
+            "name": "Run Analysis",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "src",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "args": [
+                "--run.indexing=false",
+                "--run.pipeline=false",
+                "--run.analysis=true"
             ]
         }
     ]

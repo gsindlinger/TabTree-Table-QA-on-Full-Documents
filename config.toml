@@ -1,6 +1,11 @@
 [run]
 pipeline = true
 indexing = false
+analysis = false
+evaluation = false
+
+# choose from "sec-filings", "sec-filings-html-splitter"
+mode = "sec-filings-html-splitter"
 
 [qdrant]
 
@@ -17,7 +22,7 @@ grpc_port = 6334
 
 # Name of the qdrant collection on which 
 # indexing and retrieving will be based on.
-index_name = "sec-filings-baseline"
+index_name = "baseline-processed"
 
 [ollama]
 
@@ -29,39 +34,51 @@ host = "localhost"
 port = 11434
 temperature = 0
 
-# choose out of "llama2:7b", "gemma:2b", "qwen:0.5b"
+# choose out of "gemma:2b", "mistral-nemo"
 model = "gemma:2b"
 
 [huggingface]
 api_key = "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"
 
-# choose out of "mistralai/Mistral-7B-Instruct-v0.2"
-generation_model = "mistralai/Mistral-7B-Instruct-v0.2"
+# choose out of "mistralai/Mistral-Nemo-Instruct-2407", "google/gemma-2-2b-it"
+generation_model = "mistralai/Mistral-Nemo-Instruct-2407"
 
-# choose out of "sentence-transformers/all-MiniLM-l6-v2"
-embedding_model = "sentence-transformers/all-MiniLM-l6-v2"
+# choose out of "sentence-transformers/all-MiniLM-l6-v2", "Alibaba-NLP/gte-base-en-v1.5", 
+embedding_model = "Snowflake/snowflake-arctic-embed-m-v1.5"
+
+[full_document_storage]
+local_path = "./data/preprocessed_documents/"
 
 
 [pipeline]
 # choose out of ollama or huggingface
-llm_implementation = "ollama"
+llm_implementation = "huggingface"
 
-# choose out of HuggingFaceEmbeddings, ...
+# choose out of HuggingFaceEmbeddings, NomicEmbeddings ...
 embedding_tool = "HuggingFaceEmbeddings"
 
 template = '''
-You are a helpful, respectful and honest assistant. Use three sentences maximum and keep the answer concise.
+You are tasked with answering questions based on specific financial documents. 
+Your task is to extract the correct answer and provide it in the format specified (either as a number or text). 
+Answer with only a text or number, without any additional context or explanation.
+If the context does not provide any information to answer the question, simply answer ‘None’.
 
-If a question does not make any sense, or is not factually coherent, explain why instead of answering something not correct. 
-If you don't know the answer to a question, please don't share false information.
+Context: \n {context}
+Question: \n {question}
 
-Again, please limit your answer to 3 sentences or 40 words.
-
-Retrieved Documents:
-{context}
-
-User Input: {question}
+Provide your answer:
 '''
 
 [data]
 path_local = "./data/sec_filings/"
+
+path_local_evaluation = "./data/evaluation/SEC_Evaluation_Dataset.csv"
+
+
+[langsmith]
+api_key = "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"
+
+[nomic]
+api_key = "nk-4baT-vDWxmp6CBE6ArqQKhe4cePXDCOoOXlWWgVSDk0"
+
+embedding_model = "nomic-embed-text-v1.5"

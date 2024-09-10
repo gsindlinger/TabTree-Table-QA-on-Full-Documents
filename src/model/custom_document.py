@@ -51,3 +51,31 @@ class CustomDocument(Document):
                 "page_content": self.page_content,
                 "metadata": self.get_full_metadata(),
             }
+
+    @staticmethod
+    def doc_to_custom_doc(doc: Document) -> CustomDocument:
+        if "chunk_id" in doc.metadata:
+            chunk_id = doc.metadata["chunk_id"]
+        else:
+            chunk_id = None
+
+        if "additional_metadata" in doc.metadata:
+            additional_metadata = doc.metadata["additional_metadata"]
+        else:
+            additional_metadata = None
+
+        metadata = FullMetadata(
+            doc_id=doc.metadata["doc_id"],
+            chunk_id=chunk_id,
+            additional_metadata=additional_metadata,
+        )
+
+        return CustomDocument(
+            id=doc.id,
+            page_content=doc.page_content,
+            metadata=metadata,
+        )
+
+    @staticmethod
+    def docs_to_custom_docs(docs: List[Document]) -> List[CustomDocument]:
+        return [CustomDocument.doc_to_custom_doc(doc) for doc in docs]

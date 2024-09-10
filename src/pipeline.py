@@ -9,15 +9,15 @@ from .config import Config
 from langchain.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables.base import RunnableSequence
-from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.runnables import RunnablePassthrough
+from langchain_core.language_models.base import BaseLanguageModel
 
 
 class Pipeline(BaseModel):
     template: str
     prompt: PromptTemplate
     output_parser: StrOutputParser
-    llm: BaseChatModel
+    llm: BaseLanguageModel
     llm_chain: RunnableSequence
     retriever: QdrantRetriever
 
@@ -27,7 +27,6 @@ class Pipeline(BaseModel):
     @classmethod
     def from_config(cls, vector_store: QdrantVectorStore) -> Pipeline:
         retriever = QdrantRetriever(vector_store)
-        docs = retriever.invoke("What is love?")
         template = Config.pipeline.template
         llm = (
             OllamaLLM()
@@ -35,13 +34,13 @@ class Pipeline(BaseModel):
             else HuggingFaceLLM()
         )
         prompt = PromptTemplate(
-            input_variables=["content", "question"],
+            input_variables=["context", "question"],
             template=Config.pipeline.template,
         )
         output_parser = StrOutputParser()
         llm_chain = (
             {
-                "content": retriever | retriever.format_docs,
+                "context": retriever | retriever.format_docs,
                 "question": RunnablePassthrough(),
             }
             | prompt
@@ -57,5 +56,8 @@ class Pipeline(BaseModel):
             llm_chain=llm_chain,
         )
 
-    def invoke(self, context: str = "", question: str = "What is love?") -> str:
-        return self.llm_chain.invoke({"context": context, "question": question})
+    def invoke(self, question: str = "What is love?") -> str:
+        return self.llm_chain.invoke(question)
+
+    def stream(self, question: str = "What is love?") -> str:
+        return self.llm_chain.stream(question)

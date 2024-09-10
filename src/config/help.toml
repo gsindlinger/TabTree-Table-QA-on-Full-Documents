@@ -11,6 +11,20 @@ Set to true to enable the pipeline, or false to disable it.
 Note: The indexing stage will always run before anything else.
 """
 
+analysis = """
+Determines whether some analysis based on the selected data should be executed.
+Rightnow, this includes analysing the count of tokens of documents.
+"""
+
+evaluation = """
+Determines whether the evaluation procedure should be called and processed.
+"""
+
+mode = """
+Specifies which general approach / dataset should be used. 
+Right now there is only 'sec-filings'.
+"""
+
 [qdrant]
 host = """
 Specifies the hostname for Qdrant.
@@ -69,6 +83,12 @@ Specifies the model used for embeddings of documents.
 An example option is "sentence-transformers/all-MiniLM-L6-v2".
 """
 
+[full_document_storage]
+local_path = """
+Specifies the file path for storing the full documents after preprocessing.
+Only used when local_storage is active and no database setup is used.
+"""
+
 [pipeline]
 llm_implementation = """
 Specifies the LLM implementation to use in the pipeline.
@@ -95,4 +115,27 @@ An example option is "sentence-transformers/all-MiniLM-L6-v2".
 path_local = """
 Specifies the local path where data files are stored.
 Provide the relative or absolute path to the data directory.
+"""
+
+path_local_evaluation = """
+Specifies the local path where the file for evaluation is stored. 
+The file has to be in CSV format.
+Provide the relative or absolute path to the data directory.
+"""
+
+[langsmith]
+api_key = """
+Specifies the API key to use for authentication with Langsmith.
+This key is required to access the Langsmith API endpoints.
+"""
+
+[nomic]
+api_key = """
+Specifies the API key to use for authentication with Nomic AI.
+This key is required to access the Nomic API endpoints.
+"""
+
+embedding_model = """
+Specifies the model used for embeddings in the pipeline.
+An example option is "nomic-embed-text-v1.5".
 """
