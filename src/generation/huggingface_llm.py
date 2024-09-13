@@ -11,5 +11,5 @@ class HuggingFaceLLM(HuggingFaceEndpoint):
     def _default_kwargs() -> dict:
         return {
             "repo_id": Config.huggingface.generation_model,
-            "huggingfacehub_api_token": Config.huggingface.api_key,
+            "huggingfacehub_api_token": Config.env_variables.HUGGINGFACE_API_KEY,
         }

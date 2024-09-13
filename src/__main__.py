@@ -30,12 +30,9 @@ def main() -> None:
                 break
             print(pipeline.invoke(question=question))
 
-    elif Config.run.evaluation:
+    if Config.run.evaluation:
         evaluator = Evaluator.from_config(pipeline=pipeline)
-        evaluation_results = evaluator.evaluate()
-        logging.info(
-            f"Accuracy: {evaluation_results.accuracy}, F1: {evaluation_results.f1_score}"
-        )
+        evaluator.evaluate()
 
 
 if __name__ == "__main__":

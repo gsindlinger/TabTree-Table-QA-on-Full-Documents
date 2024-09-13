@@ -1,6 +1,8 @@
 from __future__ import annotations
+from typing import List
 from pydantic.v1 import BaseModel
 
+from .model.custom_document import CustomDocument
 from .retrieval.retriever import QdrantRetriever
 from .retrieval.qdrant_store import QdrantVectorStore
 from .generation.huggingface_llm import HuggingFaceLLM
@@ -55,6 +57,10 @@ class Pipeline(BaseModel):
             output_parser=output_parser,
             llm_chain=llm_chain,
         )
+
+    def retrieve(self, question: str = "What is love?") -> List[CustomDocument]:
+        docs = self.retriever.invoke(question)
+        return CustomDocument.docs_to_custom_docs(docs)
 
     def invoke(self, question: str = "What is love?") -> str:
         return self.llm_chain.invoke(question)

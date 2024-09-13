@@ -1,17 +1,21 @@
+from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import List, Optional
 
-from .sec_filing_loader import SECFilingLoader
+from pydantic import BaseModel
+
 from ...config.config import Config
 from ...model.custom_document import CustomDocument
 
 
-class DocumentLoader(ABC):
+class DocumentLoader(ABC, BaseModel):
 
     @classmethod
-    def from_config(cls) -> SECFilingLoader:
+    def from_config(cls) -> DocumentLoader:
         mode = Config.run.mode
         if "sec-filings" in mode:
+            from .sec_filing_loader import SECFilingLoader
+
             return SECFilingLoader()
         else:
             raise ValueError(f"Unknown mode: {mode}")

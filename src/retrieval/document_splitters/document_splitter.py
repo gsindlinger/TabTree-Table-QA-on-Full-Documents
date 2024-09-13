@@ -1,3 +1,4 @@
+from __future__ import annotations
 from abc import ABC, abstractmethod
 import logging
 from typing import List, Optional
@@ -16,7 +17,7 @@ class DocumentSplitter(ABC, BaseModel):
         arbitrary_types_allowed = True
 
     @classmethod
-    def from_config(cls):
+    def from_config(cls) -> DocumentSplitter:
         if Config.run.mode == "sec-filings":
             from .sec_filing_splitter import SECFilingSplitter
 

@@ -12,12 +12,8 @@ from .document_store import FullDocumentStore
 class LocalStore(FullDocumentStore):
     path: str = Field(default_factory=lambda: Config.full_document_storage.local_path)
 
-
-class LocalStore(FullDocumentStore):
-    path: str = Field(default_factory=lambda: Config.full_document_storage.local_path)
-
     def store_full_documents(
-        self, documents: List[CustomDocument], file_ending: str = "html_1"
+        self, documents: List[CustomDocument], file_ending: str = ""
     ) -> int:
         """Stores the documents locally in the specified directory.
 
@@ -46,9 +42,7 @@ class LocalStore(FullDocumentStore):
 
         return len(documents)
 
-    def get_document_by_id(
-        self, id: str, file_ending: str = "html_1"
-    ) -> CustomDocument:
+    def get_document_by_id(self, id: str, file_ending: str = "") -> CustomDocument:
         with open(self.path + id + "." + file_ending, "r", encoding="utf-8") as file:
             html_content = file.read()
             return CustomDocument(

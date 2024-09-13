@@ -97,10 +97,11 @@ class IndexingService(BaseModel):
         with open(f"{token_counts_path}token_counts.json", "w") as file:
             json.dump(token_counts, file, indent=4)
 
-        # Plot avg with std of token counts for each preprocess_mode and show plot
         avg_token_counts = [entry["avg"] for entry in token_counts]
         std_token_counts = [entry["std"] for entry in token_counts]
         preprocess_modes = [entry["preprocess_mode"] for entry in token_counts]
+
+        # Create bar plot with error bars
         plt.bar(
             preprocess_modes,
             avg_token_counts,
@@ -110,10 +111,28 @@ class IndexingService(BaseModel):
             ecolor="black",
             capsize=10,
         )
+
+        # Add dashed lines and text values on top of the bars
+        for i, avg in enumerate(avg_token_counts):
+            rounded_avg = round(avg)
+            plt.text(
+                i,
+                avg + std_token_counts[i],
+                f"{rounded_avg:,}",
+                ha="center",
+                va="bottom",
+                color="black",
+                fontstyle="italic",
+            )
+            plt.axhline(y=avg, color="gray", linestyle="--", linewidth=0.75)
+
+        # Labels and title
         plt.ylabel("Average number of tokens")
         plt.xlabel("Preprocess mode")
         plt.yscale("log")
         plt.title("Average number of tokens per document")
+
+        # Save the plot
         plt.savefig(f"{token_counts_path}avg_token_counts.png")
 
     @staticmethod

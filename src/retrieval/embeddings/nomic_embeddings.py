@@ -11,7 +11,7 @@ class NomicEmbeddings(_NomicEmbeddings):
     def _default_kwargs() -> dict:
         return {
             "model": Config.nomic.embedding_model,
-            "nomic_api_key": Config.nomic.api_key,
+            "nomic_api_key": Config.env_variables.NOMIC_API_KEY,
         }
 
     def get_model_name(self) -> str:

@@ -1,10 +1,13 @@
 from __future__ import annotations
+import logging
+import os
 import tomllib
 import argparse
 from pathlib import Path
 from typing import Union, NoReturn
-from abc import ABCMeta, abstractclassmethod
+from abc import ABC, ABCMeta
 from collections.abc import Hashable
+from dotenv import dotenv_values, load_dotenv
 
 from distutils.util import strtobool
 
@@ -26,7 +29,7 @@ def _readonly(self, *args, **kwargs) -> NoReturn:
 ConfigValue = Union[Hashable, "ConfigValue"]
 
 
-class ConfigMeta(ABCMeta):
+class ConfigMeta(ABC, ABCMeta):
     """
     Metaclass for Config
 
@@ -36,7 +39,7 @@ class ConfigMeta(ABCMeta):
     def __getattr__(cls, name: str) -> ConfigValue:
         return cls[name]
 
-    @abstractclassmethod
+    @classmethod
     def __class_getitem__(cls, name: str) -> ConfigValue:
         pass
 
@@ -52,8 +55,10 @@ class Config(dict[str, ConfigValue], metaclass=ConfigMeta):
     def __init__(self, data: dict, _help: dict | None = None) -> None:
         # caveat: the file is only accessed by the class, not by instances!
         # instances are only created for sub-dicts
+
         for key, value in data.items():
-            item_help = _help[key] if _help else None
+
+            item_help = _help.get(key) if _help else None
             if not isinstance(key, str):
                 raise TypeError(f"Config keys must be strings! Found {type(key)}")
             match value:
@@ -71,12 +76,28 @@ class Config(dict[str, ConfigValue], metaclass=ConfigMeta):
 
     @classmethod
     def _read(cls) -> Config:
-        """Create Config by reading global config and help file"""
+        """Create Config by reading global config, help file and env file"""
+
+        # First get env variables
+        env_vars = cls._load_env()
+
+        # Load help file
         with open(cls._path_help, "rb") as f:
             _help = cls(tomllib.load(f))
+
+        # Load config file
         with open(cls._path_config, "rb") as f:
-            c = cls(tomllib.load(f), _help)
+            data = tomllib.load(f)
+
+        data.update(env_vars)
+        c = cls(data, _help)
+
         return c
+
+    @classmethod
+    def _load_env(cls) -> None:
+        """Load environment variables from .env file"""
+        return {"env_variables": dotenv_values()}
 
     @classmethod
     def from_args(cls) -> None:

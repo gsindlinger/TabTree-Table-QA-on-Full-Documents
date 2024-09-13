@@ -6,11 +6,12 @@ from typing import List, Optional
 from bs4 import BeautifulSoup
 from pydantic import Field
 
+from .document_loader import DocumentLoader
 from ...config.config import Config
 from ...model.custom_document import CustomDocument, FullMetadata
 
 
-class SECFilingLoader:
+class SECFilingLoader(DocumentLoader):
     folder_path: str
 
     def __init__(self, *args, **kwargs):

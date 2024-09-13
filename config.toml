@@ -38,12 +38,11 @@ temperature = 0
 model = "gemma:2b"
 
 [huggingface]
-api_key = "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"
 
 # choose out of "mistralai/Mistral-Nemo-Instruct-2407", "google/gemma-2-2b-it"
 generation_model = "mistralai/Mistral-Nemo-Instruct-2407"
 
-# choose out of "sentence-transformers/all-MiniLM-l6-v2", "Alibaba-NLP/gte-base-en-v1.5", 
+# choose out of "sentence-transformers/all-MiniLM-l6-v2", "Snowflake/snowflake-arctic-embed-m-v1.5"
 embedding_model = "Snowflake/snowflake-arctic-embed-m-v1.5"
 
 [full_document_storage]
@@ -58,27 +57,30 @@ llm_implementation = "huggingface"
 embedding_tool = "HuggingFaceEmbeddings"
 
 template = '''
-You are tasked with answering questions based on specific financial documents. 
-Your task is to extract the correct answer and provide it in the format specified (either as a number or text). 
-Answer with only a text or number, without any additional context or explanation.
-If the context does not provide any information to answer the question, simply answer ‘None’.
+You are tasked with answering questions based on specific financial documents. Your task is to give the correct answer based on the given context.
+Respond with only the answer. Do not include words like "Answer" or "Response." Provide the answer as either:
+- A number for questions about revenue, profit, or quantities.
+- A word or phrase for questions about products, categories, or names.
+- 'None' if the context doesn't provide information about the given question.
+
+Do not include explanations, units, or any additional text. Provide only the final answer.
+
+Example:
+- What was the sales revenue of Company Y from 2022 to 2024?
+  2,500
+- What is the main product of Company Z?
+  ZetaDrug
+- What's stock market price of Company X in 2021?
+  None
 
 Context: \n {context}
-Question: \n {question}
 
-Provide your answer:
+Question: \n {question}
 '''
 
 [data]
 path_local = "./data/sec_filings/"
-
 path_local_evaluation = "./data/evaluation/SEC_Evaluation_Dataset.csv"
 
-
-[langsmith]
-api_key = "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"
-
 [nomic]
-api_key = "nk-4baT-vDWxmp6CBE6ArqQKhe4cePXDCOoOXlWWgVSDk0"
-
 embedding_model = "nomic-embed-text-v1.5"

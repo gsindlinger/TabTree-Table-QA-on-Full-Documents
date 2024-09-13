@@ -41,5 +41,18 @@
                 "--run.analysis=true"
             ]
         }
+        {
+            "name": "Run Evaluation",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "src",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "args": [
+                "--run.indexing=false",
+                "--run.pipeline=false",
+                "--run.evaluation=true"
+            ]
+        }
     ]
 }
