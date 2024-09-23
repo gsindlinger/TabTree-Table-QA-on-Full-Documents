@@ -7,6 +7,7 @@ import numpy as np
 from pydantic import BaseModel
 import tiktoken
 
+from ..config.config import Config
 from ..retrieval.document_splitters.document_splitter import DocumentSplitter
 from ..retrieval.document_loaders.document_loader import DocumentLoader
 from .full_document_storage.local_store import LocalStore
@@ -27,9 +28,13 @@ class IndexingService(BaseModel):
     def embed_documents(self):
         # Load & Preprocess documents
         document_loader = DocumentLoader.from_config()
-        documents = document_loader.load_documents(
-            num_of_documents=10, preprocess_mode="default"
-        )
+        documents = [
+            document_loader.load_single_document(Config.sec_filings.data_path_single)
+        ]
+
+        # documents = document_loader.load_documents(
+        #     num_of_documents=10, preprocess_mode="default"
+        # )
 
         # Store full documents
         initial_number_of_documents = LocalStore().store_full_documents(
@@ -37,7 +42,10 @@ class IndexingService(BaseModel):
         )
 
         # Split documents
-        document_splitter = DocumentSplitter.from_config()
+        document_splitter = DocumentSplitter.from_config(
+            embeddings=self.qdrant_store.embeddings
+        )
+
         documents = document_splitter.split_documents(documents)
 
         # Embed documents
@@ -47,6 +55,17 @@ class IndexingService(BaseModel):
         logging.info(
             f"Generated {len(vectors)} for {initial_number_of_documents} documents"
         )
+
+        # Check if collection exists, else delete it
+        if self.qdrant_store.client.is_populated(
+            collection_name=self.qdrant_store.collection_name, accept_empty=False
+        ):
+            self.qdrant_store.client.delete_collection(
+                collection_name=self.qdrant_store.collection_name
+            )
+            logging.info(
+                f"Deleted existing collection {self.qdrant_store.collection_name}"
+            )
 
         # Store documents using Qdrant client
         self.qdrant_store.client.add_documents(
@@ -65,7 +84,7 @@ class IndexingService(BaseModel):
 
         token_counts: List[List[int]] = []
 
-        for preprocess_mode in ["none", "remove_attributes", "all"]:
+        for preprocess_mode in ["none", "remove-attributes", "remove-invisible", "all"]:
             loaded_documents = document_loader.load_documents(
                 preprocess_mode=preprocess_mode, num_of_documents=10
             )

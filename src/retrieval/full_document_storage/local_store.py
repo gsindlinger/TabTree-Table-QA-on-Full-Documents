@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import List
+from typing import List, Optional
 
 from pydantic import Field
 
@@ -10,10 +10,13 @@ from .document_store import FullDocumentStore
 
 
 class LocalStore(FullDocumentStore):
-    path: str = Field(default_factory=lambda: Config.full_document_storage.local_path)
+    path: str = Field(
+        default_factory=lambda: f"{Config.indexing.full_document_storage_path}/{Config.run.dataset}/{Config.sec_filings.preprocess_mode_index_name}/"
+    )
+    file_ending: str = Field(default="test.html")
 
     def store_full_documents(
-        self, documents: List[CustomDocument], file_ending: str = ""
+        self, documents: List[CustomDocument], file_ending: Optional[str] = None
     ) -> int:
         """Stores the documents locally in the specified directory.
 
@@ -24,6 +27,9 @@ class LocalStore(FullDocumentStore):
         Returns:
             int: Number of documents stored.
         """
+        if not file_ending:
+            file_ending = self.file_ending
+
         # Ensure the directory exists
         os.makedirs(self.path, exist_ok=True)
 
@@ -32,6 +38,7 @@ class LocalStore(FullDocumentStore):
                 self.path, document.metadata.doc_id + "." + file_ending
             )
             try:
+                logging.info(f"Document character count: {len(document.page_content)}")
                 with open(file_path, "w", encoding="utf-8") as file:
                     file.write(document.page_content)
                     logging.info(f"Stored document {document.metadata.doc_id} locally")
@@ -42,7 +49,12 @@ class LocalStore(FullDocumentStore):
 
         return len(documents)
 
-    def get_document_by_id(self, id: str, file_ending: str = "") -> CustomDocument:
+    def get_document_by_id(
+        self, id: str, file_ending: Optional[str] = None
+    ) -> CustomDocument:
+        if not file_ending:
+            file_ending = self.file_ending
+
         with open(self.path + id + "." + file_ending, "r", encoding="utf-8") as file:
             html_content = file.read()
             return CustomDocument(

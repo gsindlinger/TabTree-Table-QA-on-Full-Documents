@@ -4,59 +4,27 @@ indexing = false
 analysis = false
 evaluation = false
 
-# choose from "sec-filings", "sec-filings-html-splitter"
-mode = "sec-filings-html-splitter"
+# choose from "sec-filings", "wiki-tables"
+dataset = "sec-filings"
 
-[qdrant]
+[indexing]
 
-# hostname (inside docker network) from Python/askecj perspective
-# set to "localhost" if and only if you are working outside docker
-# (if needed temporarily only, consider using --qdrant.hostname=localhost instead)
-host = "localhost"
-# host = "qdrant"
+# choose from "recursive-character", "recursive-character-html", "semantic"
+chunking_strategy = "semantic"
 
-# Set the following value to the ports inside docker network (default: 6333, 6334).
-# This setting may differ from the port bound on host set in .env!
-port = 6333
-grpc_port = 6334
+# choose out of "huggingface", "nomic", "openai"...
+embedding_method = "openai"
 
-# Name of the qdrant collection on which 
-# indexing and retrieving will be based on.
-index_name = "baseline-processed"
-
-[ollama]
-
-# hostname (inside docker network) from Python/askecj perspective
-# set to "localhost" if and only if you are working outside docker
-# (if needed temporarily only, consider using --ollama.host=localhost instead)
-host = "localhost"
-# host = "ollama"
-port = 11434
-temperature = 0
-
-# choose out of "gemma:2b", "mistral-nemo"
-model = "gemma:2b"
-
-[huggingface]
-
-# choose out of "mistralai/Mistral-Nemo-Instruct-2407", "google/gemma-2-2b-it"
-generation_model = "mistralai/Mistral-Nemo-Instruct-2407"
-
-# choose out of "sentence-transformers/all-MiniLM-l6-v2", "Snowflake/snowflake-arctic-embed-m-v1.5"
-embedding_model = "Snowflake/snowflake-arctic-embed-m-v1.5"
-
-[full_document_storage]
-local_path = "./data/preprocessed_documents/"
+full_document_storage_path = "./data/preprocessed_documents/"
 
 
-[pipeline]
-# choose out of ollama or huggingface
-llm_implementation = "huggingface"
+[text_generation]
 
-# choose out of HuggingFaceEmbeddings, NomicEmbeddings ...
-embedding_tool = "HuggingFaceEmbeddings"
+# choose from "ollama", "huggingface-inference","openai", ...
 
-template = '''
+method = "huggingface-inference"
+
+prompt_template = '''
 You are tasked with answering questions based on specific financial documents. Your task is to give the correct answer based on the given context.
 Respond with only the answer. Do not include words like "Answer" or "Response." Provide the answer as either:
 - A number for questions about revenue, profit, or quantities.
@@ -73,14 +41,50 @@ Example:
 - What's stock market price of Company X in 2021?
   None
 
-Context: \n {context}
+Context: 
+{context}
 
-Question: \n {question}
+Question: {question}
 '''
 
-[data]
-path_local = "./data/sec_filings/"
-path_local_evaluation = "./data/evaluation/SEC_Evaluation_Dataset.csv"
+[ollama]
+
+# choose out of "gemma:2b", "mistral-nemo"
+model = "gemma:2b"
+
+[huggingface]
+
+# choose out of "mistralai/Mistral-Nemo-Instruct-2407", "google/gemma-2-2b-it"
+generation_model = "mistralai/Mistral-Nemo-Instruct-2407"
+
+# choose out of "sentence-transformers/all-MiniLM-l6-v2", "Snowflake/snowflake-arctic-embed-m-v1.5", "Alibaba-NLP/gte-base-en-v1.5"
+embedding_model = "sentence-transformers/all-MiniLM-l6-v2"
 
 [nomic]
 embedding_model = "nomic-embed-text-v1.5"
+
+[openai]
+embedding_model = "text-embedding-ada-002"
+
+[sec_filings]
+data_path = "./data/sec_filings/"
+data_path_single = "./data/sec_filings/awk-20231231.htm"
+evaluation_data_path = "./data/evaluation/SEC_Evaluation_Dataset_AWW.csv"
+
+# Options are 
+#       - "none", 
+#       - "remove-attributes", 
+#       - "remove-xbrl", 
+#       - "remove-invisible", 
+#       - "remove-spans-a", 
+#       - "split-into-reduced-sections", 
+#       - "split-into-table-and-text", 
+#       - "only-text-except-tables". 
+
+# As soon as "none" is in the list, there will be no preprocessing
+preprocess_mode = ["only-text-except-tables", "remove-attributes", "remove-xbrl", "remove-invisible", "remove-spans-a"]
+preprocess_mode_index_name = "only-text-except-tables"
+[wiki_tables]
+
+
+

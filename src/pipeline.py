@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import List
-from pydantic.v1 import BaseModel
+from pydantic import BaseModel
 
 from .model.custom_document import CustomDocument
 from .retrieval.retriever import QdrantRetriever
@@ -29,15 +29,15 @@ class Pipeline(BaseModel):
     @classmethod
     def from_config(cls, vector_store: QdrantVectorStore) -> Pipeline:
         retriever = QdrantRetriever(vector_store)
-        template = Config.pipeline.template
+        template = Config.text_generation.prompt_template
         llm = (
             OllamaLLM()
-            if Config.pipeline.llm_implementation == "ollama"
+            if Config.text_generation.method == "ollama"
             else HuggingFaceLLM()
         )
         prompt = PromptTemplate(
             input_variables=["context", "question"],
-            template=Config.pipeline.template,
+            template=template,
         )
         output_parser = StrOutputParser()
         llm_chain = (

@@ -1,5 +1,6 @@
 from langchain_qdrant import QdrantVectorStore as _QdrantVectorStore
 
+from .embeddings.openai_embeddings import OpenAIEmbeddings
 from .embeddings.nomic_embeddings import NomicEmbeddings
 from .embeddings.huggingface_embeddings import HuggingFaceEmbeddings
 from ..config import Config
@@ -11,13 +12,17 @@ class QdrantVectorStore(_QdrantVectorStore):
 
     @classmethod
     def from_config(cls):
-        embedding_tool = Config.pipeline.embedding_tool
-        if embedding_tool == "HuggingFaceEmbeddings":
-            embedding_model = HuggingFaceEmbeddings()
-        elif embedding_tool == "NomicEmbeddings":
-            embedding_model = NomicEmbeddings()
-        else:
-            raise ValueError(f"Unknown embedding tool: {embedding_tool}")
+        match Config.indexing.embedding_method:
+            case "huggingface":
+                embedding_model = HuggingFaceEmbeddings()
+            case "nomic":
+                embedding_model = NomicEmbeddings()
+            case "openai":
+                embedding_model = OpenAIEmbeddings()
+            case _:
+                raise ValueError(
+                    f"Unknown embedding tool: {Config.indexing.embedding_method}"
+                )
 
         vector_size = len(embedding_model.embed_documents(["Hello World!"])[0])
         client = QdrantClient()
@@ -25,8 +30,13 @@ class QdrantVectorStore(_QdrantVectorStore):
         embedding_model_name = embedding_model_name[
             embedding_model_name.rfind("/") + 1 :
         ]
-        collection_name = f"{Config.run.mode}-{Config.qdrant.index_name}-{Config.pipeline.embedding_tool}-{embedding_model_name}"
-        if not client.is_populated(collection=collection_name):
+        match Config.run.dataset:
+            case "sec-filings":
+                collection_name = f"{Config.run.dataset}-{embedding_model_name}-{Config.indexing.chunking_strategy}-{Config.sec_filings.preprocess_mode_index_name}"
+            case _:
+                collection_name = f"{Config.run.dataset}-{embedding_model_name}-{Config.indexing.chunking_strategy}"
+
+        if not client.is_populated(collection_name=collection_name):
             client.create_index(
                 collection_name=collection_name,
                 vector_size=vector_size,

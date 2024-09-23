@@ -8,7 +8,7 @@ import pandas as pd
 
 class SECFilingEvaluator(Evaluator):
     def get_evaluation_docs(
-        self, file_path: str = Config.data.path_local_evaluation
+        self, file_path: str = Config.sec_filings.evaluation_data_path
     ) -> DataFrame:
         if not os.path.exists(file_path):
             raise FileNotFoundError(f"File {file_path} not found")

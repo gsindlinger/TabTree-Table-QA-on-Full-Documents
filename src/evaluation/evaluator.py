@@ -1,7 +1,7 @@
 import time
 
 from pandas import DataFrame
-from pydantic.v1 import BaseModel
+from pydantic import BaseModel
 from ..pipeline import Pipeline
 from .evaluation_results import EvaluationResults, IRResults, QAResults
 from ..config.config import Config
@@ -13,7 +13,7 @@ class Evaluator(ABC, BaseModel):
 
     @classmethod
     def from_config(cls, pipeline):
-        mode = Config.run.mode
+        mode = Config.run.dataset
         if "sec-filings" in mode:
 
             from .sec_filing_evaluator import SECFilingEvaluator

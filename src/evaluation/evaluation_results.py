@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional
 from pydantic import BaseModel
 
 
-class EvaluationResults(ABC, BaseModel):
+class EvaluationResults(BaseModel):
     qa_results: Optional[QAResults] = None
     ir_results: Optional[IRResults] = None
     
@@ -51,7 +51,7 @@ class EvaluationResults(ABC, BaseModel):
         recall = true_positives / (true_positives + false_negatives)
         return 2 * precision * recall / (precision + recall)
 
-class IRResults(EvaluationResults):
+class IRResults(BaseModel):
     document_accuracy: float
     chunk_accuracy: float
     
@@ -90,21 +90,20 @@ class IRResults(EvaluationResults):
         ground_truths_search_string: List[str]) -> float:
         
         chunk_accuracy_count = 0
-        
         chunk_accuracy_count = 0
         all_documents = zip(predictions_doc_id, ground_truths_doc_id, predictions_text, ground_truths_search_string)
-        for predictions_doc_id, ground_truths_doc_id, predictions_text, ground_truths_search_string in all_documents:
-            if ground_truths_doc_id in predictions_doc_id:
+        for predictions_doc_id_temp, ground_truths_doc_id_temp, predictions_text_temp, ground_truths_search_string_temp in all_documents:
+            if ground_truths_doc_id_temp in predictions_doc_id_temp:
                 # search ground truth string in retrieved text as regex
-                for predictions_text_single in predictions_text:
-                    if re.search(ground_truths_search_string, predictions_text_single):
+                for predictions_text_single_temp in predictions_text_temp:
+                    if re.search(ground_truths_search_string_temp, predictions_text_single_temp):
                         chunk_accuracy_count += 1
                         break
                     
         return chunk_accuracy_count / len(predictions_doc_id)  
         
 
-class QAResults(EvaluationResults):
+class QAResults(BaseModel):
     accuracy: float
     f1_score: float
     data: Optional[Dict] = None

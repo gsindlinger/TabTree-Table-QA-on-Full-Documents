@@ -12,7 +12,7 @@ class DocumentLoader(ABC, BaseModel):
 
     @classmethod
     def from_config(cls) -> DocumentLoader:
-        mode = Config.run.mode
+        mode = Config.run.dataset
         if "sec-filings" in mode:
             from .sec_filing_loader import SECFilingLoader
 
@@ -24,6 +24,10 @@ class DocumentLoader(ABC, BaseModel):
     def load_documents(
         self, preprocess_mode: str = "default", num_of_documents: Optional[int] = None
     ) -> List[CustomDocument]:
+        pass
+
+    @abstractmethod
+    def load_single_document(self, preprocess_mode: str = "default") -> CustomDocument:
         pass
 
     def preprocess_document(

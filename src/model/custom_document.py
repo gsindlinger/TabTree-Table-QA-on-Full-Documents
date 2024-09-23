@@ -20,6 +20,7 @@ class FullMetadata(BaseModel):
 class CustomDocument(Document):
     metadata: Optional[FullMetadata] = None
     vector: Optional[List[float]] = None
+    splitted_content: Optional[List[str]] = None
 
     class Config:
         arbitrary_types_allowed = True

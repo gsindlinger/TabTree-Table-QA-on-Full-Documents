@@ -9,7 +9,7 @@ class OllamaLLM(ChatOllama):
     @staticmethod
     def _default_kwargs() -> dict:
         return {
-            "base_url": f"http://{Config.ollama.host}:{Config.ollama.port}",
+            "base_url": f"http://{Config.env_variables.OLLAMA_HOST}:{Config.env_variables.OLLAMA_PORT}",
             "model": Config.ollama.model,
-            "temperature": Config.ollama.temperature,
+            "temperature": 0,
         }

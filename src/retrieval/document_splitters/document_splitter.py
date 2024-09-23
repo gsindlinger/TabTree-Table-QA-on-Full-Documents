@@ -1,38 +1,51 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
 import logging
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from langchain_text_splitters import TextSplitter
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from ...config.config import Config
 from ...model.custom_document import CustomDocument
 
 
 class DocumentSplitter(ABC, BaseModel):
-    text_splitter: Optional[TextSplitter] = None
-    chunk_size: int = Field(6000)
+    text_splitter: Optional[TextSplitter | Tuple[TextSplitter]] = None
+    chunk_size: Optional[int] = None
 
     class Config:
         arbitrary_types_allowed = True
 
     @classmethod
-    def from_config(cls) -> DocumentSplitter:
-        if Config.run.mode == "sec-filings":
-            from .sec_filing_splitter import SECFilingSplitter
+    def from_config(cls, embeddings) -> DocumentSplitter:
+        match Config.indexing.chunking_strategy:
+            case "recursive-character":
+                from .sec_filing_splitter import SECFilingSplitter
 
-            return SECFilingSplitter()
+                return SECFilingSplitter(chunk_size=500)
+            case "recursive-character-html":
+                from .sec_filing_splitter import SECFilingSplitterHTML
 
-        elif Config.run.mode == "sec-filings-html-splitter":
-            from .sec_filing_splitter import SECFilingSplitterHTML
+                return SECFilingSplitterHTML(chunk_size=500)
 
-            return SECFilingSplitterHTML()
+            case "semantic":
+                from .sec_filing_splitter import SECFilingSplitterSemantic
 
-        else:
-            raise ValueError(f"Unknown mode: {Config.run.mode}")
+                return SECFilingSplitterSemantic(embeddings=embeddings)
+
+            case _:
+                raise ValueError(f"Unknown mode: {Config.indexing.chunking_strategy}")
 
     def split_document(self, document: CustomDocument) -> List[CustomDocument]:
-        splitted_text = self.text_splitter.split_text(document.page_content)
+        if document.splitted_content:
+            splitted_text = [
+                self.text_splitter.split_text(section)
+                for section in document.splitted_content
+            ]
+            # flatten the list
+            splitted_text = [item for sublist in splitted_text for item in sublist]
+        else:
+            splitted_text = self.text_splitter.split_text(document.page_content)
         return [
             CustomDocument(
                 page_content=chunk,

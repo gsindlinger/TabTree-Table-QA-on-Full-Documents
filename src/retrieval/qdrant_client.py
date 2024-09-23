@@ -17,9 +17,9 @@ class QdrantClient(_QdrantClient):
     @staticmethod
     def _default_kwargs() -> dict:
         return {
-            "host": Config.qdrant.host,
-            "port": Config.qdrant.port,
-            "grpc_port": Config.qdrant.grpc_port,
+            "host": Config.env_variables.QDRANT_HOST,
+            "port": Config.env_variables.QDRANT_API_PORT,
+            "grpc_port": Config.env_variables.QDRANT_GRPC_PORT,
         }
 
     def wait(self, timeout: float | None = None, ping_interval: float = 1) -> Self:
@@ -35,21 +35,21 @@ class QdrantClient(_QdrantClient):
                 sleep(ping_interval)
         raise TimeoutError
 
-    def is_populated(self, collection: str, accept_empty: bool = False) -> bool:
+    def is_populated(self, collection_name: str, accept_empty: bool = False) -> bool:
         """check if collection exists and is not empty"""
-        if not self.collection_exists(collection_name=collection):
-            logging.info(f"index {collection} does not exist")
+        if not self.collection_exists(collection_name=collection_name):
+            logging.info(f"index {collection_name} does not exist")
             return False
         if not accept_empty:
-            count = self.count(collection_name=collection)
+            count = self.count(collection_name=collection_name)
             if count:
-                logging.info(f"index {collection} contains {count} documents")
+                logging.info(f"index {collection_name} contains {count} documents")
                 return True
             else:
-                logging.info(f"index {collection} exists but is empty")
+                logging.info(f"index {collection_name} exists but is empty")
                 return False
         else:
-            logging.info(f"index {collection} exists")
+            logging.info(f"index {collection_name} exists")
             return True
 
     def create_index(
@@ -79,10 +79,14 @@ class QdrantClient(_QdrantClient):
 
         assert len(documents) == len(vectors)
 
-        if not self.is_populated(collection=collection_name, accept_empty=True):
+        if not self.is_populated(collection_name=collection_name, accept_empty=True):
             self.create_index(
                 collection_name=collection_name,
                 vector_size=len(vectors[0]),
+            )
+        else:
+            logging.info(
+                f"Index {collection_name} already exists, adding documents to existing index"
             )
         points = [
             PointStruct(
