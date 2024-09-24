@@ -11,7 +11,7 @@ from langchain_core.documents.base import Document
 class QdrantRetriever(VectorStoreRetriever):
     def __init__(self, vector_store: QdrantVectorStore) -> None:
         super().__init__(
-            vectorstore=vector_store, search_type="similarity", search_kwargs={"k": 3}
+            vectorstore=vector_store, search_type="similarity", search_kwargs={"k": 2}
         )
 
     @staticmethod

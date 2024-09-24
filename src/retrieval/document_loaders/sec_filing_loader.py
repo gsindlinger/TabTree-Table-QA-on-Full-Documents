@@ -121,7 +121,7 @@ class SECFilingLoader(DocumentLoader):
 
         if "split-into-reduced-sections" in preprocess_mode:
             soup, splitted_sections = SECFilingLoader.split_into_reduced_sections(soup)
-            document.splitted_content = splitted_sections
+            # document.splitted_content = splitted_sections
 
         # attention: potentially overrides the splitted content variable
         if "split-into-table-and-text" in preprocess_mode:
@@ -167,15 +167,19 @@ class SECFilingLoader(DocumentLoader):
         hr_pattern = re.compile(r"<hr\s*[^>]*>", re.IGNORECASE)
         sections = hr_pattern.split(str(soup))
 
-        valid_sections = []
+        modified_sections = []
         # Check each section for the presence of a <table>
         for i, section in enumerate(sections):
+            replacement_str = "\n\n(...)\n\n"
             if i == 0 or "<table>" in section or i == len(sections) - 1:
-                valid_sections.append(section.strip())
+                modified_sections.append(section.strip())
+            else:
+                if modified_sections[-1] != replacement_str:
+                    modified_sections.append(replacement_str)
 
         # Reconstruct the HTML content
-        splitted_content = valid_sections
-        soup = BeautifulSoup("".join(valid_sections), "html.parser")
+        splitted_content = modified_sections
+        soup = BeautifulSoup("".join(modified_sections), "html.parser")
         return soup, splitted_content
 
     @staticmethod

@@ -16,5 +16,5 @@ class SECFilingEvaluator(Evaluator):
         df = pd.read_csv(file_path, sep=";")
 
         # select first 5 rows
-        df = df.head(5)
+        # df = df.head(5)
         return df

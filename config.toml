@@ -12,7 +12,7 @@ dataset = "sec-filings"
 # choose from "recursive-character", "recursive-character-html", "semantic"
 chunking_strategy = "semantic"
 
-# choose out of "huggingface", "nomic", "openai"...
+# choose out of "huggingface", "nomic", "openai", "fast_embed", ...
 embedding_method = "openai"
 
 full_document_storage_path = "./data/preprocessed_documents/"
@@ -66,6 +66,9 @@ embedding_model = "nomic-embed-text-v1.5"
 [openai]
 embedding_model = "text-embedding-ada-002"
 
+[fast_embed]
+embedding_model = "BAAI/bge-small-en-v1.5"
+
 [sec_filings]
 data_path = "./data/sec_filings/"
 data_path_single = "./data/sec_filings/awk-20231231.htm"
@@ -77,13 +80,14 @@ evaluation_data_path = "./data/evaluation/SEC_Evaluation_Dataset_AWW.csv"
 #       - "remove-xbrl", 
 #       - "remove-invisible", 
 #       - "remove-spans-a", 
-#       - "split-into-reduced-sections", 
-#       - "split-into-table-and-text", 
-#       - "only-text-except-tables". 
+#       - "split-into-reduced-sections", # Get rid of sections not containing any tables
+#       - "split-into-table-and-text", # Split tables so tables and texts can be treated seperately
+#       - "only-text-except-tables". # Only keep html tags for tables
 
 # As soon as "none" is in the list, there will be no preprocessing
-preprocess_mode = ["only-text-except-tables", "remove-attributes", "remove-xbrl", "remove-invisible", "remove-spans-a"]
-preprocess_mode_index_name = "only-text-except-tables"
+preprocess_mode = ["only-text-except-tables", "split-into-reduced-sections", "remove-attributes", "remove-xbrl", "remove-invisible", "remove-spans-a"]
+preprocess_mode_index_name = "only-text-except-tables-reduced"
+
 [wiki_tables]
 
 

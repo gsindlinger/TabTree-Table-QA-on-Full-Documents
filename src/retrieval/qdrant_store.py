@@ -1,5 +1,6 @@
 from langchain_qdrant import QdrantVectorStore as _QdrantVectorStore
 
+from .embeddings.fast_embed_embeddings import FastEmbedEmbeddings
 from .embeddings.openai_embeddings import OpenAIEmbeddings
 from .embeddings.nomic_embeddings import NomicEmbeddings
 from .embeddings.huggingface_embeddings import HuggingFaceEmbeddings
@@ -19,6 +20,8 @@ class QdrantVectorStore(_QdrantVectorStore):
                 embedding_model = NomicEmbeddings()
             case "openai":
                 embedding_model = OpenAIEmbeddings()
+            case "fast_embed":
+                embedding_model = FastEmbedEmbeddings()
             case _:
                 raise ValueError(
                     f"Unknown embedding tool: {Config.indexing.embedding_method}"

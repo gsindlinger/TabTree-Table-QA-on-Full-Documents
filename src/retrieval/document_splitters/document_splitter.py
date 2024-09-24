@@ -31,7 +31,9 @@ class DocumentSplitter(ABC, BaseModel):
             case "semantic":
                 from .sec_filing_splitter import SECFilingSplitterSemantic
 
-                return SECFilingSplitterSemantic(embeddings=embeddings)
+                return SECFilingSplitterSemantic(
+                    embeddings=embeddings, chunk_size=10000
+                )
 
             case _:
                 raise ValueError(f"Unknown mode: {Config.indexing.chunking_strategy}")
