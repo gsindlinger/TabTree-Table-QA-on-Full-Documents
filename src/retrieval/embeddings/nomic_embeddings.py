@@ -1,9 +1,10 @@
 from langchain_nomic import NomicEmbeddings as _NomicEmbeddings
 
+from .custom_embeddings import CustomEmbeddings
 from ...config.config import Config
 
 
-class NomicEmbeddings(_NomicEmbeddings):
+class NomicEmbeddings(_NomicEmbeddings, CustomEmbeddings):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **(self._default_kwargs() | kwargs))
 

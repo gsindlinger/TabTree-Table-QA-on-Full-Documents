@@ -42,7 +42,7 @@ class QdrantClient(_QdrantClient):
             return False
         if not accept_empty:
             count = self.count(collection_name=collection_name)
-            if count:
+            if count and count.count > 0:
                 logging.info(f"index {collection_name} contains {count} documents")
                 return True
             else:

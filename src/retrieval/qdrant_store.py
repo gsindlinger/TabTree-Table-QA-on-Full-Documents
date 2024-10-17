@@ -1,44 +1,23 @@
+from __future__ import annotations
 from langchain_qdrant import QdrantVectorStore as _QdrantVectorStore
 
-from .embeddings.fast_embed_embeddings import FastEmbedEmbeddings
-from .embeddings.openai_embeddings import OpenAIEmbeddings
-from .embeddings.nomic_embeddings import NomicEmbeddings
-from .embeddings.huggingface_embeddings import HuggingFaceEmbeddings
-from ..config import Config
 from .qdrant_client import QdrantClient
+from langchain_core.embeddings import Embeddings
 
 
 class QdrantVectorStore(_QdrantVectorStore):
     client: QdrantClient
 
     @classmethod
-    def from_config(cls):
-        match Config.indexing.embedding_method:
-            case "huggingface":
-                embedding_model = HuggingFaceEmbeddings()
-            case "nomic":
-                embedding_model = NomicEmbeddings()
-            case "openai":
-                embedding_model = OpenAIEmbeddings()
-            case "fast_embed":
-                embedding_model = FastEmbedEmbeddings()
-            case _:
-                raise ValueError(
-                    f"Unknown embedding tool: {Config.indexing.embedding_method}"
-                )
+    def from_config(
+        cls,
+        embedding_model: Embeddings,
+        collection_name: str,
+    ) -> QdrantVectorStore:
+        """Create a QdrantVectorStore instance from the config"""
 
-        vector_size = len(embedding_model.embed_documents(["Hello World!"])[0])
         client = QdrantClient()
-        embedding_model_name = embedding_model.get_model_name()
-        embedding_model_name = embedding_model_name[
-            embedding_model_name.rfind("/") + 1 :
-        ]
-        match Config.run.dataset:
-            case "sec-filings":
-                collection_name = f"{Config.run.dataset}-{embedding_model_name}-{Config.indexing.chunking_strategy}-{Config.sec_filings.preprocess_mode_index_name}"
-            case _:
-                collection_name = f"{Config.run.dataset}-{embedding_model_name}-{Config.indexing.chunking_strategy}"
-
+        vector_size = len(embedding_model.embed_documents(["Hello World!"])[0])
         if not client.is_populated(collection_name=collection_name):
             client.create_index(
                 collection_name=collection_name,
@@ -46,7 +25,7 @@ class QdrantVectorStore(_QdrantVectorStore):
             )
 
         return cls(
-            client=QdrantClient(),
+            client=client,
             collection_name=collection_name,
             embedding=embedding_model,
         )

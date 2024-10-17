@@ -40,7 +40,7 @@
                 "--run.pipeline=false",
                 "--run.analysis=true"
             ]
-        }
+        },
         {
             "name": "Run Evaluation",
             "type": "debugpy",
@@ -52,6 +52,18 @@
                 "--run.indexing=false",
                 "--run.pipeline=false",
                 "--run.evaluation=true"
+            ]
+        },
+        {
+            "name": "Run Eval Multi",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "src",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "args": [
+                "--run.pipeline=false",
+                "--run.evaluation-multi=true"
             ]
         }
     ]

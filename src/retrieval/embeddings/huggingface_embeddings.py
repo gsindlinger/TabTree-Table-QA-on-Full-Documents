@@ -1,8 +1,10 @@
 from langchain_huggingface import HuggingFaceEmbeddings as _HuggingFaceEmbeddings
+
+from .custom_embeddings import CustomEmbeddings
 from ...config import Config
 
 
-class HuggingFaceEmbeddings(_HuggingFaceEmbeddings):
+class HuggingFaceEmbeddings(_HuggingFaceEmbeddings, CustomEmbeddings):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **(self._default_kwargs() | kwargs))
 

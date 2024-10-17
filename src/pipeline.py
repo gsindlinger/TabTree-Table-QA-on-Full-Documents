@@ -2,6 +2,7 @@ from __future__ import annotations
 from typing import List
 from pydantic import BaseModel
 
+from .generation.abstract_llm import LLM
 from .model.custom_document import CustomDocument
 from .retrieval.retriever import QdrantRetriever
 from .retrieval.qdrant_store import QdrantVectorStore
@@ -13,6 +14,7 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables.base import RunnableSequence
 from langchain_core.runnables import RunnablePassthrough
 from langchain_core.language_models.base import BaseLanguageModel
+from langchain.retrievers.multi_query import MultiQueryRetriever
 
 
 class Pipeline(BaseModel):
@@ -21,25 +23,27 @@ class Pipeline(BaseModel):
     output_parser: StrOutputParser
     llm: BaseLanguageModel
     llm_chain: RunnableSequence
-    retriever: QdrantRetriever
+    retriever: MultiQueryRetriever | QdrantRetriever
 
     class Config:
         arbitrary_types_allowed = True
 
     @classmethod
-    def from_config(cls, vector_store: QdrantVectorStore) -> Pipeline:
-        retriever = QdrantRetriever(vector_store)
-        template = Config.text_generation.prompt_template
-        llm = (
-            OllamaLLM()
-            if Config.text_generation.method == "ollama"
-            else HuggingFaceLLM()
+    def from_config(
+        cls, vector_store: QdrantVectorStore, retriever_num_documents: int
+    ) -> Pipeline:
+        retriever = QdrantRetriever(
+            vector_store, retriever_num_documents=retriever_num_documents
         )
+        template = Config.text_generation.prompt_template
+        llm = LLM.from_config()
         prompt = PromptTemplate(
             input_variables=["context", "question"],
             template=template,
         )
         output_parser = StrOutputParser()
+
+        # retriever = MultiQueryRetriever.from_llm(retriever=retriever_base, llm=llm)
         llm_chain = (
             {
                 "context": retriever | retriever.format_docs,

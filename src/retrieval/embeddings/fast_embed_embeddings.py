@@ -5,10 +5,12 @@ from langchain_community.embeddings.fastembed import (
 )
 from langchain_core.embeddings import Embeddings
 from pydantic import BaseModel, Field
+
+from .custom_embeddings import CustomEmbeddings
 from ...config import Config
 
 
-class FastEmbedEmbeddings(BaseModel, Embeddings):
+class FastEmbedEmbeddings(BaseModel, Embeddings, CustomEmbeddings):
     embedding_model_name: str
     model: TextEmbedding
 

@@ -1,19 +1,24 @@
+from __future__ import annotations
 import logging
 import os
 from typing import List, Optional
 
 from pydantic import Field
 
+from ..document_preprocessors.preprocess_config import PreprocessConfig
 from ...config import Config
 from ...model.custom_document import CustomDocument, FullMetadata
 from .document_store import FullDocumentStore
 
 
 class LocalStore(FullDocumentStore):
-    path: str = Field(
-        default_factory=lambda: f"{Config.indexing.full_document_storage_path}/{Config.run.dataset}/{Config.sec_filings.preprocess_mode_index_name}/"
-    )
     file_ending: str = Field(default="test.html")
+    path: str
+
+    @classmethod
+    def from_preprocess_config(cls, preprocess_config: PreprocessConfig) -> LocalStore:
+        base_path = f"{Config.indexing.full_document_storage_path}/{Config.run.dataset}"
+        return cls(path=f"{base_path}/{preprocess_config.name}/", file_ending="html")
 
     def store_full_documents(
         self, documents: List[CustomDocument], file_ending: Optional[str] = None
