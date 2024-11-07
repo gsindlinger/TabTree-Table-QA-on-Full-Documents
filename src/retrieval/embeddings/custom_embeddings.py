@@ -1,11 +1,14 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
+from typing import Protocol, Union, runtime_checkable
 
 
 from ...config.config import Config
+from langchain_core.embeddings import Embeddings
 
 
-class CustomEmbeddings(ABC):
+@runtime_checkable
+class CustomEmbeddings(Protocol):
     @classmethod
     def from_config(cls) -> CustomEmbeddings:
         from .fast_embed_embeddings import FastEmbedEmbeddings
@@ -23,10 +26,14 @@ class CustomEmbeddings(ABC):
             case "fast_embed":
                 embedding_model = FastEmbedEmbeddings()
             case _:
-                raise ValueError(
-                    f"Unknown embedding tool: {Config.indexing.embedding_method}"
-                )
-        return embedding_model
+                embedding_model = None
+
+        if isinstance(embedding_model, CustomEmbeddings):
+            return embedding_model
+        else:
+            raise ValueError(
+                f"Unknown embedding method: {Config.indexing.embedding_method}"
+            )
 
     def get_model_name_stripped(self):
         embedding_model_name = self.get_model_name()

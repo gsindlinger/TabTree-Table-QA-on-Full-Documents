@@ -7,7 +7,22 @@ from ...config.config import Config
 
 class PreprocessConfig(BaseModel):
     name: str
-    preprocess_mode: List[str]
+    preprocess_mode: List[
+        Literal[
+            "none",
+            "basic",
+            "remove-invisible",
+            "remove-images",
+            "remove-xbrl",
+            "remove-attributes",
+            "unwrap-irrelevant",
+            "unwrap-divs",
+            "replace-br",
+            "normalize-whitespace",
+            "only-text-except-tables",
+            "delete-hr",
+        ]
+    ]
     reduced_sections: Optional[bool] = False
     ignore_tables_for_embeddings: Optional[bool] = False
     table_serialization: Optional[
@@ -19,13 +34,16 @@ class PreprocessConfig(BaseModel):
             "df-loader",
             "json-records",
             "json-split",
-            "json-table-index",
+            "json-index",
             "markdown",
             "text",
             "text-bullet-points",
             "list-item",
+            "matrix",
         ]
     ] = "none"
+    consider_colspans_rowspans: Optional[bool] = False
+    merge_sentence_infront_of_table: Optional[bool] = False
 
     @classmethod
     def from_config(cls, config_data: Optional[Dict] = None) -> PreprocessConfig:

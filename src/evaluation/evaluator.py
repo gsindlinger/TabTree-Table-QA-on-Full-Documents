@@ -12,7 +12,7 @@ import numpy as np
 from pydantic import BaseModel
 import tiktoken
 
-from ..retrieval.indexing_service import IndexingService
+from ..config.config_model import GeneralConfig, RunConfig
 from .evaluation_document import EvaluationDocument
 from ..config.config import Config
 from ..retrieval.document_preprocessors.document_preprocessor import (
@@ -337,9 +337,7 @@ class Evaluator(ABC, BaseModel):
             f"./data/evaluation/token_counts/plots/{timestamp}.png"
         )
 
-        if any(
-            result.ir_results and result.qa_results for result in evaluation_results
-        ):
+        if any(result.ir_results or result.qa_results for result in evaluation_results):
             Evaluator.write_evaluation_to_json(
                 evaluation_results=evaluation_results,
                 file_path=file_path_json,
@@ -360,25 +358,56 @@ class Evaluator(ABC, BaseModel):
     @classmethod
     def run_single_evaluation(
         cls,
-        indexing_service: IndexingService,
-        preprocess_config: PreprocessConfig,
-        dataset: str,
-        pipeline: Pipeline,
-        retriever_num_documents: int,
+        config: GeneralConfig,
+        run_setup: RunConfig,
+        save_results: bool = True,
     ) -> Evaluator:
 
         evaluator = cls.from_config(
-            dataset=dataset,
-            preprocess_config=preprocess_config,
-            pipeline=pipeline,
-            retriever_num_documents=retriever_num_documents,
+            dataset=config.dataset,
+            preprocess_config=config.preprocess_config,
+            pipeline=run_setup.pipeline,
+            retriever_num_documents=config.retriever_num_documents,
         )
 
         if evaluator.evaluate_qa or evaluator.evaluate_ir:
-            indexing_service.embed_documents(
-                preprocess_config=preprocess_config,
+            run_setup.indexing_service.embed_documents(
+                preprocess_config=config.preprocess_config,
                 overwrite_existing_collection=False,
             )
 
         evaluator.evaluation_results = evaluator.evaluate()
+
+        if evaluator.evaluation_results and save_results:
+            Evaluator.save_evaluation_results(
+                evaluation_results=[evaluator.evaluation_results],
+                retriever_num_documents=config.retriever_num_documents,
+                names=[config.preprocess_config.name],
+            )
         return evaluator
+
+    @classmethod
+    def run_multi_evaluation(
+        cls,
+        general_config: GeneralConfig,
+        preprocess_configs: List[PreprocessConfig],
+        retriever_num_documents: List[int],
+    ) -> None:
+        for retriever_num_documents_temp in retriever_num_documents:
+            evaluation_results = []
+            for preprocess_config in preprocess_configs:
+                general_config.update_by_preprocess_config(preprocess_config)
+                run_setup = general_config.setup_run_config()
+                single_evaluation = Evaluator.run_single_evaluation(
+                    config=general_config,
+                    run_setup=run_setup,
+                )
+                evaluation_results.append(single_evaluation.evaluation_results)
+
+            Evaluator.save_evaluation_results(
+                evaluation_results=evaluation_results,
+                retriever_num_documents=retriever_num_documents_temp,
+                names=[
+                    preprocess_config.name for preprocess_config in preprocess_configs
+                ],
+            )

@@ -7,7 +7,11 @@ from pydantic import Field
 
 from ..document_preprocessors.preprocess_config import PreprocessConfig
 from ...config import Config
-from ...model.custom_document import CustomDocument, FullMetadata
+from ...model.custom_document import (
+    CustomDocument,
+    CustomDocumentWithMetadata,
+    FullMetadata,
+)
 from .document_store import FullDocumentStore
 
 
@@ -21,7 +25,9 @@ class LocalStore(FullDocumentStore):
         return cls(path=f"{base_path}/{preprocess_config.name}/", file_ending="html")
 
     def store_full_documents(
-        self, documents: List[CustomDocument], file_ending: Optional[str] = None
+        self,
+        documents: List[CustomDocumentWithMetadata],
+        file_ending: Optional[str] = None,
     ) -> int:
         """Stores the documents locally in the specified directory.
 
@@ -43,9 +49,10 @@ class LocalStore(FullDocumentStore):
                 self.path, document.metadata.doc_id + "." + file_ending
             )
             try:
-                logging.info(f"Document character count: {len(document.page_content)}")
+                page_content = document.page_content
+                logging.info(f"Document character count: {len(page_content)}")
                 with open(file_path, "w", encoding="utf-8") as file:
-                    file.write(document.page_content)
+                    file.write(page_content)
                     logging.info(f"Stored document {document.metadata.doc_id} locally")
             except Exception as e:
                 logging.error(
@@ -68,7 +75,7 @@ class LocalStore(FullDocumentStore):
             )
 
     def get_unique_documents(
-        self, documents: List[CustomDocument]
+        self, documents: List[CustomDocumentWithMetadata]
     ) -> List[CustomDocument]:
 
         unique_docs = {doc.metadata.doc_id for doc in documents}

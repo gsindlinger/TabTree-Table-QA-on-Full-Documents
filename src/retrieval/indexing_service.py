@@ -1,17 +1,10 @@
-import json
 import logging
-import os
 from typing import List
-from matplotlib import pyplot as plt
-import numpy as np
 from pydantic import BaseModel
-import tiktoken
 
 from .document_preprocessors.preprocess_config import PreprocessConfig
-
 from .document_preprocessors.document_preprocessor import DocumentPreprocessor
 
-from ..config.config import Config
 from .document_splitters.document_splitter import DocumentSplitter
 from .document_loaders.document_loader import DocumentLoader
 from .full_document_storage.local_store import LocalStore
@@ -70,7 +63,9 @@ class IndexingService(BaseModel):
 
         # Split documents
         document_splitter = DocumentSplitter.from_config(
-            embeddings=self.vector_store.embeddings, preprocess_config=preprocess_config
+            embeddings=self.vector_store.embeddings,
+            preprocess_config=preprocess_config,
+            table_serializer=document_preprocessor.table_serializer,
         )
         documents = document_splitter.split_documents(
             documents=documents,
@@ -86,7 +81,7 @@ class IndexingService(BaseModel):
             texts=[doc.page_content for doc in documents]
         )
         logging.info(
-            f"Generated {len(vectors)} for {initial_number_of_documents} documents"
+            f"Generated {len(vectors)} chunks for {initial_number_of_documents} documents"
         )
 
         # Store documents using Qdrant client

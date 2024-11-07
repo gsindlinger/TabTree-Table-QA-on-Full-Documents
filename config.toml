@@ -7,7 +7,8 @@ evaluation_multi = false
 
 # choose from "sec-filings", "wiki-table-questions"
 dataset = "sec-filings"
-retriever_num_documents = 3
+retriever_num_documents = [3]
+
 
 [indexing]
 
@@ -77,8 +78,8 @@ embedding_model = "BAAI/bge-small-en-v1.5"
 
 [sec_filings]
 data_path = "./data/sec_filings/"
-data_path_single = "./data/sec_filings/awk-20231231.htm"
-evaluation_data_path = "./data/evaluation/SEC_Evaluation_Dataset_AWW.csv"
+data_path_single = "./data/sec_filings/awk-20231231.htm" #option: "./data/sec_filings/abnb-20231231.htm"  
+evaluation_data_path = "./data/evaluation/SEC_Evaluation_Dataset_AWW.csv"  # option: "./data/evaluation/SEC_Evaluation_Dataset_ABNB.csv"   
 
 [wiki_table_questions]
 is_single_evaluation = true
@@ -86,29 +87,45 @@ single_document_id = "204-577"
 data_path = "./data/wiki_table_questions/"
 
 [evaluation]
-evaluate_qa = true
+evaluate_qa = false
 evaluate_ir = true
 run_document_analysis = false
-num_of_documents = 10
+num_of_documents = 20
 
 # Options are 
 #       - "none", 
 #       - "basic" which contains ("remove-attributes", "remove-xbrl", "remove-invisible", "remove-spans-a")
 #       - "only-text-except-tables".
 
-preprocess_config = {name = "basic", reduced_sections = false, preprocess_mode = ["basic"], ignore_tables_for_embeddings = false, table_serialization = "json-records"}
+preprocess_config = {name = "basic-none", reduced_sections = false, preprocess_mode = ["basic"], ignore_tables_for_embeddings = false, table_serialization = "none", consider_colspans_rowspans = false, merge_sentence_infront_of_table = false}
 
 preprocess_configs_multi = [
-  {name = "no-preprocessing", reduced_sections = false, preprocess_mode = ["none"], ignore_tables_for_embeddings = false, table_serialization = "none"},
-  {name = "basic", reduced_sections = false, preprocess_mode = ["basic"], ignore_tables_for_embeddings = false, table_serialization = "none"}
-#  {name = "none", reduced_sections = false, preprocess_mode = ["none"], tables_for_embeddings = false, table_serialization = "none"},
-#   {name = "basic", reduced_sections = false, preprocess_mode = ["basic"], ignore_tables_for_embeddings = false, table_serialization = "none"},
-#   {name = "only-text", reduced_sections = false, preprocess_mode = ["basic", "only-text-except-tables"], ignore_tables_for_embeddings = false, table_serialization = "none"},
-#  {name = "none-reduced", reduced_sections = true, preprocess_mode = ["none"], ignore_tables_for_embeddings = false, table_serialization = "none"},
-#  {name = "basic-reduced", reduced_sections = true, preprocess_mode = ["basic"], ignore_tables_for_embeddings = false, table_serialization = "none"},
-# {name = "only-text-reduced", reduced_sections = true, preprocess_mode = ["basic", "only-text-except-tables"], ignore_tables_for_embeddings = false, table_serialization = "none"},
-#  {name = "embeddings-without-tables", reduced_sections = false, preprocess_mode = ["basic", "only-text-except-tables"], ignore_tables_for_embeddings = true, table_serialization = "none"},
-#  {name = "embeddings-with-tables", reduced_sections = true, preprocess_mode = ["basic", "only-text-except-tables"], ignore_tables_for_embeddings = false, table_serialization = "none"}
+      {name = "basic-json-records", reduced_sections = false, preprocess_mode = ["basic"], ignore_tables_for_embeddings = false, table_serialization = "json-records", consider_colspans_rowspans = false, merge_sentence_infront_of_table = false},
+      {name = "basic-json-records-merge-sentences", reduced_sections = false, preprocess_mode = ["basic"], ignore_tables_for_embeddings = false, table_serialization = "json-records", consider_colspans_rowspans = false, merge_sentence_infront_of_table = true},
+      {name = "basic-json-split", reduced_sections = false, preprocess_mode = ["basic"], ignore_tables_for_embeddings = false, table_serialization = "json-split", consider_colspans_rowspans = false, merge_sentence_infront_of_table = false},
+      {name = "basic-json-split-merge-sentences", reduced_sections = false, preprocess_mode = ["basic"], ignore_tables_for_embeddings = false, table_serialization = "json-split", consider_colspans_rowspans = false, merge_sentence_infront_of_table = true},
+      {name = "basic-json-index", reduced_sections = false, preprocess_mode = ["basic"], ignore_tables_for_embeddings = false, table_serialization = "json-index", consider_colspans_rowspans = false, merge_sentence_infront_of_table = false},
+      {name = "basic-json-index-merge-sentences", reduced_sections = false, preprocess_mode = ["basic"], ignore_tables_for_embeddings = false, table_serialization = "json-index", consider_colspans_rowspans = false, merge_sentence_infront_of_table = true},
+      {name = "basic-matrix", reduced_sections = false, preprocess_mode = ["basic"], ignore_tables_for_embeddings = false, table_serialization = "matrix", consider_colspans_rowspans = false, merge_sentence_infront_of_table = false},
+      {name = "basic-matrix-merge-sentences", reduced_sections = false, preprocess_mode = ["basic"], ignore_tables_for_embeddings = false, table_serialization = "matrix", consider_colspans_rowspans = false, merge_sentence_infront_of_table = true},
+
+    # {name = "none", preprocess_mode = ["none"], ignore_tables_for_embeddings = false, table_serialization = "none", consider_colspans_rowspans = false, merge_sentence_infront_of_table = false},
+    # {name = "basic-none", preprocess_mode = ["basic"], ignore_tables_for_embeddings = false, table_serialization = "none", consider_colspans_rowspans = true, merge_sentence_infront_of_table = false},
+    # {name = "basic-html", preprocess_mode = ["basic"], ignore_tables_for_embeddings = false, table_serialization = "html", consider_colspans_rowspans = true, merge_sentence_infront_of_table = false},
+    # {name = "basic-html-text-only", preprocess_mode = ["basic"], ignore_tables_for_embeddings = true, table_serialization = "html", consider_colspans_rowspans = true, merge_sentence_infront_of_table = false},
+    # {name = "abnb-basic-html-merge-sentences", preprocess_mode = ["basic"], ignore_tables_for_embeddings = false, table_serialization = "html", consider_colspans_rowspans = false, merge_sentence_infront_of_table = true},
+    # {name = "basic-json-records", reduced_sections = false, preprocess_mode = ["basic"], ignore_tables_for_embeddings = false, table_serialization = "json-records", consider_colspans_rowspans = false, merge_sentence_infront_of_table = false},
+    # {name = "basic-json-records-merge-sentences", reduced_sections = false, preprocess_mode = ["basic"], ignore_tables_for_embeddings = false, table_serialization = "json-records", consider_colspans_rowspans = false, merge_sentence_infront_of_table = true},
+    # {name = "basic-markdown", reduced_sections = false, preprocess_mode = ["basic"], ignore_tables_for_embeddings = false, table_serialization = "markdown", consider_colspans_rowspans = false, merge_sentence_infront_of_table = false},
+    #  {name = "basic-markdown-merge-sentences", reduced_sections = false, preprocess_mode = ["basic"], ignore_tables_for_embeddings = false, table_serialization = "markdown", consider_colspans_rowspans = false, merge_sentence_infront_of_table = true},
+  # {name = "basic-csv", reduced_sections = false, preprocess_mode = ["basic"], ignore_tables_for_embeddings = false, table_serialization = "csv", consider_colspans_rowspans = false, merge_sentence_infront_of_table = false},
+  # {name = "basic-csv-merge-sentences", reduced_sections = false, preprocess_mode = ["basic"], ignore_tables_for_embeddings = false, table_serialization = "csv", consider_colspans_rowspans = false, merge_sentence_infront_of_table = true},
+  # {name = "basic-json-records-colspans", reduced_sections = false, preprocess_mode = ["basic"], ignore_tables_for_embeddings = false, table_serialization = "json-records", consider_colspans_rowspans = true, merge_sentence_infront_of_table = false},
+  #   {name = "basic-json-records-merge-sentences-colspans", reduced_sections = false, preprocess_mode = ["basic"], ignore_tables_for_embeddings = false, table_serialization = "json-records", consider_colspans_rowspans = true, merge_sentence_infront_of_table = true},
+  #  {name = "basic-markdown-colspans", reduced_sections = false, preprocess_mode = ["basic"], ignore_tables_for_embeddings = false, table_serialization = "markdown", consider_colspans_rowspans = true, merge_sentence_infront_of_table = false},
+  #   {name = "basic-markdown-colspans-merge-sentences", reduced_sections = false, preprocess_mode = ["basic"], ignore_tables_for_embeddings = false, table_serialization = "markdown", consider_colspans_rowspans = true, merge_sentence_infront_of_table = true},
+  # {name = "basic-csv-colspans", reduced_sections = false, preprocess_mode = ["basic"], ignore_tables_for_embeddings = false, table_serialization = "csv", consider_colspans_rowspans = true, merge_sentence_infront_of_table = false},
+  # {name = "basic-csv-colspans-merge-sentences", reduced_sections = false, preprocess_mode = ["basic"], ignore_tables_for_embeddings = false, table_serialization = "csv", consider_colspans_rowspans = true, merge_sentence_infront_of_table = true},
 ]
 
 

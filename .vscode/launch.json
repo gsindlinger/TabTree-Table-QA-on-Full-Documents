@@ -64,7 +64,8 @@
             "args": [
                 "--run.pipeline=false",
                 "--run.evaluation-multi=true"
-            ]
+            ],
+            "justMyCode": false
         }
     ]
 }

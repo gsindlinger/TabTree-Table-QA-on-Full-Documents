@@ -5,8 +5,9 @@ from typing import List, Optional, Tuple
 from langchain_text_splitters import TextSplitter
 from pydantic import BaseModel
 
+from ...retrieval.embeddings.custom_embeddings import CustomEmbeddings
+from ..document_preprocessors.table_serializer import TableSerializer
 from ..document_preprocessors.preprocess_config import PreprocessConfig
-from ..embeddings.custom_embeddings import CustomEmbeddings
 from ...config.config import Config
 from ...model.custom_document import CustomDocument, SplitContent
 from langchain_core.embeddings import Embeddings
@@ -23,8 +24,9 @@ class DocumentSplitter(ABC, BaseModel):
     @classmethod
     def from_config(
         cls,
-        embeddings: Embeddings,
+        embeddings: CustomEmbeddings,
         preprocess_config: PreprocessConfig,
+        table_serializer: TableSerializer | None,
     ) -> DocumentSplitter:
         match Config.indexing.chunking_strategy:
             case "recursive-character":
@@ -47,16 +49,17 @@ class DocumentSplitter(ABC, BaseModel):
                     name=Config.indexing.chunking_strategy,
                     embeddings=embeddings,
                     chunk_size=10000,
-                    ignore_tables_for_embeddings=preprocess_config.ignore_tables_for_embeddings,
+                    table_serializer=table_serializer,
+                    preprocess_config=preprocess_config,
                 )
 
             case _:
                 raise ValueError(f"Unknown mode: {Config.indexing.chunking_strategy}")
 
     def split_document(
-        self, document: CustomDocument, ignore_tables_for_embeddings: str = False
+        self, document: CustomDocument, ignore_tables_for_embeddings: bool = False
     ) -> List[CustomDocument]:
-        if ignore_tables_for_embeddings:
+        if document.splitted_content:
             splitted_text = self.split_text(document.splitted_content)
         else:
             splitted_text = self.split_text(document.page_content)
@@ -88,4 +91,6 @@ class DocumentSplitter(ABC, BaseModel):
         return splitted_documents
 
     def split_text(self, text: str | List[SplitContent]) -> List[str]:
-        return self.text_splitter.split_text(text)
+        if self.text_splitter is None:
+            raise ValueError("Text splitter is not initialized")
+        return self.text_splitter.split_text(text)  # type: ignore

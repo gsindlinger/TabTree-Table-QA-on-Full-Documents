@@ -71,7 +71,7 @@ class CustomDocument(Document):
 
         metadata = FullMetadataRetrieval(
             doc_id=metadata_dict["doc_id"],
-            chunk_id=chunk_id,
+            chunk_id=str(chunk_id),
             additional_metadata=additional_metadata,
             similarity_score=similarity_score,
         )
@@ -85,3 +85,7 @@ class CustomDocument(Document):
     @staticmethod
     def docs_to_custom_docs(docs: List[Document]) -> List[CustomDocument]:
         return [CustomDocument.doc_to_custom_doc(doc) for doc in docs]
+
+
+class CustomDocumentWithMetadata(CustomDocument):
+    metadata: Union[FullMetadata, FullMetadataRetrieval] = Field(default=None)

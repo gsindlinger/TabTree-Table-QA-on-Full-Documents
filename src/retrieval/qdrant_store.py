@@ -1,6 +1,7 @@
 from __future__ import annotations
 from langchain_qdrant import QdrantVectorStore as _QdrantVectorStore
 
+from ..retrieval.embeddings.custom_embeddings import CustomEmbeddings
 from .qdrant_client import QdrantClient
 from langchain_core.embeddings import Embeddings
 
@@ -11,7 +12,7 @@ class QdrantVectorStore(_QdrantVectorStore):
     @classmethod
     def from_config(
         cls,
-        embedding_model: Embeddings,
+        embedding_model: CustomEmbeddings,
         collection_name: str,
     ) -> QdrantVectorStore:
         """Create a QdrantVectorStore instance from the config"""

@@ -4,6 +4,7 @@ from typing import List, Optional, Tuple
 import unicodedata
 from bs4 import BeautifulSoup, Comment, NavigableString, PageElement, Tag
 
+from ..document_preprocessors.preprocess_config import PreprocessConfig
 from ..document_splitters.semantic_chunker_custom import (
     TABLE_REGEX,
     SENTENCE_SPLITTER_REGEX,
@@ -14,8 +15,14 @@ from .document_preprocessor import DocumentPreprocessor
 
 class HTMLPreprocessor(DocumentPreprocessor):
     def preprocess_document(self, document: CustomDocument) -> CustomDocument:
-        document.page_content = self._preprocess_document(document)
-        document.original_content = document.page_content
+        if (
+            not self.preprocess_config
+            or "none" in self.preprocess_config.preprocess_mode
+        ):
+            return document
+
+        document.original_content = self._preprocess_document(document)
+        document.page_content = self._get_body_of_html(document.original_content)
         document.splitted_content = self._split_sentences_and_tables(
             document.page_content
         )
@@ -26,6 +33,14 @@ class HTMLPreprocessor(DocumentPreprocessor):
                 document
             )
         return document
+
+    def _get_body_of_html(self, html: str) -> str:
+        soup = BeautifulSoup(html, "html.parser")
+        body = soup.find("body")
+        if isinstance(body, NavigableString):
+            return str(body)
+        else:
+            return body.prettify() if body else html
 
     def _split_sentences_and_tables(
         self,
@@ -63,10 +78,7 @@ class HTMLPreprocessor(DocumentPreprocessor):
         return content_list
 
     def _preprocess_document(self, document: CustomDocument) -> str:
-        if (
-            not self.preprocess_config
-            or "none" in self.preprocess_config.preprocess_mode
-        ):
+        if not self.preprocess_config:
             return document.page_content
 
         # For simplicity, I introduced a "basic" mode that includes the most common preprocessing steps
@@ -101,7 +113,9 @@ class HTMLPreprocessor(DocumentPreprocessor):
 
         if "remove-attributes" in self.preprocess_config.preprocess_mode:
             logging.info("Preprocessing: remove-attributes")
-            soup = HTMLPreprocessor.remove_attributes(soup)
+            soup = HTMLPreprocessor.remove_attributes(
+                soup, preprocess_config=self.preprocess_config
+            )
 
         if "unwrap-irrelevant" in self.preprocess_config.preprocess_mode:
             logging.info(
@@ -116,6 +130,11 @@ class HTMLPreprocessor(DocumentPreprocessor):
         if "replace-br" in self.preprocess_config.preprocess_mode:
             logging.info("Preprocessing: replace-br")
             soup = HTMLPreprocessor.replace_br(soup)
+
+        if "delete-hr" in self.preprocess_config.preprocess_mode:
+            logging.info("Preprocessing: delete-hr")
+            if not self.preprocess_config.reduced_sections:
+                soup = HTMLPreprocessor.delete_hr(soup)
 
         if "only-text-except-tables" in self.preprocess_config.preprocess_mode:
             logging.info("Preprocessing: only-text-except-tables")
@@ -140,6 +159,15 @@ class HTMLPreprocessor(DocumentPreprocessor):
             return str(soup)
         else:
             return HTMLPreprocessor.custom_prettify(soup)
+
+    @staticmethod
+    def delete_hr(
+        soup: BeautifulSoup | NavigableString | Tag,
+    ) -> BeautifulSoup | NavigableString | Tag:
+        if not isinstance(soup, NavigableString):
+            for tag in soup.find_all("hr"):
+                tag.decompose()
+        return soup
 
     @staticmethod
     def unwrap_divs(
@@ -256,12 +284,20 @@ class HTMLPreprocessor(DocumentPreprocessor):
     @staticmethod
     def remove_attributes(
         soup: BeautifulSoup | NavigableString | Tag,
+        preprocess_config: Optional[PreprocessConfig] = None,
     ) -> BeautifulSoup | NavigableString | Tag:
         """Remove all html attributes from the document."""
         if isinstance(soup, NavigableString):
             return soup
+
+        # if tag is either colspan or rowspan, keep the attribute else remove it
         for tag in soup.find_all(True):
-            tag.attrs = {}
+            for attr in list(tag.attrs.keys()):
+                if preprocess_config and preprocess_config.consider_colspans_rowspans:
+                    if attr not in ["colspan", "rowspan"]:
+                        del tag[attr]
+                else:
+                    del tag[attr]
         return soup
 
     @staticmethod
@@ -307,9 +343,6 @@ class HTMLPreprocessor(DocumentPreprocessor):
             for child in tag.find_all(recursive=False):
                 clean_tag(child)
             if tag.name not in ["table", "thead", "tbody", "tr", "th", "td"]:
-                # if tag is div then add an empty space to separate the text
-                if tag.name == "div":
-                    tag.append(" ")
                 # remove the tag and keep the text only
                 tag.unwrap()
 
@@ -325,7 +358,7 @@ class HTMLPreprocessor(DocumentPreprocessor):
         """Custom prettify function that merges consecutive NavigableString objects."""
         if isinstance(soup, NavigableString):
             return soup
-        HTMLPreprocessor.merge_navigable_strings(soup)
+        soup = HTMLPreprocessor.merge_navigable_strings(soup)
         return soup.prettify()
 
     @staticmethod
