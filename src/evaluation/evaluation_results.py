@@ -23,33 +23,41 @@ class EvaluationResults(BaseModel):
 
     @staticmethod
     def calculate_accuracy(predictions: List[Any], ground_truths: List[Any]) -> float:
-        correct = 0
-        for pred, truth in zip(predictions, ground_truths):
-            if pred == truth:
-                correct += 1
-        return correct / len(ground_truths)
+        if len(predictions) != len(ground_truths):
+            raise ValueError("Predictions and ground truths must have the same length.")
+
+        correct = sum(1 for p, g in zip(predictions, ground_truths) if p == g)
+        total = len(predictions)
+
+        if total == 0:
+            return 0.0  # If no predictions are made, return accuracy as 0.0
+
+        accuracy = correct / total
+        return accuracy
 
     @staticmethod
     def calculate_f1_score(predictions: List[Any], ground_truths: List[Any]) -> float:
-        true_positives = 0
-        false_positives = 0
-        false_negatives = 0
-        for pred, truth in zip(predictions, ground_truths):
-            if pred == truth:
-                true_positives += 1
-            else:
-                if pred:
-                    false_positives += 1
-                else:
-                    false_negatives += 1
+        if len(predictions) != len(ground_truths):
+            raise ValueError("Predictions and ground truths must have the same length.")
 
-        # avoid division by zero
-        if true_positives == 0:
-            return 0
+        true_positive = sum(
+            1 for p, g in zip(predictions, ground_truths) if p == g and p is not None
+        )
+        false_positive = sum(
+            1 for p, g in zip(predictions, ground_truths) if p != g and p is not None
+        )
+        false_negative = sum(
+            1 for p, g in zip(predictions, ground_truths) if p != g and p is None
+        )
 
-        precision = true_positives / (true_positives + false_positives)
-        recall = true_positives / (true_positives + false_negatives)
-        return 2 * precision * recall / (precision + recall)
+        if true_positive == 0:
+            return 0.0  # Avoid division by zero, return 0 when no positive predictions are correct.
+
+        precision = true_positive / (true_positive + false_positive)
+        recall = true_positive / (true_positive + false_negative)
+        f1_score = 2 * (precision * recall) / (precision + recall)
+
+        return f1_score
 
 
 class IRResults(BaseModel):
@@ -198,6 +206,8 @@ class HeaderDetectionResults(BaseModel):
     accuracy: Optional[float] = None
     accuracy_rows: Optional[float] = None
     accuracy_columns: Optional[float] = None
+    f1_score_rows: Optional[float] = None
+    f1_score_columns: Optional[float] = None
     predictions_rows: List[List[int]] = []
     ground_truth_rows: List[List[int]] = []
     predictions_columns: List[List[int]] = []
@@ -209,6 +219,7 @@ class HeaderDetectionResults(BaseModel):
         predictions: List[List[int]], ground_truths: List[List[int]]
     ) -> List[int]:
         advanced_accuracy = []
+
         for pred, gt in zip(predictions, ground_truths):
             count_correct = 0
             for pred_item in pred:
