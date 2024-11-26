@@ -80,6 +80,7 @@ embedding_model = "BAAI/bge-small-en-v1.5"
 data_path = "./data/sec_filings/"
 data_path_single = "./data/sec_filings/awk-20231231.htm" #option: "./data/sec_filings/abnb-20231231.htm"  
 evaluation_data_path = "./data/evaluation/SEC_Evaluation_Dataset_AWW.csv"  # option: "./data/evaluation/SEC_Evaluation_Dataset_ABNB.csv"   
+evaluation_get_header_data_path = "./data/evaluation/Header_Extraction_Evaluation.csv"
 
 [wiki_table_questions]
 is_single_evaluation = true
@@ -88,17 +89,12 @@ data_path = "./data/wiki_table_questions/"
 
 [evaluation]
 evaluate_qa = false
-evaluate_ir = true
+evaluate_ir = false
 run_document_analysis = false
-num_of_documents = 20
+evaluate_get_headers = true
+num_of_documents = 19
 
-# Options are 
-#       - "none", 
-#       - "basic" which contains ("remove-attributes", "remove-xbrl", "remove-invisible", "remove-spans-a")
-#       - "only-text-except-tables".
-
-preprocess_config = {name = "basic-none", reduced_sections = false, preprocess_mode = ["basic"], ignore_tables_for_embeddings = false, table_serialization = "none", consider_colspans_rowspans = false, merge_sentence_infront_of_table = false}
-
+preprocess_config = {name = "basic-json-records", reduced_sections = false, preprocess_mode = ["basic"], ignore_tables_for_embeddings = false, table_serialization = "json-records", consider_colspans_rowspans = true, merge_sentence_infront_of_table = false}
 preprocess_configs_multi = [
       {name = "basic-json-records", reduced_sections = false, preprocess_mode = ["basic"], ignore_tables_for_embeddings = false, table_serialization = "json-records", consider_colspans_rowspans = false, merge_sentence_infront_of_table = false},
       {name = "basic-json-records-merge-sentences", reduced_sections = false, preprocess_mode = ["basic"], ignore_tables_for_embeddings = false, table_serialization = "json-records", consider_colspans_rowspans = false, merge_sentence_infront_of_table = true},
@@ -127,6 +123,58 @@ preprocess_configs_multi = [
   # {name = "basic-csv-colspans", reduced_sections = false, preprocess_mode = ["basic"], ignore_tables_for_embeddings = false, table_serialization = "csv", consider_colspans_rowspans = true, merge_sentence_infront_of_table = false},
   # {name = "basic-csv-colspans-merge-sentences", reduced_sections = false, preprocess_mode = ["basic"], ignore_tables_for_embeddings = false, table_serialization = "csv", consider_colspans_rowspans = true, merge_sentence_infront_of_table = true},
 ]
+
+
+[tabgraph]
+
+llm_method = "openai"
+llm_model = "gpt-4o-mini"
+llm_max_tokens = 200
+
+header_description = '''
+Header rows serve as a structural component at the top of a dataset or table, defining the meaning and context of the columns below them.
+They typically contain labels that describe the type of data in each column, acting as a guide for interpreting the table's contents.
+In tables with hierarchical structures, header rows can span multiple levels, using features like colspans to group related columns visually. 
+This layered organization allows for the representation of complex relationships between columns, improving clarity and facilitating detailed analysis of multidimensional data.
+'''
+
+label_description = '''
+Label columns act as a structural component in a table, typically positioned on the left side, and provide descriptive or categorical identifiers for each row. 
+They define the context or grouping of the data within the rows, allowing for easier reference and understanding of the dataset. 
+In hierarchical tables, label columns can represent multiple levels of categorization, employing features like rowspans to visually group related rows under shared labels. 
+This structure enables the organization of nested relationships within the data, enhancing readability and supporting more detailed analysis of grouped or hierarchical information.
+'''
+
+negative_description = '''
+A column or row that is not classified as {mode_header_name} {mode} would typically be referred to as a data column or data row, respectively. 
+These elements contain the core values or observations of the dataset.
+Data columns: Positioned within the table body, they hold the actual measurements, metrics, or attributes corresponding to each row's label. They rely on header rows for context (e.g., the meaning of the values they contain).
+Data rows: Found below the header row(s), they represent individual records, entries, or instances in the dataset. These rows are often linked to label columns for identification and provide the details of the data points.
+'''
+
+prompt_template = '''
+You are tasked with analyzing table data to determine whether the provided {mode} should be classified as a {mode_header_name} or not.  
+
+Instructions:
+1. Review the provided {mode} and the next and previous {mode}s.
+2. Consider typical properties of a {mode_header_name} {mode} when making your determination: For {mode_header_name} {mode}s typically yield: {mode_description}
+3. End your response with one of the following:
+   - "Answer: Yes" if the {mode} represents a {mode_header_name} {mode}.
+   - "Answer: No" if the {mode} contains actual records or entries (e.g., numerical values, measurements, metrics or attributes corresponding to a category).
+4. Reason your answer with maximum 150 tokens.
+
+{mode} to Analyze:  
+{line}
+
+The {mode} index of the provided {mode} is {index}.
+
+{previous_index}
+{second_previous_index}
+
+{next_index}
+{second_next_index}
+
+'''
 
 
 

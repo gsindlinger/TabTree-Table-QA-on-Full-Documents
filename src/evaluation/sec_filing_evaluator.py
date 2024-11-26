@@ -2,7 +2,8 @@ import os
 from typing import List, Optional
 from pandas import DataFrame
 
-from .evaluation_document import EvaluationDocument
+from ..retrieval.document_preprocessors.table_serializer import DataFrameWithHeader
+from .evaluation_document import EvaluationDocument, HeaderEvaluationDocument
 from ..config.config import Config
 from .evaluator import Evaluator
 import pandas as pd
@@ -38,3 +39,8 @@ class SECFilingEvaluator(Evaluator):
 
         df = pd.read_csv(file_path, sep=";")
         return df
+
+    def get_tabgraph_header_evaluation_data(self) -> List[HeaderEvaluationDocument]:
+        file_path: str = Config.sec_filings.evaluation_get_header_data_path
+        eval_data = HeaderEvaluationDocument.from_csv(file_path=file_path)
+        return eval_data

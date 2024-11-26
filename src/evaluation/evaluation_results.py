@@ -2,7 +2,6 @@ from __future__ import annotations
 from abc import ABC
 import json
 import re
-import time
 from typing import Any, Dict, List, Optional
 from pydantic import BaseModel
 
@@ -28,7 +27,7 @@ class EvaluationResults(BaseModel):
         for pred, truth in zip(predictions, ground_truths):
             if pred == truth:
                 correct += 1
-        return correct / len(predictions)
+        return correct / len(ground_truths)
 
     @staticmethod
     def calculate_f1_score(predictions: List[Any], ground_truths: List[Any]) -> float:
@@ -193,3 +192,28 @@ class TokenCountsResults(BaseModel):
     @staticmethod
     def list_to_json(lst: List[TokenCountsResults]) -> str:
         return json.dumps([ob.model_dump() for ob in lst], indent=4)
+
+
+class HeaderDetectionResults(BaseModel):
+    accuracy: Optional[float] = None
+    accuracy_rows: Optional[float] = None
+    accuracy_columns: Optional[float] = None
+    predictions_rows: List[List[int]] = []
+    ground_truth_rows: List[List[int]] = []
+    predictions_columns: List[List[int]] = []
+    ground_truth_columns: List[List[int]] = []
+    advanced_analysis: Optional[Dict[str, Any]] = None
+
+    @staticmethod
+    def calculate_advanced_accuracy(
+        predictions: List[List[int]], ground_truths: List[List[int]]
+    ) -> List[int]:
+        advanced_accuracy = []
+        for pred, gt in zip(predictions, ground_truths):
+            count_correct = 0
+            for pred_item in pred:
+                if pred_item in gt:
+                    count_correct += 1
+
+            advanced_accuracy.append(count_correct / len(gt))
+        return advanced_accuracy

@@ -1,5 +1,4 @@
 from __future__ import annotations
-from typing import Tuple
 from pydantic import BaseModel
 
 from ..retrieval.qdrant_store import QdrantVectorStore
@@ -18,6 +17,10 @@ class RunConfig(BaseModel):
 
 
 class GeneralConfig(BaseModel):
+
+    class Config:
+        arbitrary_types_allowed = True
+
     preprocess_config: PreprocessConfig
     embedding_model: CustomEmbeddings
     table_serializer: TableSerializer | None
@@ -33,12 +36,14 @@ class GeneralConfig(BaseModel):
         chunking_model = DocumentSplitter.from_config(
             embeddings=embedding_model,
             preprocess_config=preprocess_config,
-            table_serializer=table_serializer,
         )
         dataset = Config.run.dataset  # dataset name
 
         retriever_num_documents = Config.run.retriever_num_documents
-        if isinstance(retriever_num_documents, list):
+
+        if isinstance(retriever_num_documents, list) or isinstance(
+            retriever_num_documents, tuple
+        ):
             retriever_num_documents = retriever_num_documents[0]
 
         return cls(
@@ -82,6 +87,5 @@ class GeneralConfig(BaseModel):
         self.chunking_model = DocumentSplitter.from_config(
             embeddings=self.embedding_model,
             preprocess_config=preprocess_config,
-            table_serializer=self.table_serializer,
         )
         return self

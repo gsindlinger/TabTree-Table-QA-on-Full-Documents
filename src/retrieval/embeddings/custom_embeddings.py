@@ -1,14 +1,12 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import Protocol, Union, runtime_checkable
 
 
 from ...config.config import Config
-from langchain_core.embeddings import Embeddings
 
 
-@runtime_checkable
-class CustomEmbeddings(Protocol):
+class CustomEmbeddings(ABC):
+
     @classmethod
     def from_config(cls) -> CustomEmbeddings:
         from .fast_embed_embeddings import FastEmbedEmbeddings
@@ -28,7 +26,7 @@ class CustomEmbeddings(Protocol):
             case _:
                 embedding_model = None
 
-        if isinstance(embedding_model, CustomEmbeddings):
+        if embedding_model is not None:
             return embedding_model
         else:
             raise ValueError(
@@ -44,4 +42,17 @@ class CustomEmbeddings(Protocol):
 
     @abstractmethod
     def get_model_name(self) -> str:
-        pass
+        """
+        Generate a unique model name for this embedding model.
+        """
+
+    @abstractmethod
+    def embed_documents(self, texts: list[str]) -> list[list[float]]:
+        """Embed search docs.
+
+        Args:
+            texts: List of text to embed.
+
+        Returns:
+            List of embeddings.
+        """

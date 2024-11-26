@@ -6,7 +6,7 @@ from ..retrieval.document_loaders.wiki_table_questions_loader import (
     WikiTableQuestionsLoader,
 )
 
-from .evaluation_document import EvaluationDocument
+from .evaluation_document import EvaluationDocument, HeaderEvaluationDocument
 from ..config.config import Config
 from .evaluator import Evaluator
 
@@ -24,3 +24,6 @@ class WikiTableQuestionsEvaluator(Evaluator):
         if self.evaluation_num_documents:
             questions = questions[: self.evaluation_num_documents]
         return questions
+
+    def get_tabgraph_header_evaluation_data(self) -> List[HeaderEvaluationDocument]:
+        raise NotImplementedError

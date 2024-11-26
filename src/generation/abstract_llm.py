@@ -29,3 +29,21 @@ class LLM(BaseModel, ABC):
             return OpenAILLM()
         else:
             raise ValueError(f"Unknown LLM method: {Config.text_generation.method}")
+
+    @classmethod
+    def from_tabgraph_config(cls):
+        from .openai_llm import OpenAILLM
+        from .huggingface_llm import HuggingFaceLLM
+        from .ollama_llm import OllamaLLM
+
+        model_name = Config.tabgraph.llm_model
+        max_tokens = Config.tabgraph.llm_max_tokens
+
+        if Config.tabgraph.llm_method == "ollama":
+            return OllamaLLM(model=model_name, num_predict=max_tokens)
+        elif Config.tabgraph.llm_method == "huggingface":
+            return HuggingFaceLLM(repo_id=model_name, max_new_tokens=max_tokens)
+        elif Config.tabgraph.llm_method == "openai":
+            return OpenAILLM(model=model_name, max_tokens=max_tokens)
+        else:
+            raise ValueError(f"Unknown LLM method: {Config.text_generation.method}")

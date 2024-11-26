@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from io import StringIO
 import json
 import logging
-from typing import List
+from typing import List, Optional
 from bs4 import BeautifulSoup
 from pydantic import BaseModel
 import pandas as pd
@@ -26,6 +26,17 @@ class DataFrameWithHeader(BaseModel):
 
     df: pd.DataFrame
     has_header: bool
+    header_columns: Optional[List[int]] = None
+    header_rows: Optional[List[int]] = None
+
+    def set_headers(self, header_rows: List[int], header_columns: List[int]):
+        self.has_header = True
+        self.header_rows = header_rows
+        self.header_columns = header_columns
+
+
+class CustomTable(DataFrameWithHeader):
+    raw_table: str
 
 
 class TableSerializer(ABC, BaseModel):
@@ -33,6 +44,8 @@ class TableSerializer(ABC, BaseModel):
 
     @classmethod
     def from_preprocess_config(cls, config: PreprocessConfig) -> TableSerializer | None:
+        from .tabgraph_serializer import TabGraphSerializer
+
         if config.table_serialization == "html":
             return HTMLSerializer()
         elif config.table_serialization == "csv":
@@ -59,6 +72,8 @@ class TableSerializer(ABC, BaseModel):
             return MatrixSerializer()
         elif config.table_serialization == "none":
             return None
+        elif config.table_serialization == "tabgraph":
+            return TabGraphSerializer()
         else:
             raise ValueError(
                 f"Table serialization type {config.table_serialization} is not supported"
@@ -66,25 +81,46 @@ class TableSerializer(ABC, BaseModel):
 
     def serialize_table(self, table: str) -> str:
         logging.info("Start serializing table")
-        df_table = self.load_table_to_df(table)
-        df_table = self.delete_nan_columns_and_rows(df_table)
+        df_table = self.table_str_to_df(table)
         if not df_table:
             return ""
         else:
-            df_table = self.replace_nan_values(df_table, "")
             return self.df_to_serialized_string(df_table)
 
-    def replace_nan_values(
-        self, df_with_header: DataFrameWithHeader, value: str
-    ) -> DataFrameWithHeader:
-        df = df_with_header.df
+    def table_str_to_df(self, table: str) -> CustomTable | None:
+        df_table = self.load_table_to_df(table)
+        df_table = self.delete_nan_columns_and_rows(df_table)
+        if not df_table:
+            return None
+
+        df_table = self.delete_duplicate_columns_and_rows(df_table)
+        return self.replace_nan_values(df_table, "")
+
+    def delete_duplicate_columns_and_rows(
+        self, custom_table: CustomTable
+    ) -> CustomTable:
+        df = custom_table.df
+        df = df.drop_duplicates()
+        df = df.T.drop_duplicates().T
+        return CustomTable(
+            df=df,
+            has_header=custom_table.has_header,
+            raw_table=custom_table.raw_table,
+        )
+
+    def replace_nan_values(self, custom_table: CustomTable, value: str) -> CustomTable:
+        df = custom_table.df
         df = df.fillna(value)
-        return DataFrameWithHeader(df=df, has_header=df_with_header.has_header)
+        return CustomTable(
+            df=df,
+            has_header=custom_table.has_header,
+            raw_table=custom_table.raw_table,
+        )
 
     def delete_nan_columns_and_rows(
-        self, df_with_header: DataFrameWithHeader
-    ) -> DataFrameWithHeader | None:
-        df = df_with_header.df
+        self, custom_table: CustomTable
+    ) -> CustomTable | None:
+        df = custom_table.df
         logging.info(f"Original shape of the Table: {df.shape}")
         df = df.dropna(axis=0, how="all")
         df = df.dropna(axis=1, how="all")
@@ -101,13 +137,17 @@ class TableSerializer(ABC, BaseModel):
             # # Check if columns (header) are numeric and reset if so
             # if all(str(col).isdigit() for col in df.columns):
             #     df.columns = range(len(df.columns))  # Rename columns from 0 to n
-            return DataFrameWithHeader(df=df, has_header=df_with_header.has_header)
+            return CustomTable(
+                df=df,
+                has_header=custom_table.has_header,
+                raw_table=custom_table.raw_table,
+            )
 
     @abstractmethod
-    def df_to_serialized_string(self, df_with_header: DataFrameWithHeader) -> str:
+    def df_to_serialized_string(self, df_with_header: CustomTable) -> str:
         pass
 
-    def load_table_to_df(self, table: str) -> DataFrameWithHeader:
+    def load_table_to_df(self, table: str) -> CustomTable:
         soup = BeautifulSoup(table, "html.parser")
         has_thead = soup.find(["thead", "th"]) is not None
 
@@ -116,12 +156,35 @@ class TableSerializer(ABC, BaseModel):
             raise ValueError("Could not load table to DataFrame")
         elif len(tables) > 1:
             raise ValueError("More than one table found in the table string")
-        return DataFrameWithHeader(df=tables[0], has_header=has_thead)
+
+        # if "Total operation and maintenance expenses" is within the tables[0] print the table
+        search_string = "John C. Griffith"
+        if search_string in tables[0].to_string():
+            # print corresponding column of the table with the string
+            matching_columns = [
+                col
+                for col in tables[0].columns
+                if tables[0][col]
+                .astype(str)
+                .str.contains(search_string, na=False)
+                .any()
+            ]
+            if matching_columns:
+                for col in matching_columns:
+                    print(f"The string '{search_string}' is found in column: {col}")
+                    print(tables[0][col].to_list())
+        return CustomTable(df=tables[0], has_header=has_thead, raw_table=table)
 
     def serialize_tables_in_document(self, document: CustomDocument) -> str:
         serialized_docs = []
         if not document.splitted_content:
             raise ValueError("Document does not have any splitted content")
+
+        tables = [
+            doc.model_dump() for doc in document.splitted_content if doc.type == "table"
+        ]
+        with open("./data/tables.json", "w") as f:
+            f.write(json.dumps(tables, indent=2))
 
         for content in document.splitted_content:
             if content.type == "table":
@@ -146,7 +209,7 @@ class TableSerializer(ABC, BaseModel):
 
 
 class DFLoaderSerializer(TableSerializer):
-    def df_to_serialized_string(self, df_with_header: DataFrameWithHeader) -> str:
+    def df_to_serialized_string(self, df_with_header: CustomTable) -> str:
         df = df_with_header.df
         return df.to_string(index=False)
 
@@ -154,7 +217,7 @@ class DFLoaderSerializer(TableSerializer):
 class HTMLSerializer(TableSerializer):
     table_splitter_backup: str = r"</\s*[^>]+>\s*?"
 
-    def df_to_serialized_string(self, df_with_header: DataFrameWithHeader) -> str:
+    def df_to_serialized_string(self, df_with_header: CustomTable) -> str:
         df = df_with_header.df
         df_html = df.to_html(header=df_with_header.has_header, index=False, na_rep="")
         soup = BeautifulSoup(df_html, "html.parser")
@@ -165,16 +228,20 @@ class HTMLSerializer(TableSerializer):
 
 class CSVSerializer(TableSerializer):
     table_splitter_backup: str = r"\n"
+    index: bool = True
 
-    def df_to_serialized_string(self, df_with_header: DataFrameWithHeader) -> str:
+    def df_to_serialized_string(
+        self,
+        df_with_header: CustomTable,
+    ) -> str:
         df = df_with_header.df
-        return df.to_csv(header=df_with_header.has_header, index=True, sep=";")
+        return df.to_csv(header=df_with_header.has_header, index=self.index, sep=";")
 
 
 class TSVSerializer(TableSerializer):
     table_splitter_backup: str = r"\n"
 
-    def df_to_serialized_string(self, df_with_header: DataFrameWithHeader) -> str:
+    def df_to_serialized_string(self, df_with_header: CustomTable) -> str:
         df = df_with_header.df
         return df.to_csv(header=df_with_header.has_header, index=True, sep="\t")
 
@@ -182,7 +249,7 @@ class TSVSerializer(TableSerializer):
 class JSONSerializerRecords(TableSerializer):
     table_splitter_backup: str = r"\},\s"
 
-    def df_to_serialized_string(self, df_with_header: DataFrameWithHeader) -> str:
+    def df_to_serialized_string(self, df_with_header: CustomTable) -> str:
         df = df_with_header.df
         records_dict = df.to_dict(orient="records")
         # get rid of null values for each item in records
@@ -201,7 +268,7 @@ class JSONSerializerRecords(TableSerializer):
 class JSONSerializerSplit(TableSerializer):
     table_splitter_backup: str = r"\},\s"
 
-    def df_to_serialized_string(self, df_with_header: DataFrameWithHeader) -> str:
+    def df_to_serialized_string(self, df_with_header: CustomTable) -> str:
         df = df_with_header.df
         return df.to_json(orient="split")
 
@@ -209,7 +276,7 @@ class JSONSerializerSplit(TableSerializer):
 class JSONSerializerIndex(TableSerializer):
     table_splitter_backup: str = r"\},\s"
 
-    def df_to_serialized_string(self, df_with_header: DataFrameWithHeader) -> str:
+    def df_to_serialized_string(self, df_with_header: CustomTable) -> str:
         df = df_with_header.df
         return df.to_json(orient="index")
 
@@ -217,7 +284,7 @@ class JSONSerializerIndex(TableSerializer):
 class MatrixSerializer(TableSerializer):
     table_splitter_backup: str = r"],"
 
-    def df_to_serialized_string(self, df_with_header: DataFrameWithHeader) -> str:
+    def df_to_serialized_string(self, df_with_header: CustomTable) -> str:
         df = df_with_header.df
         return df.to_json(orient="values")
 
@@ -225,7 +292,7 @@ class MatrixSerializer(TableSerializer):
 class MarkdownSerializer(TableSerializer):
     table_splitter_backup: str = r"\n"
 
-    def df_to_serialized_string(self, df_with_header: DataFrameWithHeader) -> str:
+    def df_to_serialized_string(self, df_with_header: CustomTable) -> str:
         df = df_with_header.df
         return df.to_markdown(index=True, missingval="")
 
@@ -233,7 +300,7 @@ class MarkdownSerializer(TableSerializer):
 class TextSerializer(TableSerializer):
     table_splitter_backup: str = r"\n"
 
-    def df_to_serialized_string(self, df_with_header: DataFrameWithHeader) -> str:
+    def df_to_serialized_string(self, df_with_header: CustomTable) -> str:
         df = df_with_header.df
         text_template = []
         for _, row in df.iterrows():
@@ -245,7 +312,7 @@ class TextSerializer(TableSerializer):
 class TextSerializerBulletPoints(TableSerializer):
     table_splitter_backup: str = r"\n"
 
-    def df_to_serialized_string(self, df_with_header: DataFrameWithHeader) -> str:
+    def df_to_serialized_string(self, df_with_header: CustomTable) -> str:
         df = df_with_header.df
         bullet_point_text = []
         for _, row in df.iterrows():
@@ -257,7 +324,7 @@ class TextSerializerBulletPoints(TableSerializer):
 class ListItemSerializer(TableSerializer):
     table_splitter_backup: str = r"\n"
 
-    def df_to_serialized_string(self, df_with_header: DataFrameWithHeader) -> str:
+    def df_to_serialized_string(self, df_with_header: CustomTable) -> str:
         df = df_with_header.df
         text_template = []
         for _, row in df.iterrows():

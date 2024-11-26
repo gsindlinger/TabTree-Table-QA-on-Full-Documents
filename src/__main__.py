@@ -10,7 +10,6 @@ from .config.from_args import Config
 
 def main() -> None:
     logging.getLogger().setLevel(logging.INFO)
-
     config = GeneralConfig.from_config()
     run_setup = config.setup_run_config()
 

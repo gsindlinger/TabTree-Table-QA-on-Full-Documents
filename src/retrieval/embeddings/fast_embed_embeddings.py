@@ -1,10 +1,7 @@
 import logging
 from fastembed import TextEmbedding
-from langchain_community.embeddings.fastembed import (
-    FastEmbedEmbeddings as _FastEmbedEmbeddings,
-)
 from langchain_core.embeddings import Embeddings
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from .custom_embeddings import CustomEmbeddings
 from ...config import Config

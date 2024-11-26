@@ -26,7 +26,6 @@ class DocumentSplitter(ABC, BaseModel):
         cls,
         embeddings: CustomEmbeddings,
         preprocess_config: PreprocessConfig,
-        table_serializer: TableSerializer | None,
     ) -> DocumentSplitter:
         match Config.indexing.chunking_strategy:
             case "recursive-character":
@@ -44,6 +43,10 @@ class DocumentSplitter(ABC, BaseModel):
 
             case "semantic":
                 from .sec_filing_splitter import SECFilingSplitterSemantic
+
+                table_serializer = TableSerializer.from_preprocess_config(
+                    preprocess_config
+                )
 
                 return SECFilingSplitterSemantic(
                     name=Config.indexing.chunking_strategy,

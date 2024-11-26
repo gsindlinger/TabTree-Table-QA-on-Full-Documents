@@ -4,16 +4,27 @@ import json
 import logging
 import os
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 
+from bs4 import BeautifulSoup
 from matplotlib import pyplot as plt
+from matplotlib.ticker import MaxNLocator
 import numpy as np
+import pandas as pd
 from pydantic import BaseModel
 import tiktoken
 
+from ..retrieval.document_preprocessors.table_serializer import (
+    CSVSerializer,
+    CustomTable,
+    HTMLSerializer,
+    MatrixSerializer,
+)
+
+from ..pipeline import TableHeaderRowsPipeline
 from ..config.config_model import GeneralConfig, RunConfig
-from .evaluation_document import EvaluationDocument
+from .evaluation_document import EvaluationDocument, HeaderEvaluationDocument
 from ..config.config import Config
 from ..retrieval.document_preprocessors.document_preprocessor import (
     DocumentPreprocessor,
@@ -21,9 +32,9 @@ from ..retrieval.document_preprocessors.document_preprocessor import (
 
 from ..retrieval.document_loaders.document_loader import DocumentLoader
 from ..retrieval.document_preprocessors.preprocess_config import PreprocessConfig
-from ..pipeline import Pipeline
 from .evaluation_results import (
     EvaluationResults,
+    HeaderDetectionResults,
     IRResults,
     QAResults,
     TokenCountsResults,
@@ -32,11 +43,12 @@ from abc import ABC, abstractmethod
 
 
 class Evaluator(ABC, BaseModel):
-    pipeline: Pipeline
+    run_setup: RunConfig
     preprocess_config: PreprocessConfig
     evaluate_qa: bool = False
     evaluate_ir: bool = False
     run_document_analysis: bool = False
+    evaluate_get_headers: bool = False
     retriever_num_documents: int
     evaluation_num_documents: Optional[int] = None
     evaluation_results: Optional[EvaluationResults] = None
@@ -46,7 +58,7 @@ class Evaluator(ABC, BaseModel):
         cls,
         dataset: str,
         preprocess_config: PreprocessConfig,
-        pipeline: Pipeline,
+        run_setup: RunConfig,
         retriever_num_documents: int,
     ) -> Evaluator:
 
@@ -60,24 +72,26 @@ class Evaluator(ABC, BaseModel):
                 from .wiki_table_questions_evaluator import WikiTableQuestionsEvaluator
 
                 return WikiTableQuestionsEvaluator(
-                    pipeline=pipeline,
+                    run_setup=run_setup,
                     preprocess_config=preprocess_config,
                     retriever_num_documents=retriever_num_documents,
                     evaluate_ir=Config.evaluation.evaluate_ir,
                     evaluate_qa=Config.evaluation.evaluate_qa,
                     run_document_analysis=Config.evaluation.run_document_analysis,
+                    evaluate_get_headers=Config.evaluation.evaluate_get_headers,
                     evaluation_num_documents=evaluation_num_documents,
                 )
             case "sec-filings":
                 from .sec_filing_evaluator import SECFilingEvaluator
 
                 return SECFilingEvaluator(
-                    pipeline=pipeline,
+                    run_setup=run_setup,
                     preprocess_config=preprocess_config,
                     retriever_num_documents=retriever_num_documents,
                     evaluate_ir=Config.evaluation.evaluate_ir,
                     evaluate_qa=Config.evaluation.evaluate_qa,
                     run_document_analysis=Config.evaluation.run_document_analysis,
+                    evaluate_get_headers=Config.evaluation.evaluate_get_headers,
                     evaluation_num_documents=evaluation_num_documents,
                 )
             case _:
@@ -92,6 +106,7 @@ class Evaluator(ABC, BaseModel):
         evaluate_qa: Optional[bool] = None,
         evaluate_ir: Optional[bool] = None,
         run_document_analysis: Optional[bool] = None,
+        evaluate_get_headers: Optional[bool] = None,
         write_to_file=False,
     ) -> EvaluationResults:
 
@@ -101,6 +116,8 @@ class Evaluator(ABC, BaseModel):
             self.evaluate_ir = evaluate_ir
         if run_document_analysis:
             self.run_document_analysis = run_document_analysis
+        if evaluate_get_headers:
+            self.evaluate_get_headers = evaluate_get_headers
 
         qa_results = None
         ir_results = None
@@ -113,12 +130,12 @@ class Evaluator(ABC, BaseModel):
             token_counts = self._get_token_counts(
                 preprocess_config=self.preprocess_config
             )
+        if self.evaluate_get_headers:
+            self.evaluate_table_header_detection()
 
         full_results = EvaluationResults(
             qa_results=qa_results, ir_results=ir_results, token_counts=token_counts
         )
-        if write_to_file and (qa_results or ir_results):
-            full_results.write_to_json_file(only_qa_and_ir=(not run_document_analysis))
 
         return full_results
 
@@ -135,7 +152,7 @@ class Evaluator(ABC, BaseModel):
             doc_id = row.doc_id
             search_string = row.search_reference
 
-            retriever_response = self.pipeline.retrieve(question=question)
+            retriever_response = self.run_setup.pipeline.retrieve(question=question)
             predictions_text.append([doc.page_content for doc in retriever_response])
             predictions_doc_id.append(
                 [doc.metadata.doc_id for doc in retriever_response]
@@ -166,7 +183,7 @@ class Evaluator(ABC, BaseModel):
             question = row.question
             answer = row.answer
 
-            llm_response = self.pipeline.invoke(question=question)
+            llm_response = self.run_setup.pipeline.invoke(question=question)
             predictions.append(llm_response.strip())
             ground_truths.append(answer)
 
@@ -366,7 +383,7 @@ class Evaluator(ABC, BaseModel):
         evaluator = cls.from_config(
             dataset=config.dataset,
             preprocess_config=config.preprocess_config,
-            pipeline=run_setup.pipeline,
+            run_setup=run_setup,
             retriever_num_documents=config.retriever_num_documents,
         )
 
@@ -411,3 +428,184 @@ class Evaluator(ABC, BaseModel):
                     preprocess_config.name for preprocess_config in preprocess_configs
                 ],
             )
+
+    @abstractmethod
+    def get_tabgraph_header_evaluation_data(self) -> List[HeaderEvaluationDocument]:
+        pass
+
+    def evaluate_table_header_detection(self):
+        eval_data = self.get_tabgraph_header_evaluation_data()[1:3]
+
+        # Ensure that col and rowspans are not deleted by resetting the table serializer
+        self.preprocess_config.table_serialization = "none"
+        self.preprocess_config.consider_colspans_rowspans = False
+        document = (
+            self.run_setup.indexing_service.load_and_preprocess_documents(
+                preprocess_config=self.preprocess_config
+            )
+        )[0]
+
+        if not document.splitted_content:
+            raise ValueError("Document has no splitted content")
+
+        table_serializer = MatrixSerializer()
+        results = HeaderDetectionResults()
+
+        for data in eval_data:
+            # Find the corresponding document content by position
+            html_table = [
+                content
+                for content in document.splitted_content
+                if content.position == data.position
+            ][0]
+            data.html_data = html_table.content
+            table_df = table_serializer.table_str_to_df(data.html_data)
+            table_serialized = table_serializer.serialize_table(data.html_data)
+
+            # Ask LLM for Headers
+            rows = self.get_header(
+                full_table=table_serialized, table_df=table_df, mode="row"
+            )
+            columns = self.get_header(
+                full_table=data.html_data, table_df=table_df, mode="column"
+            )
+
+            results.predictions_rows.append(rows)
+            results.predictions_columns.append(columns)
+
+            results.ground_truth_rows.append(data.rows)
+            results.ground_truth_columns.append(data.columns)
+
+        results.accuracy_rows = EvaluationResults.calculate_accuracy(
+            predictions=results.predictions_rows,
+            ground_truths=results.ground_truth_rows,
+        )
+        results.accuracy_columns = EvaluationResults.calculate_accuracy(
+            predictions=results.predictions_columns,
+            ground_truths=results.ground_truth_columns,
+        )
+
+        results.advanced_analysis = {
+            "accuracy_rows": HeaderDetectionResults.calculate_advanced_accuracy(
+                results.predictions_rows, results.ground_truth_rows
+            ),
+            "accuracy_columns": HeaderDetectionResults.calculate_advanced_accuracy(
+                results.predictions_columns, results.ground_truth_columns
+            ),
+            "mean_accuracy_rows": np.mean(
+                HeaderDetectionResults.calculate_advanced_accuracy(
+                    results.predictions_rows, results.ground_truth_rows
+                )
+            ),
+            "mean_accuracy_columns": np.mean(
+                HeaderDetectionResults.calculate_advanced_accuracy(
+                    results.predictions_columns, results.ground_truth_columns
+                )
+            ),
+        }
+
+        # plot and save histogram of row and column accuracys
+        plt.hist(
+            results.advanced_analysis["accuracy_rows"], bins=3, alpha=0.5, label="Rows"
+        )
+        plt.hist(
+            results.advanced_analysis["accuracy_columns"],
+            bins=3,
+            alpha=0.5,
+            label="Columns",
+        )
+        plt.legend(loc="upper right")
+        plt.title("Histogram of row and column accuracys")
+        plt.xlabel("Accuracy")
+        plt.xlim(0, 1)
+        plt.ylabel("Frequency")
+        # make y axis integer
+        plt.gca().yaxis.set_major_locator(MaxNLocator(integer=True))
+
+        # save data
+        directory = os.path.dirname("./data/evaluation/header_detection/")
+        os.makedirs(directory, exist_ok=True)
+
+        file_path_histogram = os.path.join(
+            directory, f"histogram_{time.strftime('%Y-%m-%d-%H-%M-%S')}.png"
+        )
+        file_path_json = os.path.join(
+            directory,
+            f"header_detection_results_{time.strftime('%Y-%m-%d-%H-%M-%S')}.json",
+        )
+
+        # Save the plot
+        plt.savefig(file_path_histogram)
+        # Write all results to disk
+        with open(file_path_json, "w", encoding="utf-8") as file:
+            file.write(results.model_dump_json(indent=2))
+
+    def get_header(
+        self,
+        full_table: str,
+        table_df: CustomTable | None,
+        mode: Literal["row", "column"] = "row",
+    ):
+        pipeline = TableHeaderRowsPipeline.from_config()
+
+        index = -1
+        while True:
+            if not table_df:
+                break
+
+            previous_items = []
+            next_items = []
+            second_previous_items = []
+            second_next_items = []
+
+            match mode:
+                case "row":
+                    items = table_df.df.iloc[index + 1].tolist()
+                    if index > 0:
+                        second_previous_items = table_df.df.iloc[index - 1].tolist()
+                    if index > -1:
+                        previous_items = table_df.df.iloc[index].tolist()
+                    if index + 3 < len(table_df.df):
+                        next_items = table_df.df.iloc[index + 2].tolist()
+                    if index + 4 < len(table_df.df):
+                        second_next_items = table_df.df.iloc[index + 3].tolist()
+                case "column":
+                    items = table_df.df.iloc[:, index + 1].tolist()
+                    if index > 0:
+                        second_previous_items = table_df.df.iloc[:, index - 1].tolist()
+                    if index > -1:
+                        previous_items = table_df.df.iloc[:, index].tolist()
+                    if index + 3 < len(table_df.df.columns):
+                        next_items = table_df.df.iloc[:, index + 2].tolist()
+                    if index + 4 < len(table_df.df.columns):
+                        second_next_items = table_df.df.iloc[:, index + 3].tolist()
+
+            row_description = Config.tabgraph.header_description
+            column_description = Config.tabgraph.label_description
+            negative_description = Config.tabgraph.negative_description
+
+            if not pipeline.ask_for_header(
+                table=full_table,
+                line=str(items),
+                mode=mode,
+                mode_header_name="header" if mode == "row" else "label",
+                mode_description=(
+                    row_description if mode == "row" else column_description
+                ),
+                negative_description=negative_description,
+                previous_items=str(previous_items),
+                next_items=str(next_items),
+                second_previous_items=str(second_previous_items),
+                second_next_items=str(second_next_items),
+                index=index + 1,
+            ):
+                break
+
+            index += 1
+
+        if index == -1:
+            response = []
+        else:
+            response = list(range(index + 1))
+
+        return response
