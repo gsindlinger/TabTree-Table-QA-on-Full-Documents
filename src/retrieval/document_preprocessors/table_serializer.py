@@ -37,6 +37,7 @@ class DataFrameWithHeader(BaseModel):
 
 class CustomTable(DataFrameWithHeader):
     raw_table: str
+    serialized_table: Optional[str] = None
 
 
 class TableSerializer(ABC, BaseModel):
@@ -79,13 +80,22 @@ class TableSerializer(ABC, BaseModel):
                 f"Table serialization type {config.table_serialization} is not supported"
             )
 
-    def serialize_table(self, table: str) -> str:
+    def serialize_table_to_str(self, table: str) -> str:
         logging.info("Start serializing table")
-        df_table = self.table_str_to_df(table)
-        if not df_table:
+        df_table = self.serialize_table_to_custom_table(table)
+        if not df_table or not df_table.serialized_table:
             return ""
         else:
-            return self.df_to_serialized_string(df_table)
+            return df_table.serialized_table
+
+    def serialize_table_to_custom_table(self, table_str: str) -> CustomTable | None:
+        df_table = self.table_str_to_df(table_str)
+        if not df_table:
+            return None
+        else:
+            serialized_string = self.df_to_serialized_string(df_table)
+            df_table.serialized_table = serialized_string
+        return df_table
 
     def table_str_to_df(self, table: str) -> CustomTable | None:
         df_table = self.load_table_to_df(table)
@@ -188,7 +198,7 @@ class TableSerializer(ABC, BaseModel):
 
         for content in document.splitted_content:
             if content.type == "table":
-                new_content = self.serialize_table(content.content)
+                new_content = self.serialize_table_to_str(content.content)
                 content.content = new_content
                 new_content = (
                     f"{new_content}{END_OF_TABLE}" if new_content.strip() != "" else ""

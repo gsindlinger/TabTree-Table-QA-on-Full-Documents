@@ -28,9 +28,7 @@ class TabGraph(ABC, BaseModel):
 
     @classmethod
     def from_df(cls, custom_table: CustomTable) -> Tuple[TabGraph, TabGraph]:
-        row_header_indices, col_header_indices = TabGraph._get_headers(
-            custom_table.raw_table
-        )
+        row_header_indices, col_header_indices = TabGraph._get_headers(custom_table)
         custom_table.set_headers(row_header_indices, col_header_indices)
 
         tabgraph_row = TabGraphRowBased.generate_tree(custom_table)
@@ -44,9 +42,9 @@ class TabGraph(ABC, BaseModel):
         pass
 
     @staticmethod
-    def _get_headers(raw_table: str) -> tuple[list[int], list[int]]:
-        table_header_rows_columns = TableHeaderRowsPipeline.from_config()
-        return table_header_rows_columns.get_table_header_rows_columns(raw_table)
+    def _get_headers(custom_table: CustomTable) -> tuple[list[int], list[int]]:
+        table_header_detection = TableHeaderRowsPipeline.from_config()
+        return table_header_detection.predict_headers(custom_table)
 
     def generate_serialized_string(self) -> str:
         return ""

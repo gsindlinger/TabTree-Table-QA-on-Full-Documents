@@ -1,10 +1,8 @@
 from __future__ import annotations
-import logging
-import re
-from typing import Iterator, List
-import pandas as pd
+from typing import Iterator, List, Literal, Tuple
 from pydantic import BaseModel
 
+from .retrieval.document_preprocessors.table_serializer import CustomTable
 from .generation.abstract_llm import LLM
 from .model.custom_document import CustomDocument
 from .retrieval.retriever import QdrantRetriever
@@ -105,10 +103,106 @@ class TableHeaderRowsPipeline(BaseModel):
             llm_chain=llm_chain,
         )
 
-    def _get_table_header_rows_columns(self, table: str) -> str:
-        return self.llm_chain.invoke(table)
+    def predict_headers(self, custom_table: CustomTable) -> Tuple[List[int], List[int]]:
+        rows = self.predict_headers_single(
+            full_table=custom_table.raw_table, table_df=custom_table, mode="row"
+        )
+        columns = self.predict_headers_single(
+            full_table=custom_table.raw_table, table_df=custom_table, mode="column"
+        )
+        return rows, columns
 
-    def ask_for_header(
+    def predict_headers_single(
+        self,
+        full_table: str,
+        table_df: CustomTable | None,
+        mode: Literal["row", "column"] = "row",
+    ):
+        index = -1
+        while True:
+            if not table_df:
+                break
+
+            previous_items = []
+            next_items = []
+            second_previous_items = []
+            second_next_items = []
+
+            match mode:
+                case "row":
+                    items = table_df.df.iloc[index + 1].tolist()
+                    if index > 0:
+                        second_previous_items = table_df.df.iloc[index - 1].tolist()
+                    if index > -1:
+                        previous_items = table_df.df.iloc[index].tolist()
+                    if index + 3 < len(table_df.df):
+                        next_items = table_df.df.iloc[index + 2].tolist()
+                    if index + 4 < len(table_df.df):
+                        second_next_items = table_df.df.iloc[index + 3].tolist()
+                case "column":
+                    items = table_df.df.iloc[:, index + 1].tolist()
+                    if index > 0:
+                        second_previous_items = table_df.df.iloc[:, index - 1].tolist()
+                    if index > -1:
+                        previous_items = table_df.df.iloc[:, index].tolist()
+                    if index + 3 < len(table_df.df.columns):
+                        next_items = table_df.df.iloc[:, index + 2].tolist()
+                    if index + 4 < len(table_df.df.columns):
+                        second_next_items = table_df.df.iloc[:, index + 3].tolist()
+
+            row_description = Config.tabgraph.header_description
+            column_description = Config.tabgraph.label_description
+            negative_description = Config.tabgraph.negative_description
+
+            if not self.predict_headers_single_llm(
+                table=full_table,
+                line=str(items),
+                mode=mode,
+                mode_header_name="header" if mode == "row" else "label",
+                mode_description=(
+                    row_description if mode == "row" else column_description
+                ),
+                negative_description=negative_description,
+                previous_items=str(previous_items),
+                next_items=str(next_items),
+                second_previous_items=str(second_previous_items),
+                second_next_items=str(second_next_items),
+                index=index + 1,
+            ):
+                break
+
+            index += 1
+
+        if index == -1:
+            response = []
+        else:
+            response = list(range(index + 1))
+
+        return response
+
+    # def get_table_header_rows_columns(
+    #     self,
+    #     table: str,
+    # ) -> tuple[list[int], list[int]]:
+    #     response = self._get_table_header_rows_columns(table)
+
+    #     # Search for pattern in response
+    #     # Columns: [<column_index_1>, <column_index_1>, ...]
+    #     # Rows: [<row_index_1>, <row_index_2>, ...]
+    #     list_pattern = r"\[(\d+(?:,\s*\d+)*)\]"
+    #     column_pattern = rf"Columns: {list_pattern}"
+    #     row_pattern = rf"Rows: {list_pattern}"
+
+    #     if column_match := re.search(column_pattern, response):
+    #         column_indices = list(map(int, column_match.group(1).split(", ")))
+    #     if row_match := re.search(row_pattern, response):
+    #         row_indices = list(map(int, row_match.group(1).split(", ")))
+
+    #     if len(column_indices) == 0 and len(row_indices) == 0:
+    #         logging.info(f"Found no column or row headers in response: {response}")
+    #     return row_indices, column_indices
+
+    def predict_headers_single_llm(
         self,
         table: str,
         line: str,
@@ -134,14 +228,14 @@ class TableHeaderRowsPipeline(BaseModel):
 
         if second_previous_items != "[]":
             second_previous_index = (
-                f"The second previous {{mode}} looks like this: {second_previous_items}"
+                f"The second previous {mode} looks like this: {second_previous_items}"
             )
         else:
             second_previous_index = ""
 
         if second_next_items != "[]":
             second_next_index = (
-                f"The second next {{mode}} looks like this: {second_next_items}"
+                f"The second next {mode} looks like this: {second_next_items}"
             )
         else:
             second_next_index = ""
@@ -171,25 +265,3 @@ class TableHeaderRowsPipeline(BaseModel):
             return False
         else:
             raise ValueError(f"Response does not contain yes or no: {response}")
-
-    def get_table_header_rows_columns(
-        self,
-        table: str,
-    ) -> tuple[list[int], list[int]]:
-        response = self._get_table_header_rows_columns(table)
-
-        # Search for pattern in response
-        # Columns: [<column_index_1>, <column_index_1>, ...]
-        # Rows: [<row_index_1>, <row_index_2>, ...]
-        list_pattern = r"\[(\d+(?:,\s*\d+)*)\]"
-        column_pattern = rf"Columns: {list_pattern}"
-        row_pattern = rf"Rows: {list_pattern}"
-
-        if column_match := re.search(column_pattern, response):
-            column_indices = list(map(int, column_match.group(1).split(", ")))
-        if row_match := re.search(row_pattern, response):
-            row_indices = list(map(int, row_match.group(1).split(", ")))
-
-        if len(column_indices) == 0 and len(row_indices) == 0:
-            logging.info(f"Found no column or row headers in response: {response}")
-        return row_indices, column_indices

@@ -2,7 +2,7 @@ from __future__ import annotations
 from abc import ABC
 import json
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 from pydantic import BaseModel
 
 
@@ -203,11 +203,8 @@ class TokenCountsResults(BaseModel):
 
 
 class HeaderDetectionResults(BaseModel):
-    accuracy: Optional[float] = None
     accuracy_rows: Optional[float] = None
     accuracy_columns: Optional[float] = None
-    f1_score_rows: Optional[float] = None
-    f1_score_columns: Optional[float] = None
     predictions_rows: List[List[int]] = []
     ground_truth_rows: List[List[int]] = []
     predictions_columns: List[List[int]] = []
@@ -215,16 +212,26 @@ class HeaderDetectionResults(BaseModel):
     advanced_analysis: Optional[Dict[str, Any]] = None
 
     @staticmethod
-    def calculate_advanced_accuracy(
+    def calculate_advanced_metrics(
         predictions: List[List[int]], ground_truths: List[List[int]]
-    ) -> List[int]:
+    ) -> Tuple[List[float], List[float]]:
         advanced_accuracy = []
+        advanced_f1_score = []
 
+        # Check if the number of predictions and ground truths are the same
+        # if not extend the smaller list with nones
         for pred, gt in zip(predictions, ground_truths):
-            count_correct = 0
-            for pred_item in pred:
-                if pred_item in gt:
-                    count_correct += 1
+            pred_mod = pred.copy()
+            gt_mod = gt.copy()
+            if len(pred) < len(gt):
+                pred_mod.extend([None] * (len(gt) - len(pred)))  # type: ignore
+            elif len(pred) > len(gt):
+                gt_mod.extend([None] * (len(pred) - len(gt)))  # type: ignore
+            advanced_accuracy.append(
+                EvaluationResults.calculate_accuracy(pred_mod, gt_mod)
+            )
+            advanced_f1_score.append(
+                EvaluationResults.calculate_f1_score(pred_mod, gt_mod)
+            )
 
-            advanced_accuracy.append(count_correct / len(gt))
-        return advanced_accuracy
+        return advanced_accuracy, advanced_f1_score

@@ -434,11 +434,12 @@ class Evaluator(ABC, BaseModel):
         pass
 
     def evaluate_table_header_detection(self):
-        eval_data = self.get_tabgraph_header_evaluation_data()[1:3]
+        eval_data = self.get_tabgraph_header_evaluation_data()
+        eval_data = [eval_data[5]]
 
         # Ensure that col and rowspans are not deleted by resetting the table serializer
         self.preprocess_config.table_serialization = "none"
-        self.preprocess_config.consider_colspans_rowspans = False
+        self.preprocess_config.consider_colspans_rowspans = True
         document = (
             self.run_setup.indexing_service.load_and_preprocess_documents(
                 preprocess_config=self.preprocess_config
@@ -450,6 +451,7 @@ class Evaluator(ABC, BaseModel):
 
         table_serializer = MatrixSerializer()
         results = HeaderDetectionResults()
+        pipeline = TableHeaderRowsPipeline.from_config()
 
         for data in eval_data:
             # Find the corresponding document content by position
@@ -459,16 +461,12 @@ class Evaluator(ABC, BaseModel):
                 if content.position == data.position
             ][0]
             data.html_data = html_table.content
-            table_df = table_serializer.table_str_to_df(data.html_data)
-            table_serialized = table_serializer.serialize_table(data.html_data)
+            table_df = table_serializer.serialize_table_to_custom_table(data.html_data)
+            if not table_df:
+                raise ValueError("Table could not be serialized")
 
             # Ask LLM for Headers
-            rows = self.get_header(
-                full_table=table_serialized, table_df=table_df, mode="row"
-            )
-            columns = self.get_header(
-                full_table=data.html_data, table_df=table_df, mode="column"
-            )
+            rows, columns = pipeline.predict_headers(table_df)
 
             results.predictions_rows.append(rows)
             results.predictions_columns.append(columns)
@@ -486,37 +484,53 @@ class Evaluator(ABC, BaseModel):
         )
 
         results.advanced_analysis = {
-            "accuracy_rows": HeaderDetectionResults.calculate_advanced_accuracy(
+            "accuracy_rows": HeaderDetectionResults.calculate_advanced_metrics(
                 results.predictions_rows, results.ground_truth_rows
-            ),
-            "accuracy_columns": HeaderDetectionResults.calculate_advanced_accuracy(
+            )[0],
+            "f1_score_rows": HeaderDetectionResults.calculate_advanced_metrics(
+                results.predictions_rows, results.ground_truth_rows
+            )[1],
+            "accuracy_columns": HeaderDetectionResults.calculate_advanced_metrics(
                 results.predictions_columns, results.ground_truth_columns
-            ),
+            )[0],
+            "f1_score_columns": HeaderDetectionResults.calculate_advanced_metrics(
+                results.predictions_columns, results.ground_truth_columns
+            )[1],
             "mean_accuracy_rows": np.mean(
-                HeaderDetectionResults.calculate_advanced_accuracy(
+                HeaderDetectionResults.calculate_advanced_metrics(
                     results.predictions_rows, results.ground_truth_rows
-                )
+                )[0]
             ),
             "mean_accuracy_columns": np.mean(
-                HeaderDetectionResults.calculate_advanced_accuracy(
+                HeaderDetectionResults.calculate_advanced_metrics(
                     results.predictions_columns, results.ground_truth_columns
-                )
+                )[0]
+            ),
+            "mean_f1_score_rows": np.mean(
+                HeaderDetectionResults.calculate_advanced_metrics(
+                    results.predictions_rows, results.ground_truth_rows
+                )[1]
+            ),
+            "mean_f1_score_columns": np.mean(
+                HeaderDetectionResults.calculate_advanced_metrics(
+                    results.predictions_columns, results.ground_truth_columns
+                )[1]
             ),
         }
 
-        # plot and save histogram of row and column accuracys
+        # plot and save histogram of row and column f1 scores
         plt.hist(
-            results.advanced_analysis["accuracy_rows"], bins=3, alpha=0.5, label="Rows"
+            results.advanced_analysis["f1_score_rows"], bins=3, alpha=0.5, label="Rows"
         )
         plt.hist(
-            results.advanced_analysis["accuracy_columns"],
+            results.advanced_analysis["f1_score_columns"],
             bins=3,
             alpha=0.5,
             label="Columns",
         )
         plt.legend(loc="upper right")
-        plt.title("Histogram of row and column accuracys")
-        plt.xlabel("Accuracy")
+        plt.title("Histogram of row and column F1 scores")
+        plt.xlabel("F1 Score")
         plt.xlim(0, 1)
         plt.ylabel("Frequency")
         # make y axis integer
@@ -539,73 +553,3 @@ class Evaluator(ABC, BaseModel):
         # Write all results to disk
         with open(file_path_json, "w", encoding="utf-8") as file:
             file.write(results.model_dump_json(indent=2))
-
-    def get_header(
-        self,
-        full_table: str,
-        table_df: CustomTable | None,
-        mode: Literal["row", "column"] = "row",
-    ):
-        pipeline = TableHeaderRowsPipeline.from_config()
-
-        index = -1
-        while True:
-            if not table_df:
-                break
-
-            previous_items = []
-            next_items = []
-            second_previous_items = []
-            second_next_items = []
-
-            match mode:
-                case "row":
-                    items = table_df.df.iloc[index + 1].tolist()
-                    if index > 0:
-                        second_previous_items = table_df.df.iloc[index - 1].tolist()
-                    if index > -1:
-                        previous_items = table_df.df.iloc[index].tolist()
-                    if index + 3 < len(table_df.df):
-                        next_items = table_df.df.iloc[index + 2].tolist()
-                    if index + 4 < len(table_df.df):
-                        second_next_items = table_df.df.iloc[index + 3].tolist()
-                case "column":
-                    items = table_df.df.iloc[:, index + 1].tolist()
-                    if index > 0:
-                        second_previous_items = table_df.df.iloc[:, index - 1].tolist()
-                    if index > -1:
-                        previous_items = table_df.df.iloc[:, index].tolist()
-                    if index + 3 < len(table_df.df.columns):
-                        next_items = table_df.df.iloc[:, index + 2].tolist()
-                    if index + 4 < len(table_df.df.columns):
-                        second_next_items = table_df.df.iloc[:, index + 3].tolist()
-
-            row_description = Config.tabgraph.header_description
-            column_description = Config.tabgraph.label_description
-            negative_description = Config.tabgraph.negative_description
-
-            if not pipeline.ask_for_header(
-                table=full_table,
-                line=str(items),
-                mode=mode,
-                mode_header_name="header" if mode == "row" else "label",
-                mode_description=(
-                    row_description if mode == "row" else column_description
-                ),
-                negative_description=negative_description,
-                previous_items=str(previous_items),
-                next_items=str(next_items),
-                second_previous_items=str(second_previous_items),
-                second_next_items=str(second_next_items),
-                index=index + 1,
-            ):
-                break
-
-            index += 1
-
-        if index == -1:
-            response = []
-        else:
-            response = list(range(index + 1))
-
-        return response
