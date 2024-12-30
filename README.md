@@ -1,5 +1,6 @@
-# rag-with-tabular-data
+# Exploring Table Representations for RAG on Large Documents
 
+[![Download Thesis WIP](https://img.shields.io/badge/Download--PDF-Thesis-orange)](https://www.overleaf.com/read/mqphwrjjhytz#5746a7)
 
 
 ### Deleting All Qdrant Collections
