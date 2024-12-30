@@ -10,4 +10,19 @@ dependencies:
   - numpy
   - langchain
   - qdrant-client
+  - langchain-community
+  - sentence-transformers
+  - transformers
+  - openai
+  - beautifulsoup4
+  - tiktoken
+  - matplotlib
+  - einops
+  - langchain-nomic
+  - python-dotenv
+  - lxml
+  - tabulate
+  - html5lib
+  - anytree
+  - ipykernel
 prefix: /opt/homebrew/Caskroom/mambaforge/base/envs/rag-project
