@@ -168,3 +168,9 @@ chroma_db/
 # Ignore old project which is only needed for inspiration
 askEUGH-INLPT-WS2023/
 
+.vscode/
+
+documents/Alte Masterarbeiten
+documents/Korrekturen
+
+
