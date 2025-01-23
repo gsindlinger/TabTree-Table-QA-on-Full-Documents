@@ -125,7 +125,7 @@ preprocess_configs_multi = [
 ]
 
 
-[tabgraph]
+[tabtree]
 
 llm_method = "openai"
 llm_model = "gpt-4o-mini"
@@ -175,6 +175,10 @@ The {mode} index of the provided {mode} is {index}.
 {second_next_index}
 
 '''
+
+
+[test]
+sample_table_html_path = "./src/tests/data/"
 
 
 

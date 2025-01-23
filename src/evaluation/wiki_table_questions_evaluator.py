@@ -25,5 +25,5 @@ class WikiTableQuestionsEvaluator(Evaluator):
             questions = questions[: self.evaluation_num_documents]
         return questions
 
-    def get_tabgraph_header_evaluation_data(self) -> List[HeaderEvaluationDocument]:
+    def get_tabtree_header_evaluation_data(self) -> List[HeaderEvaluationDocument]:
         raise NotImplementedError

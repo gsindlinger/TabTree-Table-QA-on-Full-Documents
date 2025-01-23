@@ -40,7 +40,7 @@ class SECFilingEvaluator(Evaluator):
         df = pd.read_csv(file_path, sep=";")
         return df
 
-    def get_tabgraph_header_evaluation_data(self) -> List[HeaderEvaluationDocument]:
+    def get_tabtree_header_evaluation_data(self) -> List[HeaderEvaluationDocument]:
         file_path: str = Config.sec_filings.evaluation_get_header_data_path
         eval_data = HeaderEvaluationDocument.from_csv(file_path=file_path)
         return eval_data

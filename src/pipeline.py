@@ -2,7 +2,10 @@ from __future__ import annotations
 from typing import Iterator, List, Literal, Tuple
 from pydantic import BaseModel
 
-from .retrieval.document_preprocessors.table_serializer import CustomTable
+from .retrieval.document_preprocessors.table_parser.custom_table import (
+    CustomTableWithHeaderOptional,
+)
+from .retrieval.document_preprocessors.table_serializer import ExtendedTable
 from .generation.abstract_llm import LLM
 from .model.custom_document import CustomDocument
 from .retrieval.retriever import QdrantRetriever
@@ -86,8 +89,8 @@ class TableHeaderRowsPipeline(BaseModel):
     def from_config(
         cls,
     ) -> TableHeaderRowsPipeline:
-        template = Config.tabgraph.prompt_template
-        llm = LLM.from_tabgraph_config()
+        template = Config.tabtree.prompt_template
+        llm = LLM.from_tabtree_config()
         prompt = PromptTemplate(
             input_variables=["table"],
             template=template,
@@ -103,21 +106,26 @@ class TableHeaderRowsPipeline(BaseModel):
             llm_chain=llm_chain,
         )
 
-    def predict_headers(self, custom_table: CustomTable) -> Tuple[List[int], List[int]]:
-        rows = self.predict_headers_single(
+    def predict_headers(
+        self, custom_table: CustomTableWithHeaderOptional
+    ) -> Tuple[int, int]:
+        """Get the row and column headers of the table.
+        First item of return tuple refers to column header rows and second item refers to row label columns.
+        """
+        column_header_rows = self.predict_headers_single(
             full_table=custom_table.raw_table, table_df=custom_table, mode="row"
         )
-        columns = self.predict_headers_single(
+        row_label_columns = self.predict_headers_single(
             full_table=custom_table.raw_table, table_df=custom_table, mode="column"
         )
-        return rows, columns
+        return column_header_rows, row_label_columns
 
     def predict_headers_single(
         self,
         full_table: str,
-        table_df: CustomTable | None,
+        table_df: CustomTableWithHeaderOptional | None,
         mode: Literal["row", "column"] = "row",
-    ):
+    ) -> int:
         index = -1
         while True:
             if not table_df:
@@ -130,43 +138,51 @@ class TableHeaderRowsPipeline(BaseModel):
 
             match mode:
                 case "row":
-                    items = table_df.df.iloc[index + 1].tolist()
+                    items = table_df.get_row(index + 1)
                     if index > 0:
-                        second_previous_items = table_df.df.iloc[index - 1].tolist()
+                        second_previous_items = table_df.get_row(index - 1)
                     if index > -1:
-                        previous_items = table_df.df.iloc[index].tolist()
-                    if index + 3 < len(table_df.df):
-                        next_items = table_df.df.iloc[index + 2].tolist()
-                    if index + 4 < len(table_df.df):
-                        second_next_items = table_df.df.iloc[index + 3].tolist()
+                        previous_items = table_df.get_row(index)
+                    if index + 3 < table_df.rows:
+                        next_items = table_df.get_row(index + 2)
+                    if index + 4 < table_df.rows:
+                        second_next_items = table_df.get_row(index + 3)
                 case "column":
-                    items = table_df.df.iloc[:, index + 1].tolist()
+                    items = table_df.get_column(index + 1)
                     if index > 0:
-                        second_previous_items = table_df.df.iloc[:, index - 1].tolist()
+                        second_previous_items = table_df.get_column(index - 1)
                     if index > -1:
-                        previous_items = table_df.df.iloc[:, index].tolist()
-                    if index + 3 < len(table_df.df.columns):
-                        next_items = table_df.df.iloc[:, index + 2].tolist()
-                    if index + 4 < len(table_df.df.columns):
-                        second_next_items = table_df.df.iloc[:, index + 3].tolist()
+                        previous_items = table_df.get_column(index)
+                    if index + 3 < table_df.columns:
+                        next_items = table_df.get_column(index + 2)
+                    if index + 4 < table_df.columns:
+                        second_next_items = table_df.get_column(index + 3)
 
-            row_description = Config.tabgraph.header_description
-            column_description = Config.tabgraph.label_description
-            negative_description = Config.tabgraph.negative_description
+            row_description = Config.tabtree.header_description
+            column_description = Config.tabtree.label_description
+            negative_description = Config.tabtree.negative_description
 
             if not self.predict_headers_single_llm(
                 table=full_table,
-                line=str(items),
+                line=CustomTableWithHeaderOptional.print_line_with_span(items, mode),
                 mode=mode,
                 mode_header_name="header" if mode == "row" else "label",
                 mode_description=(
                     row_description if mode == "row" else column_description
                 ),
                 negative_description=negative_description,
-                previous_items=str(previous_items),
-                next_items=str(next_items),
-                second_previous_items=str(second_previous_items),
-                second_next_items=str(second_next_items),
+                previous_items=CustomTableWithHeaderOptional.print_line_with_span(
+                    previous_items, mode
+                ),
+                next_items=CustomTableWithHeaderOptional.print_line_with_span(
+                    next_items, mode
+                ),
+                second_previous_items=CustomTableWithHeaderOptional.print_line_with_span(
+                    second_previous_items, mode
+                ),
+                second_next_items=CustomTableWithHeaderOptional.print_line_with_span(
+                    second_next_items, mode
+                ),
                 index=index + 1,
             ):
                 break
@@ -174,33 +190,11 @@ class TableHeaderRowsPipeline(BaseModel):
             index += 1
 
         if index == -1:
-            response = []
+            response = -1
         else:
-            response = list(range(index + 1))
+            response = index
 
         return response
-
-    # def get_table_header_rows_columns(
-    #     self,
-    #     table: str,
-    # ) -> tuple[list[int], list[int]]:
-    #     response = self._get_table_header_rows_columns(table)
-
-    #     # Search for pattern in response
-    #     # Columns: [<column_index_1>, <column_index_1>, ...]
-    #     # Rows: [<row_index_1>, <row_index_2>, ...]
-    #     list_pattern = r"\[(\d+(?:,\s*\d+)*)\]"
-    #     column_pattern = rf"Columns: {list_pattern}"
-    #     row_pattern = rf"Rows: {list_pattern}"
-
-    #     if column_match := re.search(column_pattern, response):
-    #         column_indices = list(map(int, column_match.group(1).split(", ")))
-    #     if row_match := re.search(row_pattern, response):
-    #         row_indices = list(map(int, row_match.group(1).split(", ")))
-
-    #     if len(column_indices) == 0 and len(row_indices) == 0:
-    #         logging.info(f"Found no column or row headers in response: {response}")
-    #     return row_indices, column_indices
 
     def predict_headers_single_llm(
         self,
@@ -224,7 +218,7 @@ class TableHeaderRowsPipeline(BaseModel):
         if next_items != "[]":
             next_index = f"The next {mode} looks like this: {next_items}"
         else:
-            next_index = f"The provided {mode}  is the last {mode}. Pleas consider this when answering the question."
+            next_index = f"The provided {mode}  is the last {mode}. Please consider this when answering the question."
 
         if second_previous_items != "[]":
             second_previous_index = (

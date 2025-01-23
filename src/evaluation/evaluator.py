@@ -17,7 +17,7 @@ import tiktoken
 
 from ..retrieval.document_preprocessors.table_serializer import (
     CSVSerializer,
-    CustomTable,
+    ExtendedTable,
     HTMLSerializer,
     MatrixSerializer,
 )
@@ -430,11 +430,11 @@ class Evaluator(ABC, BaseModel):
             )
 
     @abstractmethod
-    def get_tabgraph_header_evaluation_data(self) -> List[HeaderEvaluationDocument]:
+    def get_tabtree_header_evaluation_data(self) -> List[HeaderEvaluationDocument]:
         pass
 
     def evaluate_table_header_detection(self):
-        eval_data = self.get_tabgraph_header_evaluation_data()
+        eval_data = self.get_tabtree_header_evaluation_data()
         eval_data = [eval_data[5]]
 
         # Ensure that col and rowspans are not deleted by resetting the table serializer
@@ -461,15 +461,17 @@ class Evaluator(ABC, BaseModel):
                 if content.position == data.position
             ][0]
             data.html_data = html_table.content
-            table_df = table_serializer.serialize_table_to_custom_table(data.html_data)
+            table_df = table_serializer.serialize_table_to_extended_table(
+                data.html_data
+            )
             if not table_df:
                 raise ValueError("Table could not be serialized")
 
             # Ask LLM for Headers
             rows, columns = pipeline.predict_headers(table_df)
 
-            results.predictions_rows.append(rows)
-            results.predictions_columns.append(columns)
+            results.predictions_rows.append(list(range(rows)))
+            results.predictions_columns.append(list(range(columns)))
 
             results.ground_truth_rows.append(data.rows)
             results.ground_truth_columns.append(data.columns)
