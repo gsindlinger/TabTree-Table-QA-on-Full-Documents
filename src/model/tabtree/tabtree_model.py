@@ -27,6 +27,11 @@ class TabTree(nx.DiGraph):
     def has_edge(self, source: ColouredNode, target: ColouredNode) -> bool:
         return super().has_edge(source.id, target.id)
 
+    def get_node_by_cell(self, cell: CustomCell) -> ColouredNode | None:
+        row_index = cell.row_index
+        col_index = cell.col_index
+        return self.get_node_by_index(row_index, col_index)
+
     def get_node_by_index(self, row_index: int, col_index: int) -> ColouredNode | None:
         node_id = CellNode.generate_id(row_index, col_index)
         node = self.nodes.get(node_id)
@@ -50,7 +55,13 @@ class TabTree(nx.DiGraph):
     def get_row_nodes_by_column_index(
         self, column_index: int, start_row_index: int = 0
     ) -> list[ColouredNode]:
-        return []
+        lst = []
+        i = start_row_index
+        while node := self.get_node_by_index(i, column_index):
+            if isinstance(node, CellNode) and node.rowspan[0] == 0:
+                lst.append(node)
+                i += node.rowspan[1] + 1
+        return lst
 
 
 class NodeColor(str, Enum):
@@ -91,7 +102,7 @@ class ColouredNode(BaseModel):
                     return ColumnHeaderNode(**node)
             case NodeColor.BLUE:
                 if node["id"] == TabTree.ROW_LABEL_TREE_ROOT:
-                    return RowLabelHeaderTreeRoot()
+                    return RowLabelTreeRoot()
                 else:
                     return RowLabelNode(**node)
             case NodeColor.GRAY:
@@ -146,6 +157,6 @@ class ColumnHeaderTreeRoot(ColouredNode):
     id: str = TabTree.COLUMN_HEADER_TREE_ROOT
 
 
-class RowLabelHeaderTreeRoot(ColouredNode):
+class RowLabelTreeRoot(ColouredNode):
     colour: NodeColor = NodeColor.BLUE
     id: str = TabTree.ROW_LABEL_TREE_ROOT

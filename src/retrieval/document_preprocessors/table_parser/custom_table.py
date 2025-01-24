@@ -39,6 +39,15 @@ class CustomTableWithHeader(BaseModel):
     def get_cell(self, row_index: int, column_index: int) -> CustomCell:
         return self.table[row_index][column_index]
 
+    def get_cell_considering_span(
+        self, row_index: int, column_index: int
+    ) -> CustomCell:
+        cell = self.get_cell(row_index, column_index)
+        cell_span_considered = self.get_cell(
+            row_index - cell.rowspan[0], column_index - cell.colspan[0]
+        )
+        return cell_span_considered
+
     def get_column(self, column_index: int) -> List[CustomCell]:
         return [row[column_index] for row in self.table]
 

@@ -41,54 +41,12 @@ strict digraph "" {
 		value=grades];
 	"row-0_col-0" -> "row-0_col-2";
 	"row-2_col-2"	[col_index=2,
-		colour=gray,
+		colour=yellow,
 		colspan="(0, 0)",
 		id="row-2_col-2",
 		row_index=2,
 		rowspan="(0, 0)",
 		value=age];
-	"row-1_col-2" -> "row-2_col-2";
-	"row-2_col-3"	[col_index=3,
-		colour=gray,
-		colspan="(0, 0)",
-		id="row-2_col-3",
-		row_index=2,
-		rowspan="(0, 0)",
-		value=math];
-	"row-1_col-3" -> "row-2_col-3";
-	"row-2_col-4"	[col_index=4,
-		colour=gray,
-		colspan="(0, 0)",
-		id="row-2_col-4",
-		row_index=2,
-		rowspan="(0, 0)",
-		value=english];
-	"row-1_col-3" -> "row-2_col-4";
-	"row-2_col-5"	[col_index=5,
-		colour=gray,
-		colspan="(0, 0)",
-		id="row-2_col-5",
-		row_index=2,
-		rowspan="(0, 0)",
-		value=math];
-	"row-1_col-5" -> "row-2_col-5";
-	"row-2_col-6"	[col_index=6,
-		colour=gray,
-		colspan="(0, 0)",
-		id="row-2_col-6",
-		row_index=2,
-		rowspan="(0, 0)",
-		value=english];
-	"row-1_col-5" -> "row-2_col-6";
-	"row-1_col-0"	[col_index=0,
-		colour=orange,
-		colspan="(0, 1)",
-		id="row-1_col-0",
-		row_index=1,
-		rowspan="(0, 0)"];
-	"row-1_col-0" -> "row-1_col-2";
-	"row-1_col-0" -> "row-1_col-3";
-	"row-1_col-0" -> "row-1_col-5";
 	"row-3_col-2"	[col_index=2,
 		colour=gray,
 		colspan="(0, 0)",
@@ -113,6 +71,13 @@ strict digraph "" {
 		rowspan="(0, 0)",
 		value=17];
 	"row-2_col-2" -> "row-5_col-2";
+	"row-2_col-3"	[col_index=3,
+		colour=yellow,
+		colspan="(0, 0)",
+		id="row-2_col-3",
+		row_index=2,
+		rowspan="(0, 0)",
+		value=math];
 	"row-3_col-3"	[col_index=3,
 		colour=gray,
 		colspan="(0, 0)",
@@ -137,6 +102,13 @@ strict digraph "" {
 		rowspan="(0, 0)",
 		value=D];
 	"row-2_col-3" -> "row-5_col-3";
+	"row-2_col-4"	[col_index=4,
+		colour=yellow,
+		colspan="(0, 0)",
+		id="row-2_col-4",
+		row_index=2,
+		rowspan="(0, 0)",
+		value=english];
 	"row-3_col-4"	[col_index=4,
 		colour=gray,
 		colspan="(0, 0)",
@@ -161,6 +133,13 @@ strict digraph "" {
 		rowspan="(0, 0)",
 		value=D];
 	"row-2_col-4" -> "row-5_col-4";
+	"row-2_col-5"	[col_index=5,
+		colour=yellow,
+		colspan="(0, 0)",
+		id="row-2_col-5",
+		row_index=2,
+		rowspan="(0, 0)",
+		value=math];
 	"row-3_col-5"	[col_index=5,
 		colour=gray,
 		colspan="(0, 0)",
@@ -185,6 +164,13 @@ strict digraph "" {
 		rowspan="(0, 0)",
 		value=D];
 	"row-2_col-5" -> "row-5_col-5";
+	"row-2_col-6"	[col_index=6,
+		colour=yellow,
+		colspan="(0, 0)",
+		id="row-2_col-6",
+		row_index=2,
+		rowspan="(0, 0)",
+		value=english];
 	"row-3_col-6"	[col_index=6,
 		colour=gray,
 		colspan="(0, 0)",
@@ -209,6 +195,20 @@ strict digraph "" {
 		rowspan="(0, 0)",
 		value=D];
 	"row-2_col-6" -> "row-5_col-6";
+	"row-1_col-2" -> "row-2_col-2";
+	"row-1_col-3" -> "row-2_col-3";
+	"row-1_col-3" -> "row-2_col-4";
+	"row-1_col-5" -> "row-2_col-5";
+	"row-1_col-5" -> "row-2_col-6";
+	"row-1_col-0"	[col_index=0,
+		colour=orange,
+		colspan="(0, 1)",
+		id="row-1_col-0",
+		row_index=1,
+		rowspan="(0, 0)"];
+	"row-1_col-0" -> "row-1_col-2";
+	"row-1_col-0" -> "row-1_col-3";
+	"row-1_col-0" -> "row-1_col-5";
 	"row-2_col-0"	[col_index=0,
 		colour=orange,
 		colspan="(0, 0)",
