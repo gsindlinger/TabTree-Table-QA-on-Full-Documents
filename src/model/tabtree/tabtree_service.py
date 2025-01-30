@@ -2,16 +2,21 @@ from __future__ import annotations
 from typing import Literal
 
 from pydantic import BaseModel
+
+from .string_generation.value_string import ValueStringGeneration
+from .string_generation.context_string import ContextStringGeneration
 from ...pipeline import TableHeaderRowsPipeline
 from ...retrieval.document_preprocessors.table_parser.custom_table import (
     CustomTableWithHeader,
     CustomTableWithHeaderOptional,
 )
 from .tabtree_model import (
+    CellNode,
     ColouredNode,
     ColumnHeaderNode,
     ColumnHeaderTreeRoot,
     ContextIntersectionNode,
+    NodeColor,
     TabTree,
     ValueNode,
     RowLabelTreeRoot,
@@ -78,15 +83,15 @@ class TabTreeService(BaseModel):
     def generate_tree(
         self, custom_table: CustomTableWithHeader, orientation: Literal["column", "row"]
     ) -> TabTree:
-        tree = TabTree()
         if orientation == "column":
             # Step 1: Add root node
+            tree = TabTree(context_colour=NodeColor.YELLOW)
             parent_node = ColumnHeaderTreeRoot()
         elif orientation == "row":
+            tree = TabTree(context_colour=NodeColor.BLUE)
             parent_node = RowLabelTreeRoot()
 
         tree.add_node(parent_node)
-
         range_max = (
             custom_table.max_column_header_row
             if orientation == "column"
@@ -264,5 +269,31 @@ class TabTreeService(BaseModel):
                     tree.add_edge(parent_node, RowLabelNode.from_custom_cell(new_cell))
                 row_index += new_cell.rowspan[1] + 1
 
-    def generate_serialized_string(self) -> str:
-        return ""
+    @staticmethod
+    def generate_serialized_string(
+        tabtree: FullTabTree, primary_colour: NodeColor
+    ) -> str:
+        match primary_colour:
+            case NodeColor.YELLOW:
+                primary_tree = tabtree.column_header_tree
+                secondary_tree = tabtree.row_label_tree
+            case NodeColor.BLUE:
+                primary_tree = tabtree.row_label_tree
+                secondary_tree = tabtree.column_header_tree
+            case _:
+                raise ValueError(f"Invalid primary colour: {primary_colour}")
+
+        # Define generation approaches / methods which will be executed in the dfs_serialization
+        context_string_generation = (
+            lambda node: ContextStringGeneration.generate_string(node, primary_tree)
+        )
+        value_string_generation = lambda node: ValueStringGeneration.generate_string(
+            node, primary_tree=primary_tree, secondary_tree=secondary_tree
+        )
+
+        serialized_string = primary_tree.dfs_serialization(
+            context_string_generation=context_string_generation,
+            value_string_generation=value_string_generation,
+        )
+
+        return serialized_string

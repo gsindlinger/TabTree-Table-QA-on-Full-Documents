@@ -376,21 +376,21 @@ class TestTabTreeModel(unittest.TestCase, AbstractTableTests):
         self.assertEqual(tabtree.row_label_tree.out_degree(CellNode.generate_id(cell_5.row_index, cell_5.col_index)), 3),  # type: ignore
         self.assertEqual(tabtree.row_label_tree.in_degree(CellNode.generate_id(cell_5.row_index, cell_5.col_index)), 1)  # type: ignore
 
-        # ### Draw tree for visual inspection
-        # import networkx as nx
-        # from networkx.drawing.nx_agraph import write_dot, graphviz_layout
-        # import matplotlib.pyplot as plt
+        ### Draw tree for visual inspection
+        import networkx as nx
+        from networkx.drawing.nx_agraph import write_dot, graphviz_layout
+        import matplotlib.pyplot as plt
 
-        # tree = tabtree.column_header_tree
-        # write_dot(tree, "tree.dot")
-        # pos = graphviz_layout(tree, prog="dot")
+        tree = tabtree.column_header_tree
+        write_dot(tree, "tree.dot")
+        pos = graphviz_layout(tree, prog="dot")
 
-        # colors = [node["colour"] for node in tree.nodes.values()]
-        # nx.draw(
-        #     tree,
-        #     pos,
-        #     with_labels=True,
-        #     arrows=True,
-        #     node_color=colors,
-        # )
-        # plt.show()
+        colors = [node["colour"] for node in tree.nodes.values()]
+        nx.draw(
+            tree,
+            pos,
+            with_labels=True,
+            arrows=True,
+            node_color=colors,
+        )
+        plt.show()

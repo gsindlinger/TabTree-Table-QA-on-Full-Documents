@@ -49,15 +49,10 @@ Before starting, ensure you have the following installed:
 
 3. Activate the environment:
    ```bash
-   conda activate your_env_name
+   conda activate rag-project
    ```
 
-   Replace `your_env_name` with the environment name specified in the `environment.yml`.
-
-4. Install the project as an editable package (if applicable):
-   ```bash
-   pip install -e .
-   ```
+   You might change the name of the environment in the `environment.yml` file if needed.
 
 5. **Set up environment variables**:  
    Create a `.env` file in the root directory by copying the contents of `.env.example`. The `.env` file contains sensitive information like API keys and environment-specific configurations. Ensure that your environment variables are correctly set before running the project. 
@@ -105,6 +100,12 @@ Before running any code, you need to set up Ollama and Qdrant as services using 
    Executes evaluation in multi-mode:
    ```bash
    python -m src --run.pipeline=false --run.evaluation-multi=true
+   ```
+
+#### 6. **Run Tests for the TabTree Model**
+   Runs the tests for the TabTree model:
+   ```bash
+   python -m unittest discover -s src/tests -p tabtree_model_test.py -t .
    ```
 
 ---
