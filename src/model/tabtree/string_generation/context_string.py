@@ -106,7 +106,7 @@ class ContextStringGenerationText(ContextStringGeneration):
             return f"The values of the {primary_tree_str} {node.value} are:"
 
 
-class ContextStringGenerationTextWithIntersection(ContextStringGeneration):
+class ContextStringGenerationBaseWithIntersection(ContextStringGeneration):
     approach: Optional[NodeApproach] = NodeApproach(
         approach=ContextNodeApproach.TEXT, include_context_intersection=True
     )
@@ -122,12 +122,12 @@ class ContextStringGenerationTextWithIntersection(ContextStringGeneration):
         )
         context_intersection_str = StringGenerationService.node_sequence_to_string(
             context_intersection_sequence,
-            separator_approach=SeparatorApproach.AND_SYMBOL_COLON,
+            separator_approach=SeparatorApproach.AND,
         )
         return f"{context_intersection_str}:"
 
 
-class ContextStringGenerationBaseWithIntersection(ContextStringGeneration):
+class ContextStringGenerationTextWithIntersection(ContextStringGeneration):
     approach: Optional[NodeApproach] = NodeApproach(
         approach=ContextNodeApproach.BASE, include_context_intersection=True
     )
@@ -153,15 +153,13 @@ class ContextStringGenerationBaseWithIntersection(ContextStringGeneration):
             context_intersection_sequence,
             separator_approach=SeparatorApproach.COMMA_AND,
         )
-        context_intersection_str = (
-            f"The {primary_tree_str} represents {context_intersection_str}."
-        )
+        context_intersection_str = f"The {primary_tree_str} {node.value} represents {context_intersection_str}."
 
         if len(siblings) > 0 and len(children) > 0:
-            return f"{node.value} has siblings {siblings_str}. The children of {node.value} are {children_str}."
+            return f"{context_intersection_str} The {primary_tree_str} {node.value} has siblings {siblings_str}. The children of {node.value} are {children_str}."
         elif len(siblings) > 0 and len(children) == 0:
-            return f"{node.value} has siblings {siblings_str}."
+            return f"{context_intersection_str} The {primary_tree_str} {node.value} has siblings {siblings_str}. The values of the {primary_tree_str} {node.value} are:"
         elif len(siblings) == 0 and len(children) > 0:
-            return f"{node.value} has children {children_str}."
+            return f"{context_intersection_str} The {primary_tree_str} {node.value} has children {children_str}."
         else:
-            return f"The values of {node.value} are:"
+            return f"{context_intersection_str} The values of the {primary_tree_str} {node.value} are:"

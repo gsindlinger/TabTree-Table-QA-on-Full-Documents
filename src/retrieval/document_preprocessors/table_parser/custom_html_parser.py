@@ -40,6 +40,7 @@ class HTMLTableParser(BaseModel):
             table = p.custom_parse_html(html)
             table = p.delete_nan_columns_and_rows(table)
             table = p.delete_duplicate_columns_and_rows(table)
+            table = p.reset_indices(table)
 
             if len(p.thead) > 0:
                 table.max_column_header_row = len(p.thead) - 1
@@ -48,6 +49,15 @@ class HTMLTableParser(BaseModel):
         except ValueError as e:
             logging.error(f"Error while parsing table: {e}")
             return None
+
+    def reset_indices(
+        self, table: CustomTableWithHeaderOptional
+    ) -> CustomTableWithHeaderOptional:
+        for row_index, row in enumerate(table.table):
+            for col_index, cell in enumerate(row):
+                cell.row_index = row_index
+                cell.col_index = col_index
+        return table
 
     def _parse_table_part(self, part_tag: str, start_index_row: int) -> CustomTable:
         if not self.bs4_table:
@@ -95,14 +105,22 @@ class HTMLTableParser(BaseModel):
         self, table: CustomTableWithHeaderOptional
     ) -> CustomTableWithHeaderOptional:
         plain_table = table.table
-        for row_index, row in enumerate(plain_table):
+        row_index = 0
+        while row_index < len(plain_table):
+            row = plain_table[row_index]
             if all(cell.value == "" for cell in row):
                 plain_table = self.delete_row(plain_table, row_index)
+            else:
+                row_index += 1
 
-        table_copy = plain_table.copy()
-        for column_index, column in enumerate(zip(*table_copy)):
+        plain_table = plain_table.copy()
+        column_index = 0
+        while column_index < len(transposed_table := list(zip(*plain_table))):
+            column = transposed_table[column_index]
             if all(cell.value == "" for cell in column):
                 plain_table = self.delete_column(plain_table, column_index)
+            else:
+                column_index += 1
 
         table.table = plain_table
         return table
@@ -134,26 +152,37 @@ class HTMLTableParser(BaseModel):
     ) -> CustomTableWithHeaderOptional:
         plain_table = table.table
         # find duplicate rows
-        for row_index, row in enumerate(plain_table):
-            if row_index + 1 < len(table) and all(
-                row[i].value == table[row_index + 1][i].value for i in range(len(row))
+        row_index = 0
+        while row_index + 1 < len(plain_table):
+            row = plain_table[row_index]
+            if row_index + 1 < len(plain_table) and all(
+                cell.value == plain_table[row_index + 1][i].value
+                for i, cell in enumerate(row)
             ):
                 plain_table = self.delete_row(plain_table, row_index)
+            else:
+                row_index += 1
 
         # find duplicate columns
-        transposed_table = list(zip(*plain_table))
-        for column_index, column in enumerate(transposed_table):
-            if column_index + 1 < len(transposed_table) and all(
+        column_index = 0
+        while column_index + 1 < len(transposed_table := list(zip(*plain_table))):
+            column = transposed_table[column_index]
+            if all(
                 column[i].value == transposed_table[column_index + 1][i].value
                 for i in range(len(column))
             ):
                 plain_table = self.delete_column(plain_table, column_index)
+            else:
+                column_index += 1
         table.table = plain_table
         return table
 
     def _update_colspan(self, table: CustomTable, column_index: int) -> CustomTable:
         for row_index, row in enumerate(table):
-            cell = row[column_index]
+            try:
+                cell = row[column_index]
+            except IndexError:
+                raise ValueError("Column index out of range.")
             span_item = cell.colspan
             # update colspan for previous cells
             for i in range(1, span_item[0] + 1):

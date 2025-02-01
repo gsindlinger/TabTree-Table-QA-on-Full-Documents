@@ -176,10 +176,10 @@ The {mode} index of the provided {mode} is {index}.
 
 '''
 
-context_string_approach = "base" # 'base' or 'text'
+context_string_approach = "context_base" # 'context_base' or 'context_text'
 context_string_with_context_intersection = false
 
-value_string_approach = "base" # 'base' or 'text'
+value_string_approach = "value_base" # 'value_base' or 'value_text'
 value_string_with_context_intersection = false
 
 

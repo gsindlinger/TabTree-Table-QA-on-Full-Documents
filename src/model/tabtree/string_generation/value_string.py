@@ -25,7 +25,7 @@ class ValueStringGeneration(StringGenerationService):
         generation_service = StringGenerationService.from_config(approach)
         if not isinstance(generation_service, ValueStringGeneration):
             raise ValueError(
-                f"Invalid approach type for context string generation: {generation_service}"
+                f"Invalid approach type for value string generation: {generation_service}"
             )
         if not isinstance(node, ValueNode):
             raise ValueError(f"Invalid node type for context string generation: {node}")
@@ -111,7 +111,7 @@ class ValueStringGenerationText(ValueStringGeneration):
             node, filter_colour=primary_tree.context_colour
         )
 
-        if not isinstance(parent_node, ContextNode):
+        if not isinstance(parent_node, ContextNode):  # so directly connected to root
             if len(value_sequence) < 1:
                 raise ValueError(
                     f"There must be at least one connected context node the value node: {node.id}"
@@ -123,8 +123,10 @@ class ValueStringGenerationText(ValueStringGeneration):
         else:
             if len(value_sequence) < 1:
                 return f"The value of the {primary_tree_str} {parent_node.value} is {node.value}."
+            elif len(value_sequence) == 1:
+                return f"The value of the {primary_tree_str} {parent_node.value} and the {secondary_tree_str} {value_str} is {node.value}."
             else:
-                return f"The value of the {primary_tree_str} {parent_node.value} and the {secondary_tree_str} combination {secondary_tree_str} {value_str}."
+                return f"The value of the {primary_tree_str} {parent_node.value} and the {secondary_tree_str} combination {value_str} is {node.value}."
 
 
 class ValueStringGenerationBaseWithIntersection(ValueStringGeneration):

@@ -142,18 +142,18 @@ class TabTree(nx.DiGraph):
                     current_node.value.strip() == sequence[-1].value.strip()
                 ):
                     sequence.append(current_node)
-            sequence.reverse()
+        sequence.reverse()
         return sequence
 
     def get_value_sequence(self, node: ValueNode) -> List[CellNode]:
         sequence: List[CellNode] = [node]
         current_node = node
-        # find unique node with colour orange in the path starting from node
-        while current_node := self.get_parent(current_node, NodeColor.ORANGE):
+        # find unique node with colour equals primary tree colour
+        while current_node := self.get_parent(current_node, self.context_colour):
             # only append context nodes / exclude root node
             if isinstance(current_node, ContextNode):
                 sequence.append(current_node)
-            sequence.reverse()
+        sequence.reverse()
         return sequence
 
     def get_value_sequence_with_context_intersection(
@@ -162,14 +162,14 @@ class TabTree(nx.DiGraph):
         sequence: List[List[CellNode]] = [[node]]
         current_node = node
         # find unique node with colour orange in the path starting from node
-        while current_node := self.get_parent(current_node, NodeColor.ORANGE):
+        while current_node := self.get_parent(current_node, self.context_colour):
             # only append context nodes / exclude root node
             if isinstance(current_node, ContextNode):
                 context_intersection_sequence = self.get_context_intersection_sequence(
                     current_node
                 )
                 sequence.append(context_intersection_sequence)
-            sequence.reverse()
+        sequence.reverse()
         return sequence
 
     def dfs_serialization(
@@ -178,16 +178,23 @@ class TabTree(nx.DiGraph):
         start_node = self.get_root_node()
         serialized_str = ""
         visited = []
-        stack = [start_node]
+        stack = [(start_node, 0)]
+
         while stack:
-            node = stack.pop()
+            node, level = stack.pop()
             if node not in visited:
                 if isinstance(node, ContextNode):
-                    serialized_str += context_string_generation(node=node)
+                    serialized_str += (
+                        context_string_generation(node=node) + "\n" + level * "  "
+                    )
                 elif isinstance(node, ValueNode):
-                    serialized_str += value_string_generation(node=node)
+                    serialized_str += (
+                        value_string_generation(node=node) + "\n" + level * "  "
+                    )
                 visited.append(node)
-                stack.extend(self.get_children_filtered(node))
+                stack.extend(
+                    [(successor, level + 1) for successor in self.successors(node.id)]
+                )
         return serialized_str
 
 

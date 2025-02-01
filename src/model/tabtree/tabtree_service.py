@@ -1,8 +1,9 @@
 from __future__ import annotations
-from typing import Literal
+from typing import Literal, Optional, Tuple
 
 from pydantic import BaseModel
 
+from .string_generation.approaches import NodeApproach
 from .string_generation.value_string import ValueStringGeneration
 from .string_generation.context_string import ContextStringGeneration
 from ...pipeline import TableHeaderRowsPipeline
@@ -11,7 +12,6 @@ from ...retrieval.document_preprocessors.table_parser.custom_table import (
     CustomTableWithHeaderOptional,
 )
 from .tabtree_model import (
-    CellNode,
     ColouredNode,
     ColumnHeaderNode,
     ColumnHeaderTreeRoot,
@@ -113,8 +113,8 @@ class TabTreeService(BaseModel):
                 orientation=orientation,
             )
 
-            # Step 3: Add value cells
-            self.add_value_cells(custom_table, tree, orientation)
+        # Step 3: Add value cells
+        self.add_value_cells(custom_table, tree, orientation)
 
         return tree
 
@@ -133,21 +133,31 @@ class TabTreeService(BaseModel):
                 new_cell = custom_table.get_cell(row_index, col_index)
 
                 if orientation == "column":
-                    parent_cell = custom_table.get_cell_considering_span(
-                        custom_table.max_column_header_row, col_index
-                    )
-                    tree.add_edge(
-                        ColumnHeaderNode.from_custom_cell(parent_cell),
-                        ValueNode.from_custom_cell(new_cell),
-                    )
+                    if custom_table.max_column_header_row == -1:
+                        tree.add_edge(
+                            ColumnHeaderTreeRoot(), ValueNode.from_custom_cell(new_cell)
+                        )
+                    else:
+                        parent_cell = custom_table.get_cell_considering_span(
+                            custom_table.max_column_header_row, col_index
+                        )
+                        tree.add_edge(
+                            ColumnHeaderNode.from_custom_cell(parent_cell),
+                            ValueNode.from_custom_cell(new_cell),
+                        )
                 else:
-                    parent_cell = custom_table.get_cell_considering_span(
-                        row_index, custom_table.max_row_label_col
-                    )
-                    tree.add_edge(
-                        RowLabelNode.from_custom_cell(parent_cell),
-                        ValueNode.from_custom_cell(new_cell),
-                    )
+                    if custom_table.max_row_label_col == -1:
+                        tree.add_edge(
+                            RowLabelTreeRoot(), ValueNode.from_custom_cell(new_cell)
+                        )
+                    else:
+                        parent_cell = custom_table.get_cell_considering_span(
+                            row_index, custom_table.max_row_label_col
+                        )
+                        tree.add_edge(
+                            RowLabelNode.from_custom_cell(parent_cell),
+                            ValueNode.from_custom_cell(new_cell),
+                        )
 
     def add_context_intersection_nodes(
         self,
@@ -159,7 +169,7 @@ class TabTreeService(BaseModel):
 
         if orientation == "column":
             # if no context-intersection cells are present, return
-            if custom_table.max_row_label_col == 0:
+            if custom_table.max_row_label_col == -1:
                 return
 
             col_index = 0
@@ -191,7 +201,7 @@ class TabTreeService(BaseModel):
 
         if orientation == "row":
             # if no context-intersection cells are present, return
-            if custom_table.max_column_header_row == 0:
+            if custom_table.max_column_header_row == -1:
                 return
 
             row_index = 0
@@ -271,7 +281,12 @@ class TabTreeService(BaseModel):
 
     @staticmethod
     def generate_serialized_string(
-        tabtree: FullTabTree, primary_colour: NodeColor
+        tabtree: FullTabTree,
+        primary_colour: NodeColor,
+        approaches: Tuple[Optional[NodeApproach], Optional[NodeApproach]] = (
+            None,
+            None,
+        ),
     ) -> str:
         match primary_colour:
             case NodeColor.YELLOW:
@@ -285,10 +300,15 @@ class TabTreeService(BaseModel):
 
         # Define generation approaches / methods which will be executed in the dfs_serialization
         context_string_generation = (
-            lambda node: ContextStringGeneration.generate_string(node, primary_tree)
+            lambda node: ContextStringGeneration.generate_string(
+                node, primary_tree, approach=approaches[0]
+            )
         )
         value_string_generation = lambda node: ValueStringGeneration.generate_string(
-            node, primary_tree=primary_tree, secondary_tree=secondary_tree
+            node,
+            primary_tree=primary_tree,
+            secondary_tree=secondary_tree,
+            approach=approaches[1],
         )
 
         serialized_string = primary_tree.dfs_serialization(

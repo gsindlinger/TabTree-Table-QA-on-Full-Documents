@@ -3,6 +3,7 @@ import random
 from typing import List, Optional
 from pydantic import BaseModel
 
+
 from .separator_approach import SeparatorApproach
 from ..tabtree_model import CellNode
 
@@ -28,6 +29,8 @@ class StringGenerationService(BaseModel):
             ValueStringGenerationBaseWithIntersection,
             ValueStringGenerationText,
             ValueStringGenerationTextAugmented,
+            ValueStringGenerationTextAugmentedWithIntersection,
+            ValueStringGenerationTextWithIntersection,
         )
 
         if not approach:
@@ -51,12 +54,12 @@ class StringGenerationService(BaseModel):
                     return ValueStringGenerationBase()
             case ValueNodeApproach.TEXT:
                 if approach.include_context_intersection:
-                    return ValueStringGenerationText()
+                    return ValueStringGenerationTextWithIntersection()
                 else:
                     return ValueStringGenerationText()
             case ValueNodeApproach.TEXT_AUGMENTED:
                 if approach.include_context_intersection:
-                    return ValueStringGenerationTextAugmented()
+                    return ValueStringGenerationTextAugmentedWithIntersection()
                 else:
                     return ValueStringGenerationTextAugmented()
         raise ValueError(f"Invalid approach: {approach.approach}")

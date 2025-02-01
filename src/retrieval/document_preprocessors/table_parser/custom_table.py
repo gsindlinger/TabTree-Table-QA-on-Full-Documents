@@ -25,6 +25,20 @@ class CustomTableWithHeader(BaseModel):
     def __len__(self):
         return len(self.table)
 
+    def to_csv(self, file_path: str, include_span: bool = False):
+        with open(file_path, "w") as file:
+            for row in self.table:
+                if include_span:
+                    file.write(
+                        ";".join(
+                            f"value: '{cell.value}', colspan: {cell.colspan}, rowspan: {cell.rowspan}"
+                            for cell in row
+                        )
+                        + "\n"
+                    )
+                else:
+                    file.write(";".join(cell.value for cell in row) + "\n")
+
     @property
     def rows(self):
         return len(self.table)
@@ -65,6 +79,12 @@ class CustomTableWithHeader(BaseModel):
         )
 
     def set_headers(self, row_labels: int, column_headers: int):
+        """Set maximum row label column and maximum column header row.
+
+        Args:
+            row_labels (int): maximum row label column
+            column_headers (int): maximum column header row
+        """
         if self.max_column_header_row is not None:
             logging.info(
                 "Column headers will be overriden: %s -> %s",
@@ -150,7 +170,7 @@ class CustomTableWithHeaderOptional(CustomTableWithHeader):
         )
 
     def to_custom_table_with_header(self) -> CustomTableWithHeader:
-        if not self.max_column_header_row or not self.max_row_label_col:
+        if self.max_column_header_row is None or self.max_row_label_col is None:
             raise ValueError("Table has no context.")
         return CustomTableWithHeader(
             table=self.table,

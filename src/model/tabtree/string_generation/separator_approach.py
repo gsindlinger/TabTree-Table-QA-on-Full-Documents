@@ -1,5 +1,6 @@
 from __future__ import annotations
 from enum import Enum
+import logging
 from typing import List
 
 
@@ -23,9 +24,7 @@ class SeparatorApproach(Enum):
         return self.value
 
     def string_sequence_to_single_string(self, sequence: List[str]) -> str:
-        if not sequence:
-            raise ValueError("Sequence must contain at least one string.")
-        if len(sequence) == 0:
+        if not sequence or len(sequence) == 0:
             return ""
         if len(sequence) == 1:
             return sequence[0]

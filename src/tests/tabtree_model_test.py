@@ -376,21 +376,189 @@ class TestTabTreeModel(unittest.TestCase, AbstractTableTests):
         self.assertEqual(tabtree.row_label_tree.out_degree(CellNode.generate_id(cell_5.row_index, cell_5.col_index)), 3),  # type: ignore
         self.assertEqual(tabtree.row_label_tree.in_degree(CellNode.generate_id(cell_5.row_index, cell_5.col_index)), 1)  # type: ignore
 
-        ### Draw tree for visual inspection
-        import networkx as nx
-        from networkx.drawing.nx_agraph import write_dot, graphviz_layout
-        import matplotlib.pyplot as plt
+        # ### Draw tree for visual inspection
+        # import networkx as nx
+        # from networkx.drawing.nx_agraph import write_dot, graphviz_layout
+        # import matplotlib.pyplot as plt
 
-        tree = tabtree.column_header_tree
-        write_dot(tree, "tree.dot")
-        pos = graphviz_layout(tree, prog="dot")
+        # tree = tabtree.column_header_tree
+        # write_dot(tree, "tree.dot")
+        # pos = graphviz_layout(tree, prog="dot")
 
-        colors = [node["colour"] for node in tree.nodes.values()]
-        nx.draw(
-            tree,
-            pos,
-            with_labels=True,
-            arrows=True,
-            node_color=colors,
+        # colors = [node["colour"] for node in tree.nodes.values()]
+        # nx.draw(
+        #     tree,
+        #     pos,
+        #     with_labels=True,
+        #     arrows=True,
+        #     node_color=colors,
+        # )
+        # plt.show()
+
+    def test_real_world_example_awk_1(self):
+        # Arrange
+        df = self.parsed_df[4]
+        df.set_headers(0, 1)
+
+        # Act
+        self.full_tabtree = self.tabtree_service.generate_full_tabtree(df)
+
+        # Assert
+        cell_1 = df.get_cell(3, 2)  # 2,143
+        cell_2 = df.get_cell(7, 7)  # 267
+        cell_3 = df.get_cell(3, 0)  # Residential
+        cell_4 = df.get_cell(1, 5)  # Percentage of Revenue
+        cell_5 = df.get_cell(1, 0)  # (in millions)
+
+        self.assertIsNotNone(
+            self.full_tabtree.column_header_tree.get_node_by_index(
+                cell_1.row_index, cell_1.col_index
+            )
         )
-        plt.show()
+
+        self.assertIsNotNone(
+            self.full_tabtree.column_header_tree.get_node_by_index(
+                cell_2.row_index, cell_2.col_index
+            )
+        )
+
+        self.assertIsNotNone(
+            self.full_tabtree.row_label_tree.get_node_by_index(
+                cell_3.row_index, cell_3.col_index
+            )
+        )
+
+        self.assertIsNotNone(
+            self.full_tabtree.column_header_tree.get_node_by_index(
+                cell_4.row_index, cell_4.col_index
+            )
+        )
+
+        self.assertIsNotNone(
+            self.full_tabtree.column_header_tree.get_node_by_index(
+                cell_5.row_index, cell_5.col_index
+            )
+        )
+
+        # check colours
+
+        node_1 = self.full_tabtree.column_header_tree.get_node_by_index(
+            cell_1.row_index, cell_1.col_index
+        )
+        node_2 = self.full_tabtree.column_header_tree.get_node_by_index(
+            cell_2.row_index, cell_2.col_index
+        )
+
+        node_3 = self.full_tabtree.row_label_tree.get_node_by_index(
+            cell_3.row_index, cell_3.col_index
+        )
+
+        node_4 = self.full_tabtree.column_header_tree.get_node_by_index(
+            cell_4.row_index, cell_4.col_index
+        )
+
+        node_5 = self.full_tabtree.column_header_tree.get_node_by_index(
+            cell_5.row_index, cell_5.col_index
+        )
+
+        self.assertEqual(node_1.colour, NodeColor.GRAY)  # type: ignore
+        self.assertEqual(node_2.colour, NodeColor.GRAY)  # type: ignore
+        self.assertEqual(node_3.colour, NodeColor.BLUE)  # type: ignore
+        self.assertEqual(node_4.colour, NodeColor.YELLOW)  # type: ignore
+        self.assertEqual(node_5.colour, NodeColor.ORANGE)  # type: ignore
+
+        # check edges
+        self.assertTrue(
+            self.full_tabtree.row_label_tree.has_edge(
+                node_3,  # type: ignore
+                node_1,  # type: ignore
+            )
+        )
+
+        self.assertTrue(
+            self.full_tabtree.row_label_tree.has_edge(
+                node_5,  # type: ignore
+                node_3,  # type: ignore
+            )
+        )
+
+        self.assertTrue(
+            self.full_tabtree.column_header_tree.has_edge(
+                node_5,  # type: ignore
+                node_4,  # type: ignore
+            )
+        )
+
+        self.assertEqual(
+            self.full_tabtree.column_header_tree.in_degree(CellNode.generate_id(cell_1.row_index, cell_1.col_index)),  # type: ignore
+            1,
+        )
+        self.assertEqual(
+            self.full_tabtree.column_header_tree.in_degree(CellNode.generate_id(cell_2.row_index, cell_2.col_index)),  # type: ignore
+            1,
+        )
+
+    def test_real_world_example_awk_2(self):
+        """Test with table which has no row labes."""
+
+        # Arrange
+        df = self.parsed_df[5]
+        df.set_headers(-1, 0)
+
+        # Act
+        self.full_tabtree = self.tabtree_service.generate_full_tabtree(df)
+
+        # Assert
+        cell_1 = df.get_cell(0, 0)  # Column Header
+        cell_2 = df.get_cell(1, 0)  # Value cell (should exist in both trees)
+        cell_3 = df.get_cell(0, 1)  # Column Header
+
+        self.assertIsNotNone(
+            self.full_tabtree.column_header_tree.get_node_by_index(
+                cell_1.row_index, cell_1.col_index
+            )
+        )
+
+        self.assertIsNotNone(
+            self.full_tabtree.column_header_tree.get_node_by_index(
+                cell_2.row_index, cell_2.col_index
+            )
+        )
+
+        # check existance also in row label tree
+        self.assertIsNotNone(
+            self.full_tabtree.row_label_tree.get_node_by_index(
+                cell_2.row_index, cell_2.col_index
+            )
+        )
+
+        self.assertIsNotNone(
+            self.full_tabtree.column_header_tree.get_node_by_index(
+                cell_3.row_index, cell_3.col_index
+            )
+        )
+
+        # check colours
+
+        node_1 = self.full_tabtree.column_header_tree.get_node_by_index(
+            cell_1.row_index, cell_1.col_index
+        )
+        node_2 = self.full_tabtree.column_header_tree.get_node_by_index(
+            cell_2.row_index, cell_2.col_index
+        )
+
+        node_3 = self.full_tabtree.column_header_tree.get_node_by_index(
+            cell_3.row_index, cell_3.col_index
+        )
+
+        self.assertEqual(node_1.colour, NodeColor.YELLOW)  # type: ignore
+        self.assertEqual(node_2.colour, NodeColor.GRAY)  # type: ignore
+        self.assertEqual(node_3.colour, NodeColor.YELLOW)  # type: ignore
+
+        # check edges
+        self.assertTrue(
+            self.full_tabtree.column_header_tree.has_edge(
+                node_1,  # type: ignore
+                node_2,  # type: ignore
+            )
+        )

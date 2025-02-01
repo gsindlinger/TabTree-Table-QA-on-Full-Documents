@@ -15,16 +15,16 @@ class NodeApproach(BaseModel):
         from .context_string import ContextStringGeneration
         from .value_string import ValueStringGeneration
 
-        if isinstance(generation_cls, ContextStringGeneration):
+        if issubclass(generation_cls, ContextStringGeneration):
             approach = ContextNodeApproach.from_str(
-                Config.tabtree.context_node_approach
+                Config.tabtree.context_string_approach
             )
             include_context_intersection = (
                 Config.tabtree.context_string_with_context_intersection
             )
 
-        elif isinstance(generation_cls, ValueStringGeneration):
-            approach = ValueNodeApproach.from_str(Config.tabtree.value_node_approach)
+        elif issubclass(generation_cls, ValueStringGeneration):
+            approach = ValueNodeApproach.from_str(Config.tabtree.value_string_approach)
             include_context_intersection = (
                 Config.tabtree.value_string_with_context_intersection
             )
@@ -37,8 +37,8 @@ class NodeApproach(BaseModel):
 
 
 class ContextNodeApproach(str, Enum):
-    BASE = "base"
-    TEXT = "text"
+    BASE = "context_base"
+    TEXT = "context_text"
 
     @classmethod
     def from_str(cls, value: str) -> ContextNodeApproach:
@@ -46,9 +46,9 @@ class ContextNodeApproach(str, Enum):
 
 
 class ValueNodeApproach(str, Enum):
-    BASE = "base"
-    TEXT = "text"
-    TEXT_AUGMENTED = "text_augmented"
+    BASE = "value_base"
+    TEXT = "value_text"
+    TEXT_AUGMENTED = "value_text_augmented"
 
     @classmethod
     def from_str(cls, value: str) -> ValueNodeApproach:
