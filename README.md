@@ -23,7 +23,7 @@ The thesis addresses the following core research questions:
 - Which table representation yields the best quality in Table QA?  
   - How does table representation affect retrieval effectiveness in a RAG pipeline?  
   - How does it influence the generative QA process of LLMs?  
-- Which components of a RAG pipeline are most critical for generating accurate responses? 
+- Which components of a RAG pipeline are most critical for generating accurate responses with respect to tabular data? 
 
 ### Getting Started
 
