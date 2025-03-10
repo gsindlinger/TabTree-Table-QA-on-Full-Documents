@@ -1,11 +1,12 @@
 from __future__ import annotations
+from abc import ABC, abstractmethod
+import logging
 from typing import Iterator, List, Literal, Tuple
 from pydantic import BaseModel
 
 from .retrieval.document_preprocessors.table_parser.custom_table import (
     CustomTableWithHeaderOptional,
 )
-from .retrieval.document_preprocessors.table_serializer import ExtendedTable
 from .generation.abstract_llm import LLM
 from .model.custom_document import CustomDocument
 from .retrieval.retriever import QdrantRetriever
@@ -13,18 +14,66 @@ from .retrieval.qdrant_store import QdrantVectorStore
 from .config import Config
 from langchain.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
-from langchain_core.runnables.base import RunnableSequence, RunnableSerializable
+from langchain_core.runnables.base import RunnableSerializable
 from langchain_core.runnables import RunnablePassthrough
 from langchain_core.language_models.base import BaseLanguageModel
 from langchain.retrievers.multi_query import MultiQueryRetriever
 
 
-class Pipeline(BaseModel):
+class AbstractPipeline(ABC, BaseModel):
     template: str
     prompt: PromptTemplate
     output_parser: StrOutputParser
     llm: BaseLanguageModel
-    llm_chain: RunnableSequence
+    llm_chain: RunnableSerializable
+
+    class Config:
+        arbitrary_types_allowed = True
+
+    @classmethod
+    @abstractmethod
+    def from_config(cls) -> AbstractPipeline:
+        pass
+
+
+class TableQAPipeline(AbstractPipeline):
+    @classmethod
+    def from_config(
+        cls,
+    ) -> TableQAPipeline:
+        template = Config.text_generation.prompt_template_table_qa
+        llm = LLM.from_config()
+        prompt = PromptTemplate(
+            input_variables=["table", "question"],
+            template=template,
+        )
+        output_parser = StrOutputParser()
+
+        llm_chain = (prompt | llm | output_parser).with_config({"tags": ["table-qa"]})
+        return cls(
+            template=template,
+            llm=llm,
+            prompt=prompt,
+            output_parser=output_parser,
+            llm_chain=llm_chain,
+        )
+
+    def invoke(self, table_title: str | None, table: str, question: str) -> str:
+        if table_title:
+            table_title = f"\nTable title: {table_title}\n"
+        else:
+            table_title = ""
+
+        try:
+            return self.llm_chain.invoke(
+                input={"table_title": table_title, "table": table, "question": question}
+            )
+        except Exception as e:
+            logging.error(f"Error invoking pipeline: {e}")
+            return "Anwer: None"
+
+
+class RAGPipeline(AbstractPipeline):
     retriever: MultiQueryRetriever | QdrantRetriever
 
     class Config:
@@ -33,11 +82,11 @@ class Pipeline(BaseModel):
     @classmethod
     def from_config(
         cls, vector_store: QdrantVectorStore, retriever_num_documents: int
-    ) -> Pipeline:
+    ) -> RAGPipeline:
         retriever = QdrantRetriever(
             vector_store, retriever_num_documents=retriever_num_documents
         )
-        template = Config.text_generation.prompt_template
+        template = Config.text_generation.prompt_template_rag
         llm = LLM.from_config()
         prompt = PromptTemplate(
             input_variables=["context", "question"],
@@ -54,17 +103,19 @@ class Pipeline(BaseModel):
             | prompt
             | llm
             | output_parser
-        )
+        ).with_config({"tags": ["rag"]})
         return cls(
             retriever=retriever,
             template=template,
             llm=llm,
             prompt=prompt,
             output_parser=output_parser,
-            llm_chain=llm_chain,
+            llm_chain=llm_chain,  # type: ignore
         )
 
     def retrieve(self, question: str = "What is love?") -> List[CustomDocument]:
+        if not self.retriever:
+            raise ValueError("Retriever is not set")
         docs = self.retriever.invoke(question)
         return CustomDocument.docs_to_custom_docs(docs)
 
@@ -75,29 +126,78 @@ class Pipeline(BaseModel):
         return self.llm_chain.stream(question)
 
 
-class TableHeaderRowsPipeline(BaseModel):
-    template: str
-    prompt: PromptTemplate
-    output_parser: StrOutputParser
-    llm: BaseLanguageModel
-    llm_chain: RunnableSerializable
+class QuestionDomainPipeline(AbstractPipeline):
+    @classmethod
+    def from_config(
+        cls,
+    ) -> QuestionDomainPipeline:
+        template = Config.text_generation.prompt_template_question_domain
+        llm = LLM.from_config()
+        prompt = PromptTemplate(
+            input_variables=["question", "table"],
+            template=template,
+        )
+        output_parser = StrOutputParser()
 
-    class Config:
-        arbitrary_types_allowed = True
+        llm_chain = (prompt | llm | output_parser).with_config(
+            {"tags": ["question-domain"]}
+        )
+        return cls(
+            template=template,
+            llm=llm,
+            prompt=prompt,
+            output_parser=output_parser,
+            llm_chain=llm_chain,
+        )
 
+    def predict_domain(self, question: str, table: str) -> str:
+        return self.llm_chain.invoke(input={"question": question, "table": table})
+
+
+class QuestionCategoryPipeline(AbstractPipeline):
+    @classmethod
+    def from_config(
+        cls,
+    ) -> QuestionCategoryPipeline:
+        template = Config.text_generation.prompt_template_question_category
+        llm = LLM.from_config()
+        prompt = PromptTemplate(
+            input_variables=["question", "table"],
+            template=template,
+        )
+        output_parser = StrOutputParser()
+
+        llm_chain = (prompt | llm | output_parser).with_config(
+            {"tags": ["question-category"]}
+        )
+        return cls(
+            template=template,
+            llm=llm,
+            prompt=prompt,
+            output_parser=output_parser,
+            llm_chain=llm_chain,
+        )
+
+    def predict_category(self, question: str, table: str) -> str:
+        return self.llm_chain.invoke(input={"question": question, "table": table})
+
+
+class TableHeaderRowsPipeline(AbstractPipeline):
     @classmethod
     def from_config(
         cls,
     ) -> TableHeaderRowsPipeline:
-        template = Config.tabtree.prompt_template
-        llm = LLM.from_tabtree_config()
+        template = Config.tabtree.prompt_template_header_detection
+        llm = LLM.from_config()
         prompt = PromptTemplate(
             input_variables=["table"],
             template=template,
         )
         output_parser = StrOutputParser()
 
-        llm_chain = prompt | llm | output_parser
+        llm_chain = (prompt | llm | output_parser).with_config(
+            {"tags": ["header-detection"]}
+        )
         return cls(
             template=template,
             llm=llm,
@@ -110,15 +210,25 @@ class TableHeaderRowsPipeline(BaseModel):
         self, custom_table: CustomTableWithHeaderOptional
     ) -> Tuple[int, int]:
         """Get the row and column headers of the table.
-        First item of return tuple refers to column header rows and second item refers to row label columns.
+        First item of return tuple refers to max column header row and second item refers to max row label column.
         """
-        column_header_rows = self.predict_headers_single(
+        max_column_header_row = self.predict_headers_single(
             full_table=custom_table.raw_table, table_df=custom_table, mode="row"
         )
-        row_label_columns = self.predict_headers_single(
+        max_row_label_column = self.predict_headers_single(
             full_table=custom_table.raw_table, table_df=custom_table, mode="column"
         )
-        return column_header_rows, row_label_columns
+
+        if max_column_header_row == len(custom_table):
+            logging.warning(
+                "Header detection provided column header rows for full table, reducing max column header row by 1"
+            )
+        if max_row_label_column == len(custom_table[0]):
+            logging.warning(
+                "Header detection provided row label columns for full table, reducing max row label column by 1"
+            )
+            max_row_label_column -= 1
+        return max_column_header_row, max_row_label_column
 
     def predict_headers_single(
         self,
@@ -138,6 +248,9 @@ class TableHeaderRowsPipeline(BaseModel):
 
             match mode:
                 case "row":
+                    if index + 1 == table_df.rows:
+                        break
+
                     items = table_df.get_row(index + 1)
                     if index > 0:
                         second_previous_items = table_df.get_row(index - 1)
@@ -148,6 +261,9 @@ class TableHeaderRowsPipeline(BaseModel):
                     if index + 4 < table_df.rows:
                         second_next_items = table_df.get_row(index + 3)
                 case "column":
+                    if index + 1 == table_df.columns:
+                        break
+
                     items = table_df.get_column(index + 1)
                     if index > 0:
                         second_previous_items = table_df.get_column(index - 1)
@@ -247,7 +363,8 @@ class TableHeaderRowsPipeline(BaseModel):
                 "second_previous_index": second_previous_index,
                 "second_next_index": second_next_index,
                 "index": index,
-            }
+            },
+            config={"tags": ["header-detection", mode]},
         )
 
         # check whether response contains yes or no
@@ -258,4 +375,8 @@ class TableHeaderRowsPipeline(BaseModel):
             print("No")
             return False
         else:
-            raise ValueError(f"Response does not contain yes or no: {response}")
+            logging.warning(f"Response does not contain yes or no: {response}")
+            if index == 0:
+                return True
+            else:
+                return False

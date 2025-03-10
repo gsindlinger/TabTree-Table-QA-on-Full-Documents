@@ -4,7 +4,7 @@ from typing import List, Literal, Optional
 from pandas import DataFrame
 from pydantic import BaseModel
 
-from ..table_serializer import ExtendedTable
+from ....model.tables import ExtendedTable
 from .custom_cell import CustomCell
 
 CustomTable = List[List[CustomCell]]
@@ -12,7 +12,7 @@ CustomTable = List[List[CustomCell]]
 
 class CustomTableWithHeader(BaseModel):
     table: CustomTable
-    max_row_label_col: int
+    max_row_label_column: int
     max_column_header_row: int
     raw_table: str
 
@@ -24,6 +24,9 @@ class CustomTableWithHeader(BaseModel):
 
     def __len__(self):
         return len(self.table)
+
+    def has_no_headers(self) -> bool:
+        return self.max_row_label_column == -1 and self.max_column_header_row == -1
 
     def to_csv(self, file_path: str, include_span: bool = False):
         with open(file_path, "w") as file:
@@ -73,33 +76,41 @@ class CustomTableWithHeader(BaseModel):
             df=DataFrame(self.table),
             raw_table=self.raw_table,
             has_header=True,
-            header_columns=self.max_row_label_col,
-            header_rows=self.max_column_header_row,
+            max_row_label_column=self.max_row_label_column,
+            max_column_header_row=self.max_column_header_row,
             serialized_table=serialized_table,
         )
 
-    def set_headers(self, row_labels: int, column_headers: int):
+    def set_headers(
+        self,
+        max_column_header_row: int,
+        max_row_label_column: int,
+        override: bool = False,
+    ) -> None:
         """Set maximum row label column and maximum column header row.
 
         Args:
-            row_labels (int): maximum row label column
-            column_headers (int): maximum column header row
+            max_column_header_row (int): Maximum column header row.
+            max_row_label_column (int): Maximum row label column.
         """
-        if self.max_column_header_row is not None:
+
+        if self.max_column_header_row is None or override:
+            self.max_column_header_row = max_column_header_row
+        else:
             logging.info(
-                "Column headers will be overriden: %s -> %s",
+                "Column headers will NOT be overridden. Keeping old value: %s, Potential new value: %s",
                 self.max_column_header_row,
-                column_headers,
-            )
-        if self.max_row_label_col is not None:
-            logging.info(
-                "Row labels will be overriden: %s -> %s",
-                self.max_row_label_col,
-                row_labels,
+                max_column_header_row,
             )
 
-        self.max_row_label_col = row_labels
-        self.max_column_header_row = column_headers
+        if self.max_row_label_column is None or override:
+            self.max_row_label_column = max_row_label_column
+        else:
+            logging.info(
+                "Row labels will NOT be overridden. Keeping old value: %s, Potential new value: %s",
+                self.max_row_label_column,
+                max_row_label_column,
+            )
 
     @staticmethod
     def print_line_with_span(
@@ -110,10 +121,18 @@ class CustomTableWithHeader(BaseModel):
         while counter < len(items):
             if orientation == "row":
                 span_high = items[counter].colspan[1]
-                span_str = f" (colspan: {span_high+1})" if span_high > 0 else ""
+                span_str = (
+                    f" (colspan: {span_high+1})"
+                    if span_high > 0 and items[counter].value != ""
+                    else ""
+                )
             else:
                 span_high = items[counter].rowspan[1]
-                span_str = f" (rowspan: {span_high+1})" if span_high > 0 else ""
+                span_str = (
+                    f" (rowspan: {span_high+1})"
+                    if span_high > 0 and items[counter].value != ""
+                    else ""
+                )
 
             line.append(f"{items[counter].value}{span_str}")
             counter += span_high + 1
@@ -121,7 +140,7 @@ class CustomTableWithHeader(BaseModel):
         return str(line)
 
     def split_cells_on_headers(self) -> CustomTableWithHeader:
-        j_star = self.max_row_label_col
+        j_star = self.max_row_label_column
         i_star = self.max_column_header_row
         for i, row in enumerate(self.table):
             for j, cell in enumerate(row):
@@ -149,13 +168,21 @@ class CustomTableWithHeader(BaseModel):
                 cell.rowspan = new_rowspan
         return self
 
+    def to_custom_table_with_header_optional(self) -> CustomTableWithHeaderOptional:
+        return CustomTableWithHeaderOptional(
+            table=self.table,
+            max_row_label_column=self.max_row_label_column,
+            max_column_header_row=self.max_column_header_row,
+            raw_table=self.raw_table,
+        )
+
 
 class CustomTableWithHeaderOptional(CustomTableWithHeader):
-    max_row_label_col: Optional[int] = None
+    max_row_label_column: Optional[int] = None
     max_column_header_row: Optional[int] = None
 
     def has_context(self) -> bool:
-        if self.max_row_label_col is None or self.max_column_header_row is None:
+        if self.max_row_label_column is None or self.max_column_header_row is None:
             return False
         return True
 
@@ -164,17 +191,17 @@ class CustomTableWithHeaderOptional(CustomTableWithHeader):
             df=DataFrame(self.table),
             raw_table=self.raw_table,
             has_header=self.has_context(),
-            header_columns=self.max_row_label_col,
-            header_rows=self.max_column_header_row,
+            max_row_label_column=self.max_row_label_column,
+            max_column_header_row=self.max_column_header_row,
             serialized_table=serialized_table,
         )
 
     def to_custom_table_with_header(self) -> CustomTableWithHeader:
-        if self.max_column_header_row is None or self.max_row_label_col is None:
+        if self.max_column_header_row is None or self.max_row_label_column is None:
             raise ValueError("Table has no context.")
         return CustomTableWithHeader(
             table=self.table,
-            max_row_label_col=self.max_row_label_col,
+            max_row_label_column=self.max_row_label_column,
             max_column_header_row=self.max_column_header_row,
             raw_table=self.raw_table,
         )

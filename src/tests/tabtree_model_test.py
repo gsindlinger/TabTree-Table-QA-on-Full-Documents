@@ -17,7 +17,7 @@ class TestTabTreeModel(unittest.TestCase, AbstractTableTests):
     def test_split_table_on_context(self):
         ### Arrange
         df = self.parsed_df[2]
-        df.set_headers(1, 2)
+        df.set_headers(2, 1, override=True)
 
         cells = [(0, 0), (0, 3), (4, 0), (5, 4)]
 
@@ -71,7 +71,7 @@ class TestTabTreeModel(unittest.TestCase, AbstractTableTests):
     def test_model_generation(self):
         ### Arrange
         df = self.parsed_df[3]
-        df.set_headers(1, 2)
+        df.set_headers(2, 1, override=True)
 
         # grades cell
         cell_1 = df.get_cell(0, 0)  # context-intersection
@@ -398,7 +398,7 @@ class TestTabTreeModel(unittest.TestCase, AbstractTableTests):
     def test_real_world_example_awk_1(self):
         # Arrange
         df = self.parsed_df[4]
-        df.set_headers(0, 1)
+        df.set_headers(1, 0, override=True)
 
         # Act
         self.full_tabtree = self.tabtree_service.generate_full_tabtree(df)
@@ -503,7 +503,7 @@ class TestTabTreeModel(unittest.TestCase, AbstractTableTests):
 
         # Arrange
         df = self.parsed_df[5]
-        df.set_headers(-1, 0)
+        df.set_headers(0, -1, override=True)
 
         # Act
         self.full_tabtree = self.tabtree_service.generate_full_tabtree(df)
@@ -562,3 +562,17 @@ class TestTabTreeModel(unittest.TestCase, AbstractTableTests):
                 node_2,  # type: ignore
             )
         )
+
+    def test_real_world_example_awk_3(self):
+        """Test with table which has no column headers."""
+
+        # Arrange
+        df = self.parsed_df[9]
+        df.set_headers(0, 0, override=True)
+        self.tabtree_service
+
+        # Act
+        self.full_tabtree = self.tabtree_service.generate_full_tabtree(df)
+
+        # Assert
+        print("Column Header Tree")

@@ -1,11 +1,12 @@
 from __future__ import annotations
+from enum import Enum
+import random
 from typing import Literal, Optional, Tuple
 
 from pydantic import BaseModel
 
+
 from .string_generation.approaches import NodeApproach
-from .string_generation.value_string import ValueStringGeneration
-from .string_generation.context_string import ContextStringGeneration
 from ...pipeline import TableHeaderRowsPipeline
 from ...retrieval.document_preprocessors.table_parser.custom_table import (
     CustomTableWithHeader,
@@ -37,19 +38,25 @@ class TabTreeService(BaseModel):
     """Assuming empty rows and columns are already deleted."""
 
     @staticmethod
-    def generate_full_tabtree(
+    def set_headers(
         custom_table_header_optional: CustomTableWithHeaderOptional,
-    ) -> FullTabTree:
-        service = TabTreeService()
+    ) -> CustomTableWithHeader:
         if not custom_table_header_optional.has_context():
-            row_header_max_index, col_header_max_index = service.get_headers(
+            max_column_header_row, max_row_label_column = TabTreeService.get_headers(
                 custom_table_header_optional
             )
             custom_table_header_optional.set_headers(
-                row_header_max_index, col_header_max_index
+                max_column_header_row=max_column_header_row,
+                max_row_label_column=max_row_label_column,
             )
 
-        custom_table = custom_table_header_optional.to_custom_table_with_header()
+        return custom_table_header_optional.to_custom_table_with_header()
+
+    @staticmethod
+    def generate_full_tabtree(
+        custom_table: CustomTableWithHeader,
+    ) -> FullTabTree:
+        service = TabTreeService()
 
         # preprocess as in Algoithm 3.1
         custom_table = service.preprocess_table(custom_table)
@@ -71,11 +78,14 @@ class TabTreeService(BaseModel):
     ) -> CustomTableWithHeader:
         return custom_table.split_cells_on_headers()
 
-    def get_headers(
-        self, custom_table: CustomTableWithHeaderOptional
-    ) -> tuple[int, int]:
+    @staticmethod
+    def get_headers(custom_table: CustomTableWithHeaderOptional) -> tuple[int, int]:
         """Get the row and column headers of the table.
-        First item of return tuple refers to column header rows and second item refers to row label columns.
+
+        Returns: Tuple[int, int]
+
+            1. max column header row
+            2. max row label column
         """
         table_header_detection = TableHeaderRowsPipeline.from_config()
         return table_header_detection.predict_headers(custom_table)
@@ -95,7 +105,7 @@ class TabTreeService(BaseModel):
         range_max = (
             custom_table.max_column_header_row
             if orientation == "column"
-            else custom_table.max_row_label_col
+            else custom_table.max_row_label_column
         )
         # Step 2: Iterate over all column header cells / row label cells for distinct column headers / row labels
         for current_index in range(range_max + 1):
@@ -128,7 +138,7 @@ class TabTreeService(BaseModel):
             custom_table.max_column_header_row + 1, len(custom_table.table)
         ):
             for col_index in range(
-                custom_table.max_row_label_col + 1, len(custom_table.table[0])
+                custom_table.max_row_label_column + 1, len(custom_table.table[0])
             ):
                 new_cell = custom_table.get_cell(row_index, col_index)
 
@@ -146,13 +156,13 @@ class TabTreeService(BaseModel):
                             ValueNode.from_custom_cell(new_cell),
                         )
                 else:
-                    if custom_table.max_row_label_col == -1:
+                    if custom_table.max_row_label_column == -1:
                         tree.add_edge(
                             RowLabelTreeRoot(), ValueNode.from_custom_cell(new_cell)
                         )
                     else:
                         parent_cell = custom_table.get_cell_considering_span(
-                            row_index, custom_table.max_row_label_col
+                            row_index, custom_table.max_row_label_column
                         )
                         tree.add_edge(
                             RowLabelNode.from_custom_cell(parent_cell),
@@ -169,7 +179,7 @@ class TabTreeService(BaseModel):
 
         if orientation == "column":
             # if no context-intersection cells are present, return
-            if custom_table.max_row_label_col == -1:
+            if custom_table.max_row_label_column == -1:
                 return
 
             col_index = 0
@@ -179,7 +189,7 @@ class TabTreeService(BaseModel):
                 )
                 col_index += cell_left.colspan[1] + 1
                 # Break if the next cell is out of bounds
-                if col_index > custom_table.max_row_label_col:
+                if col_index > custom_table.max_row_label_column:
                     break
 
                 # Else add edge to next right cell
@@ -194,7 +204,7 @@ class TabTreeService(BaseModel):
             # Retrieve all column header nodes for the current row and connect them to the most left
             column_header_nodes = tree.get_column_nodes_by_row_index(
                 row_index=current_index,
-                start_col_index=custom_table.max_row_label_col + 1,
+                start_col_index=custom_table.max_row_label_column + 1,
             )
             for node in column_header_nodes:
                 tree.add_edge(ContextIntersectionNode.from_custom_cell(cell_left), node)
@@ -238,10 +248,10 @@ class TabTreeService(BaseModel):
         tree: TabTree,
         orientation: Literal["column", "row"],
     ) -> None:
-        # Range starts at max_row_label_col + 1 because context-intersection is excluded
+        # Range starts at max_row_label_column + 1 because context-intersection is excluded
         if orientation == "column":
             row_index = current_index
-            col_index = custom_table.max_row_label_col + 1
+            col_index = custom_table.max_row_label_column + 1
             while col_index < len(custom_table.table[row_index]):
                 new_cell = custom_table.get_cell(row_index, col_index)
                 if new_cell.colspan[0] == 0:
@@ -298,22 +308,9 @@ class TabTreeService(BaseModel):
             case _:
                 raise ValueError(f"Invalid primary colour: {primary_colour}")
 
-        # Define generation approaches / methods which will be executed in the dfs_serialization
-        context_string_generation = (
-            lambda node: ContextStringGeneration.generate_string(
-                node, primary_tree, approach=approaches[0]
-            )
-        )
-        value_string_generation = lambda node: ValueStringGeneration.generate_string(
-            node,
-            primary_tree=primary_tree,
-            secondary_tree=secondary_tree,
-            approach=approaches[1],
-        )
-
         serialized_string = primary_tree.dfs_serialization(
-            context_string_generation=context_string_generation,
-            value_string_generation=value_string_generation,
+            secondary_tree=secondary_tree,
+            approaches=approaches,
         )
 
         return serialized_string

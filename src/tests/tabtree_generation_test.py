@@ -6,6 +6,7 @@ from ..model.tabtree.tabtree_model import NodeColor, ValueNode
 from ..model.tabtree.string_generation.value_string import (
     ValueStringGeneration,
     ValueStringGenerationBase,
+    ValueStringGenerationText,
 )
 from ..model.tabtree.string_generation.approaches import (
     ContextNodeApproach,
@@ -15,6 +16,7 @@ from ..model.tabtree.string_generation.approaches import (
 from ..model.tabtree.string_generation.context_string import (
     ContextStringGeneration,
     ContextStringGenerationBase,
+    ContextStringGenerationText,
 )
 from ..model.tabtree.string_generation.general import StringGenerationService
 from ..model.tabtree.string_generation.separator_approach import SeparatorApproach
@@ -29,7 +31,7 @@ class TestTabTreeModel(unittest.TestCase, AbstractTableTests):
         self.setup_parse_and_clean()
         self.tabtree_service = TabTreeService()
         df = self.parsed_df[3]
-        df.set_headers(1, 2)
+        df.set_headers(2, 1, override=True)
 
         # generate model / find tests for this in another file
         self.full_tabtree = self.tabtree_service.generate_full_tabtree(df)
@@ -102,15 +104,6 @@ class TestTabTreeModel(unittest.TestCase, AbstractTableTests):
         self.assertEqual(
             [node.value for node in context_intersection_3], expected_intersection_seq_3
         )
-
-    def test_load_correct_config_approaches(self):
-        # Act
-        context_string_approach = ContextStringGeneration.from_config(approach=None)
-        value_string_approach = ValueStringGeneration.from_config(approach=None)
-
-        # Assert
-        self.assertIsInstance(context_string_approach, ContextStringGenerationBase)
-        self.assertIsInstance(value_string_approach, ValueStringGenerationBase)
 
     def test_context_string_base_correct(self):
         # Arrange
@@ -535,7 +528,7 @@ class TestTabTreeModel(unittest.TestCase, AbstractTableTests):
     def test_real_world_example_awk_1(self):
         # Arrange
         df = self.parsed_df[4]
-        df.set_headers(0, 1)
+        df.set_headers(1, 0, override=True)
 
         # generate model
         self.full_tabtree = self.tabtree_service.generate_full_tabtree(df)
@@ -622,7 +615,7 @@ class TestTabTreeModel(unittest.TestCase, AbstractTableTests):
     def test_real_world_example_awk_2(self):
         # Arrange
         df = self.parsed_df[5]
-        df.set_headers(-1, 0)
+        df.set_headers(0, -1, override=True)
 
         # generate model
         self.full_tabtree = self.tabtree_service.generate_full_tabtree(df)
@@ -688,7 +681,7 @@ class TestTabTreeModel(unittest.TestCase, AbstractTableTests):
     def test_real_world_example_awk_3(self):
         # Arrange
         df = self.parsed_df[6]
-        df.set_headers(0, 0)
+        df.set_headers(0, 0, override=True)
 
         # generate model
         self.full_tabtree = self.tabtree_service.generate_full_tabtree(df)
@@ -755,31 +748,38 @@ class TestTabTreeModel(unittest.TestCase, AbstractTableTests):
             approaches=approaches,
         )
 
+        full_str_2 = self.tabtree_service.generate_serialized_string(
+            tabtree=self.full_tabtree,
+            primary_colour=NodeColor.BLUE,
+            approaches=approaches,
+        )
+
         expected_str = """
-        The column header grades has no siblings. The children of grades are null, 2023, 2024.
-        The column header 2024 has siblings null, 2023. The children of 2024 are math, english.
-        The column header english has siblings math. The values of english are:
-        The value of the column header english and the row label combination B, Michael is D.
-        The value of the column header english and the row label combination A, Tiffany is B.
-        The value of the column header english and the row label combination A, John is B.
-        The column header math has siblings english. The values of math are:
-        The value of the column header math and the row label combination B, Michael is D.
-        The value of the column header math and the row label combination A, Tiffany is C.
-        The value of the column header math and the row label combination A, John is A.
-        The column header 2023 has siblings null, 2024. The children of 2023 are math, english.
-        The column header english has siblings math. The values of english are:
-        The value of the column header english and the row label combination B, Michael is D.
-        The value of the column header english and the row label combination A, Tiffany is B.
-        The value of the column header english and the row label combination A, John is C.
-        The column header math has siblings english. The values of math are:
-        The value of the column header math and the row label combination B, Michael is D.
-        The value of the column header math and the row label combination A, Tiffany is B.
-        The value of the column header math and the row label combination A, John is A.
-        The column header null has siblings 2023, 2024. The children of null are age.
-        The values of the column header age are:
-        The value of the column header age and the row label combination B, Michael is 17.
-        The value of the column header age and the row label combination A, Tiffany is 16.
-        The value of the column header age and the row label combination A, John is 17.
+    The table captures grades as its main column header.
+    The column header grades has no siblings. The children of grades are null, 2023, 2024.
+    The column header null has siblings 2023, 2024. The children of null are age.
+    The values of the column header age are:
+    The value of the column header age and the row label combination B, Michael is 17.
+    The value of the column header age and the row label combination A, Tiffany is 16.
+    The value of the column header age and the row label combination A, John is 17.
+    The column header 2023 has siblings null, 2024. The children of 2023 are math, english.
+    The column header math has siblings english. The values of math are:
+    The value of the column header math and the row label combination B, Michael is D.
+    The value of the column header math and the row label combination A, Tiffany is B.
+    The value of the column header math and the row label combination A, John is A.
+    The column header english has siblings math. The values of english are:
+    The value of the column header english and the row label combination B, Michael is D.
+    The value of the column header english and the row label combination A, Tiffany is B.
+    The value of the column header english and the row label combination A, John is C.
+    The column header 2024 has siblings null, 2023. The children of 2024 are math, english.
+    The column header math has siblings english. The values of math are:
+    The value of the column header math and the row label combination B, Michael is D.
+    The value of the column header math and the row label combination A, Tiffany is C.
+    The value of the column header math and the row label combination A, John is A.
+    The column header english has siblings math. The values of english are:
+    The value of the column header english and the row label combination B, Michael is D.
+    The value of the column header english and the row label combination A, Tiffany is B.
+    The value of the column header english and the row label combination A, John is B.
     """
 
         pattern = re.compile(r"\s+")

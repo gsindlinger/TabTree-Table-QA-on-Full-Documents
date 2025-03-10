@@ -10,9 +10,11 @@ from ..config.config import Config
 
 class EvaluationDocument(BaseModel):
     doc_id: str
+    question_id: Optional[str] = None
     question: str
     answer: str
     search_reference: str
+    category: Optional[str] = None
 
     @staticmethod
     def filter_documents_by_id(documents: List[EvaluationDocument], id: str):
@@ -21,6 +23,8 @@ class EvaluationDocument(BaseModel):
     @staticmethod
     def to_csv(documents: List[EvaluationDocument], file_path: str):
         df = pd.DataFrame([item.model_dump() for item in documents])
+        # make dir if not exists
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
         df.to_csv(path_or_buf=file_path, sep=";", index=False)
 
     @staticmethod
@@ -29,15 +33,24 @@ class EvaluationDocument(BaseModel):
             raise FileNotFoundError(f"File {file_path} not found")
 
         df = pd.read_csv(filepath_or_buffer=file_path, sep=";")
+        df.fillna("", inplace=True)
+        
         df["answer"] = df["answer"].astype(str)
         df["search_reference"] = df["search_reference"].astype(str)
         return [EvaluationDocument(**row) for _, row in df.iterrows()]
 
 
+class EvaluationDocumentWithTable(EvaluationDocument):
+    html_table: str
+    max_column_header_row: int | None = None
+    max_row_label_column: int | None = None
+    table_title: str | None = None
+
+
 class HeaderEvaluationDocument(BaseModel):
     position: int
-    columns: list[int]
-    rows: list[int]
+    row_label_columns: list[int]
+    column_header_rows: list[int]
     search_regexp: str
     best_orientation: Optional[str] = None
     note: Optional[str] = None
@@ -53,16 +66,20 @@ class HeaderEvaluationDocument(BaseModel):
         df = pd.read_csv(filepath_or_buffer=file_path, sep=";")
         df["position"] = df["position"].astype(int)
         df["search regexp"] = df["search regexp"].astype(str)
-        df["columns"] = df["columns"].apply(lambda x: list(ast.literal_eval(x)))
-        df["rows"] = df["rows"].apply(lambda x: list(ast.literal_eval(x)))
+        df["column_header_rows"] = df["column_header_rows"].apply(
+            lambda x: list(ast.literal_eval(x))
+        )
+        df["row_label_columns"] = df["row_label_columns"].apply(
+            lambda x: list(ast.literal_eval(x))
+        )
         df["best orientation"] = df["best orientation"].astype(str)
         df["note"] = df["note"].astype(str)
         return [
             HeaderEvaluationDocument(
                 position=row["position"],
                 search_regexp=row["search regexp"],
-                columns=row["columns"],
-                rows=row["rows"],
+                row_label_columns=row["row_label_columns"],
+                column_header_rows=row["column_header_rows"],
             )
             for _, row in df.iterrows()
         ]

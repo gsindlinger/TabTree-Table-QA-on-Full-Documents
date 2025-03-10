@@ -21,8 +21,32 @@ class LocalStore(FullDocumentStore):
 
     @classmethod
     def from_preprocess_config(cls, preprocess_config: PreprocessConfig) -> LocalStore:
-        base_path = f"{Config.indexing.full_document_storage_path}/{Config.run.dataset}"
+        base_path = f"{Config.indexing.full_document_storage_path}{Config.run.dataset}"
         return cls(path=f"{base_path}/{preprocess_config.name}/", file_ending="html")
+
+    def store_tables(self, documents: List[CustomDocumentWithMetadata]):
+        # Ensure the directory exists
+        table_path = os.path.join(self.path, "tables/")
+        os.makedirs(table_path, exist_ok=True)
+
+        for document in documents:
+            if not document.splitted_content:
+                continue
+
+            table_data = [
+                chunk.content
+                for chunk in document.splitted_content
+                if chunk.type == "table"
+            ]
+            table_string = "\n\n-------------------\n\n".join(table_data)
+
+        try:
+            file_path = os.path.join(table_path, document.metadata.doc_id + ".txt")
+            with open(file_path, "w", encoding="utf-8") as file:
+                file.write(table_string)
+                logging.info(f"Stored tables locally")
+        except Exception as e:
+            logging.error(f"Failed to store tables: {e}")
 
     def store_full_documents(
         self,

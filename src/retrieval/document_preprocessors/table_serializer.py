@@ -3,13 +3,13 @@ from abc import ABC, abstractmethod
 from io import StringIO
 import json
 import logging
-from typing import List, Optional
+from typing import List, Optional, Tuple, override
 from bs4 import BeautifulSoup
 from pydantic import BaseModel
 import pandas as pd
-from pandas import DataFrame
 
-from ...model.custom_document import CustomDocument
+from ...model.tables import ExtendedTable, SerializedTable
+from ...model.custom_document import CustomDocument, SplitContent
 from .preprocess_config import PreprocessConfig
 
 END_OF_TABLE: str = r"<EOT>"
@@ -18,27 +18,6 @@ BEGINNING_OF_TABLE: str = r"<BOT>"
 # the split will be empty if there are still html table tags,
 # which will be deleted anyway (see HTMLPreprocessor for details)
 END_OF_TABLE_REGEX: str = rf"{END_OF_TABLE}|(?<=</table>)|(?<=</table\s>)"
-
-
-class DataFrameWithHeader(BaseModel):
-
-    class Config:
-        arbitrary_types_allowed = True
-
-    df: DataFrame
-    has_header: bool
-    header_columns: Optional[int] = None
-    header_rows: Optional[int] = None
-
-    def set_headers(self, header_rows: int, header_columns: int):
-        self.has_header = True
-        self.header_rows = header_rows
-        self.header_columns = header_columns
-
-
-class ExtendedTable(DataFrameWithHeader):
-    raw_table: str
-    serialized_table: Optional[str] = None
 
 
 class TableSerializer(ABC, BaseModel):
@@ -74,20 +53,27 @@ class TableSerializer(ABC, BaseModel):
             return MatrixSerializer()
         elif config.table_serialization == "none":
             return None
+        elif config.table_serialization == "plain_text":
+            return PlainTextSerializer()
         elif config.table_serialization == "tabtree":
-            return TabTreeSerializer()
+            return TabTreeSerializer(node_approach=config.tabtree_approach)
         else:
             raise ValueError(
                 f"Table serialization type {config.table_serialization} is not supported"
             )
 
-    def serialize_table_to_str(self, table: str) -> str:
-        logging.info("Start serializing table")
-        df_table = self.serialize_table_to_extended_table(table)
+    def serialize_table_to_str(
+        self,
+        table_str: str,
+    ) -> SerializedTable:
+        logging.info(
+            f"Start serializing table with table serializer class: {self.__class__}"
+        )
+        df_table = self.serialize_table_to_extended_table(table_str)
         if not df_table or not df_table.serialized_table:
-            return ""
+            return "", None
         else:
-            return df_table.serialized_table
+            return df_table.serialized_table, None
 
     def serialize_table_to_extended_table(self, table_str: str) -> ExtendedTable | None:
         df_table = self.table_str_to_df(table_str)
@@ -164,20 +150,19 @@ class TableSerializer(ABC, BaseModel):
             raise ValueError("More than one table found in the table string")
         return ExtendedTable(df=tables[0], has_header=has_thead, raw_table=table)
 
-    def serialize_tables_in_document(self, document: CustomDocument) -> str:
-        serialized_docs = []
+    def serialize_tables_in_document(
+        self, document: CustomDocument
+    ) -> Tuple[str, List[SplitContent]]:
+        serialized_docs: List[SplitContent] = []
         if not document.splitted_content:
             raise ValueError("Document does not have any splitted content")
 
-        tables = [
-            doc.model_dump() for doc in document.splitted_content if doc.type == "table"
-        ]
-        with open("./data/tables.json", "w") as f:
-            f.write(json.dumps(tables, indent=2))
-
         for content in document.splitted_content:
             if content.type == "table":
-                new_content = self.serialize_table_to_str(content.content)
+                content.original_content = content.content
+                new_content = self.serialize_table_to_str(content.content)[0]
+                if new_content is None:
+                    raise ValueError("Could not serialize table")
                 content.content = new_content
                 new_content = (
                     f"{new_content}{END_OF_TABLE}" if new_content.strip() != "" else ""
@@ -188,13 +173,16 @@ class TableSerializer(ABC, BaseModel):
                 )
                 content.content = new_content
 
-            serialized_docs.append(new_content)
+            serialized_docs.append(content)
 
         # only consider sentences / content items which are longer than 2 characters (e.g. filter out page numbering)
         serialized_docs_filtered = [
-            doc for doc in serialized_docs if len(doc.strip()) > 3
+            doc for doc in serialized_docs if len(doc.content.strip()) > 3
         ]
-        return "".join(serialized_docs_filtered)
+        return (
+            "".join([doc.content for doc in serialized_docs_filtered]),
+            serialized_docs_filtered,
+        )
 
 
 class DFLoaderSerializer(TableSerializer):
@@ -320,3 +308,19 @@ class ListItemSerializer(TableSerializer):
             row_text = [f"The {col} is {row[col]}." for col in df.columns]
             text_template.append(" ".join(row_text))
         return "\n".join(text_template)
+
+
+class PlainTextSerializer(TableSerializer):
+    table_splitter_backup: str = r"\n"
+
+    @override
+    def serialize_table_to_str(
+        self,
+        table_str: str,
+    ) -> SerializedTable:
+        """Returns the plain characters of the table"""
+        table_str = BeautifulSoup(table_str, "html.parser").get_text(strip=True)
+        return table_str, None
+
+    def df_to_serialized_string(self, df_with_header: ExtendedTable) -> str:
+        return df_with_header.df.to_string(index=False)

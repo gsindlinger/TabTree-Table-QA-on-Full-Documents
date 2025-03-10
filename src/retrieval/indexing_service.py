@@ -1,5 +1,5 @@
 import logging
-from typing import List
+from typing import List, Optional
 from pydantic import BaseModel
 
 from ..model.custom_document import CustomDocument
@@ -27,7 +27,7 @@ class IndexingService(BaseModel):
         self.check_collection_existant_handler(overwrite_existing_collection)
 
         # Load & Preprocess documents
-        documents = self.load_and_preprocess_documents(preprocess_config)
+        documents = [self.load_and_preprocess_document(preprocess_config)]
 
         # Store full documents locally for debugging purposes
         initial_number_of_documents = self.store_documents(documents, preprocess_config)
@@ -44,16 +44,38 @@ class IndexingService(BaseModel):
         # Store documents in Vector store
         self.store_data_in_vectorstore(documents, vectors)
 
+    @staticmethod
+    def load_and_preprocess_document(
+        preprocess_config: PreprocessConfig,
+    ) -> CustomDocument:
+        # Load & Preprocess documents
+        document_loader = DocumentLoader.from_config()
+        document = document_loader.load_single_document()
+
+        # Perform preprocessing
+        document_preprocessor = DocumentPreprocessor.from_config(
+            preprocess_config=preprocess_config
+        )
+        document = document_preprocessor.preprocess_document(document)
+        return document
+
+    @staticmethod
     def load_and_preprocess_documents(
-        self, preprocess_config: PreprocessConfig
+        preprocess_config: PreprocessConfig,
+        num_of_documents: Optional[int] = None,
+        id_list: Optional[List[str]] = None,
     ) -> List[CustomDocument]:
         # Load & Preprocess documents
         document_loader = DocumentLoader.from_config()
-        documents = [document_loader.load_single_document()]
 
-        # documents = document_loader.load_documents(
-        #     num_of_documents=10
-        # )
+        if id_list:
+            documents = [document_loader.load_single_document(id=id) for id in id_list]
+            if num_of_documents:
+                documents = documents[:num_of_documents]
+        else:
+            documents = document_loader.load_documents(
+                num_of_documents=num_of_documents
+            )
 
         # Perform preprocessing
         document_preprocessor = DocumentPreprocessor.from_config(
@@ -70,8 +92,9 @@ class IndexingService(BaseModel):
             preprocess_config=preprocess_config
         )
         initial_number_of_documents = local_store.store_full_documents(
-            documents=documents
+            documents=documents  # type: ignore
         )
+        local_store.store_tables(documents=documents)  # type: ignore
         return initial_number_of_documents
 
     def split_documents(
@@ -79,7 +102,7 @@ class IndexingService(BaseModel):
     ) -> List[CustomDocument]:
         # Split documents
         document_splitter = DocumentSplitter.from_config(
-            embeddings=self.vector_store.embeddings,
+            embeddings=self.vector_store.embeddings,  # type: ignore
             preprocess_config=preprocess_config,
         )
         documents = document_splitter.split_documents(
@@ -90,6 +113,7 @@ class IndexingService(BaseModel):
                 else False
             ),
         )
+        return documents
 
     def generate_embeddings(self, documents: List[CustomDocument]) -> List[List[float]]:
         # Embed documents

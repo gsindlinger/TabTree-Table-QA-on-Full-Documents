@@ -1,10 +1,9 @@
 import logging
-from typing import List, Literal, Optional
+from typing import List, Literal, Optional, Tuple
 from bs4 import BeautifulSoup, NavigableString, Tag
 from pandas import DataFrame
 from pydantic import BaseModel
 
-from ..table_serializer import ExtendedTable
 from .custom_cell import CustomCell
 from .custom_table import CustomTable, CustomTableWithHeaderOptional
 
@@ -24,23 +23,26 @@ class HTMLTableParser(BaseModel):
 
     @staticmethod
     def parse_table(html: str) -> CustomTableWithHeaderOptional | None:
-        """Parse an HTML table into a pandas DataFrame. Assuming a single table in the provided HTML string."""
+        """Parse an HTML table into a CustomTable object. Assuming a single table in the provided HTML string."""
         try:
             p = HTMLTableParser()
-            return p.custom_parse_html(html)
+            return p.custom_parse_html(html)[0]
         except ValueError as e:
             logging.error(f"Error while parsing table: {e}")
             return None
 
     @staticmethod
+    def is_valid_table(html: str) -> bool:
+        p = HTMLTableParser()
+        return p.custom_parse_html(html)[1]
+
+    @staticmethod
     def parse_and_clean_table(html: str) -> CustomTableWithHeaderOptional | None:
-        """Parse an HTML table into a pandas DataFrame and clean it."""
+        """Parse an html table into CustomTable object."""
         p = HTMLTableParser()
         try:
-            table = p.custom_parse_html(html)
-            table = p.delete_nan_columns_and_rows(table)
-            table = p.delete_duplicate_columns_and_rows(table)
-            table = p.reset_indices(table)
+            table = p.custom_parse_html(html)[0]
+            table = p.delete_and_reset_columns_and_rows(table)
 
             if len(p.thead) > 0:
                 table.max_column_header_row = len(p.thead) - 1
@@ -49,6 +51,14 @@ class HTMLTableParser(BaseModel):
         except ValueError as e:
             logging.error(f"Error while parsing table: {e}")
             return None
+
+    def delete_and_reset_columns_and_rows(
+        self, table: CustomTableWithHeaderOptional, consider_headers: bool = False
+    ) -> CustomTableWithHeaderOptional:
+        table = self.delete_nan_columns_and_rows(table, consider_headers)
+        table = self.delete_duplicate_columns_and_rows(table, consider_headers)
+        table = self.reset_indices(table)
+        return table
 
     def reset_indices(
         self, table: CustomTableWithHeaderOptional
@@ -59,18 +69,43 @@ class HTMLTableParser(BaseModel):
                 cell.col_index = col_index
         return table
 
-    def _parse_table_part(self, part_tag: str, start_index_row: int) -> CustomTable:
+    def _parse_table_part(
+        self, part_tag: Literal["thead", "tbody", "tfoot"], start_index_row: int
+    ) -> Tuple[CustomTable, bool]:
+        """Parse the table part (thead, tbody, tfoot) of the table.
+        Returns:
+        - List of parsed rows
+        - Boolean indicating if all rows are valid and no inconsistencies had to be fixed
+        """
         if not self.bs4_table:
             raise ValueError("No table existant in the provided HTML.")
         part_parsed = []
-        part_bs4 = self.bs4_table.find(part_tag)
-        if part_bs4:
-            for row_index, row in enumerate(part_bs4.find_all("tr")):  # type: ignore
-                self.num_rows += 1
-                part_parsed.append(self._parse_row(row, start_index_row + row_index))
-        return part_parsed
 
-    def custom_parse_html(self, html: str) -> CustomTableWithHeaderOptional:
+        part_bs4 = self.bs4_table.find(part_tag)
+        all_rows_valid = True
+
+        # if there is no body tag in the table, the whole table is considered as the body
+        if not part_bs4 and part_tag == "tbody":
+            part_bs4 = self.bs4_table
+
+        if part_bs4:
+            for row_index, row in enumerate(part_bs4.find_all("tr", recursive=False)):  # type: ignore
+                self.num_rows += 1
+                parsed_row = self._parse_row(row, start_index_row + row_index)
+                part_parsed.append(parsed_row[0])
+                if not parsed_row[1]:
+                    all_rows_valid = False
+        return part_parsed, all_rows_valid
+
+    def custom_parse_html(
+        self, html: str
+    ) -> Tuple[CustomTableWithHeaderOptional, bool]:
+        """Parse the HTML table into a CustomTable object.
+        Returns:
+        - CustomTable object
+        - Boolean indicating if all rows are valid and no inconsistencies had to be fixed
+        """
+
         soup = BeautifulSoup(html, "html.parser")
         # Find table
         bs4_table = soup.find("table")
@@ -81,11 +116,15 @@ class HTMLTableParser(BaseModel):
         else:
             self.bs4_table = bs4_table
 
-        self.thead = self._parse_table_part("thead", start_index_row=0)
-        self.tbody = self._parse_table_part("tbody", start_index_row=len(self.thead))
-        self.tfoot = self._parse_table_part(
+        self.thead, thead_valid = self._parse_table_part("thead", start_index_row=0)
+        self.tbody, tbody_valid = self._parse_table_part(
+            "tbody", start_index_row=len(self.thead)
+        )
+        self.tfoot, tfoot_valid = self._parse_table_part(
             "tfoot", start_index_row=len(self.thead) + len(self.tbody)
         )
+
+        all_rows_valid = thead_valid and tbody_valid and tfoot_valid
 
         def _row_is_all_th(row: List[CustomCell]):
             """Check if a row contains only <th> elements."""
@@ -99,16 +138,37 @@ class HTMLTableParser(BaseModel):
                 self.thead.append(self.tbody.pop(0))
 
         self.table = self.thead + self.tbody + self.tfoot
-        return CustomTableWithHeaderOptional(table=self.table, raw_table=html)
+        return (
+            CustomTableWithHeaderOptional(table=self.table, raw_table=html),
+            all_rows_valid,
+        )
 
     def delete_nan_columns_and_rows(
-        self, table: CustomTableWithHeaderOptional
+        self, table: CustomTableWithHeaderOptional, consider_headers: bool = False
     ) -> CustomTableWithHeaderOptional:
+        start_column_index = 0
+        start_row_index = 0
+
+        if consider_headers:
+            start_column_index = (
+                table.max_row_label_column + 1
+                if table.max_row_label_column
+                else start_column_index
+            )
+            start_row_index = (
+                table.max_column_header_row + 1
+                if table.max_column_header_row
+                else start_row_index
+            )
+
         plain_table = table.table
         row_index = 0
         while row_index < len(plain_table):
             row = plain_table[row_index]
-            if all(cell.value == "" for cell in row):
+            if all(
+                cell.value.replace("\\n", "").strip() == ""
+                for cell in row[start_column_index:]
+            ):
                 plain_table = self.delete_row(plain_table, row_index)
             else:
                 row_index += 1
@@ -117,7 +177,10 @@ class HTMLTableParser(BaseModel):
         column_index = 0
         while column_index < len(transposed_table := list(zip(*plain_table))):
             column = transposed_table[column_index]
-            if all(cell.value == "" for cell in column):
+            if all(
+                cell.value.replace("\\n", "").strip() == ""
+                for cell in column[start_row_index:]
+            ):
                 plain_table = self.delete_column(plain_table, column_index)
             else:
                 column_index += 1
@@ -136,28 +199,48 @@ class HTMLTableParser(BaseModel):
             del row[column_index]
         return table
 
-    def delete_empty_columns_and_rows(self, table: CustomTable) -> CustomTable:
+    def delete_empty_columns_and_rows(
+        self, table: CustomTable, consider_headers: bool = False
+    ) -> CustomTable:
         # find duplicate rows
         for row_index, row in enumerate(table):
-            if all(cell.value == "" for cell in row):
+            if all(cell.value.replace("\\n", "").strip() == "" for cell in row):
                 table = self.delete_row(table, row_index)
 
         for column_index, column in enumerate(zip(*table)):
-            if all(cell.value == "" for cell in column):
+            if all(cell.value.replace("\\n", "").strip() == "" for cell in column):
                 table = self.delete_column(table, column_index)
         return table
 
     def delete_duplicate_columns_and_rows(
-        self, table: CustomTableWithHeaderOptional
+        self, table: CustomTableWithHeaderOptional, consider_headers: bool = False
     ) -> CustomTableWithHeaderOptional:
+
+        start_column_index = -1
+        start_row_index = -1
+
+        if consider_headers:
+            start_column_index = (
+                table.max_row_label_column
+                if table.max_row_label_column
+                else start_column_index
+            )
+            start_row_index = (
+                table.max_column_header_row
+                if table.max_column_header_row
+                else start_row_index
+            )
+
         plain_table = table.table
         # find duplicate rows
         row_index = 0
         while row_index + 1 < len(plain_table):
             row = plain_table[row_index]
+
             if row_index + 1 < len(plain_table) and all(
                 cell.value == plain_table[row_index + 1][i].value
                 for i, cell in enumerate(row)
+                if i > start_column_index
             ):
                 plain_table = self.delete_row(plain_table, row_index)
             else:
@@ -170,6 +253,7 @@ class HTMLTableParser(BaseModel):
             if all(
                 column[i].value == transposed_table[column_index + 1][i].value
                 for i in range(len(column))
+                if i > start_row_index
             ):
                 plain_table = self.delete_column(plain_table, column_index)
             else:
@@ -225,11 +309,13 @@ class HTMLTableParser(BaseModel):
                 table[row_index + i][column_index].rowspan = next_span_new
         return table
 
-    def _parse_row(self, row, row_index):
+    def _parse_row(self, row, row_index) -> Tuple[List[CustomCell], bool]:
+        is_valid_row = True
+
         parsed_row = []
         col_index = 0
         for cell in row.find_all(["td", "th"]):
-            value = cell.get_text(strip=True)
+            value = " ".join(cell.stripped_strings)
 
             # col and rowspans refer to the number of covered cells (before, after) the current cell
             # e.g. if a cell has a colspan of 2, the colspan tuple will be (0, 1)
@@ -253,6 +339,7 @@ class HTMLTableParser(BaseModel):
                 col_index=col_index,
                 tag_name=cell.name,
             )
+
             parsed_row.append(new_cell)
             col_index += 1
 
@@ -261,15 +348,44 @@ class HTMLTableParser(BaseModel):
             parsed_row.extend(column_span_cells)
             col_index += len(column_span_cells)
 
+        # if there are inconsistencies within the table, i.e., missing cells at the end of a row
+        # assuming that the first row is complete and serves as the reference for the whole table
+        if len(self.previous_row) > 0:
+            while len(parsed_row) < len(self.previous_row):
+                # case if rowspan covering the current column index from previous row
+                row_span_cells = self.get_row_span_cells(col_index, row_index)
+                if len(row_span_cells) != 0:
+                    parsed_row.extend(row_span_cells)
+                    col_index += len(row_span_cells)
+                # if there is no rowspan covering the current column index from previous row add empty cell
+                else:
+                    logging.warning(
+                        "Inconsistent table: Row contains less cells than the previous row. Filling up with empty cells."
+                    )
+                    is_valid_row = False
+                    parsed_row.append(
+                        CustomCell(
+                            value="",
+                            colspan=(0, 0),
+                            rowspan=(0, 0),
+                            row_index=row_index,
+                            col_index=col_index,
+                        )
+                    )
+                    col_index += 1
+            if len(parsed_row) > len(self.previous_row):
+                parsed_row = parsed_row[: len(self.previous_row)]
+                logging.warning(
+                    "Inconsistent table: Row contains more cells than the previous row. Truncating the row."
+                )
+                is_valid_row = False
+
         # update the number of columns
         self.num_columns = max(self.num_columns, col_index + 1)
 
-        if len(self.previous_row) != len(parsed_row) and len(self.previous_row) > 0:
-            raise ValueError(
-                "The number of temp_rowspan elements must be equal to the number of columns."
-            )
+        # update the previous row
         self.previous_row = parsed_row
-        return parsed_row
+        return parsed_row, is_valid_row
 
     def get_column_span_cells(self, cell: CustomCell) -> List[CustomCell]:
         new_cells = []
@@ -290,6 +406,7 @@ class HTMLTableParser(BaseModel):
         try:
             while (
                 len(self.previous_row) > 0
+                and col_index < len(self.previous_row)
                 and self.previous_row[col_index].rowspan[1] > 0
             ):
                 upper_cell = self.previous_row[col_index]
@@ -305,7 +422,6 @@ class HTMLTableParser(BaseModel):
                 col_index += 1
         except IndexError:
             raise ValueError("Malformed table: Rowspan exceeds table boundaries.")
-
         return new_cells
 
     def _expand_colspan_rowspan(

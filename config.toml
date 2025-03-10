@@ -6,8 +6,9 @@ evaluation = false
 evaluation_multi = false
 
 # choose from "sec-filings", "wiki-table-questions"
-dataset = "sec-filings"
+dataset = "wiki-table-questions"
 retriever_num_documents = [3]
+retriever_score_threshold = 0.8
 
 
 [indexing]
@@ -20,6 +21,8 @@ embedding_method = "openai"
 
 full_document_storage_path = "./data/preprocessed_documents/"
 
+table_header_path = "./data/tables.json"
+
 
 [text_generation]
 
@@ -27,28 +30,163 @@ full_document_storage_path = "./data/preprocessed_documents/"
 
 method = "openai"
 
-prompt_template = '''
-You are tasked with answering questions based on specific financial documents. Your task is to give the correct answer based on the given context.
-Respond with only the answer. Do not include words like "Answer" or "Response." Provide the answer as either:
-- A number for questions about revenue, profit, or quantities.
-- A word or phrase for questions about products, categories, or names.
-- 'None' if the context doesn't provide information about the given question.
+prompt_template_table_qa = '''
+You are tasked with answering questions based on the provided table data. Your task is to give the correct answer based on the given table data. Only use the information presented. If you can't find a correct answer based upon the provided data indicate so.
 
-Do not include explanations, units, or any additional text. Provide only the final answer.
+Think step-by-step, but in a short and comprehensive manner (max 500 tokens). Provide your final conclusion to the question as a single statement using the following format:
+Answer: <Answer>
+
+Provide the answer <Answer> as one of the following:
+- A number for questions about quantities.
+- A word or phrase for questions about categories, names, etc.
+- A semicolon separated list if the question asks for multiple answers (e.g. Brazil; Argentina; Germany).
+- 'None' if the context doesn't provide information about the given question.
 
 Example:
 - What was the sales revenue of Company Y from 2022 to 2024?
-  2,500
+  Answer: 2,500
 - What is the main product of Company Z?
-  ZetaDrug
+  Answer: ZetaDrug
 - What's stock market price of Company X in 2021?
-  None
+  Answer: None
+
+{table_title}
+
+Table data: 
+{table}
+
+Question: {question}
+'''
+
+
+prompt_template_rag = '''
+You are tasked with answering questions based on document chunks. Your task is to give the correct answer based on the given data. Only use the information presented. If you can't find a correct answer based upon the provided data indicate so.
+Think step-by-step, but in a short and comprehensive manner (max 500 tokens). Provide your final conclusion to the question as a single statement using the following format:
+Answer: <Answer>
+
+Provide the answer <Answer> as one of the following:
+- A number for questions about quantities.
+- A word or phrase for questions about categories, names, boolean, etc.
+- 'None' if the context doesn't provide information about the given question.
+
+Example:
+- What was the sales revenue of Company Y from 2022 to 2024?
+  Answer: 2,500
+- What is the main product of Company Z?
+  Answer: ZetaDrug
+- What's stock market price of Company X in 2021?
+  Answer: None
 
 Context: 
 {context}
 
 Question: {question}
 '''
+
+prompt_template_question_domain = """
+You are an expert in analyzing structured data and categorizing information into relevant domains. Given a table and a related question, your task is to determine the most appropriate domain for the question by reasoning through the table content and the nature of the query.  
+
+### **Domains to choose from:**  
+1. **Sports & Entertainment** – Covers sports statistics, rankings, movies, TV shows, books, and awards.  
+2. **Politics & Society** – Includes government data, election results, education statistics, and historical events.  
+3. **Science & Technology** – Encompasses scientific discoveries, technological advancements, and academic research.  
+4. **Business & Economy** – Covers financial reports, market trends, company revenues, and economic indicators.  
+5. **Geography & Transportation** – Includes country and city statistics, population data, infrastructure, and military records.  
+
+### **Instructions:**  
+1. **Analyze the Table Data** – Identify the main subject of the table (e.g., sports statistics, financial data, election results).  
+2. **Understand the Question** – Determine what aspect of the table the question is focused on (e.g., trends, comparisons, rankings).  
+3. **Reasoning (Limited to 500 tokens)** – Briefly explain why the question aligns with a specific domain based on table content and the nature of inquiry.  
+4. **Provide the Final Answer** in the specified format.  
+
+### **Input Format:**  
+- **Table Data:** {table}
+- **Question:** {question}
+
+### **Expected Output Format:**  
+- Reasoning (Max 500 tokens): [Concise explanation of domain selection]  
+- Answer: <domain>  
+
+### **Example:**  
+
+#### **Input:**  
+- **Table Data:**  
+  | Year | Tournament | Winning Team | Final Ranking |  
+  |------|------------|---------------|--------------|  
+  | 1985 | ACC Women's Basketball | Maryland | 1 |  
+  | 1986 | ACC Women's Basketball | NC State | 2 |  
+  | 1987 | ACC Women's Basketball | UNC | 3 |  
+
+- **Question:** *Which team, ranked first, also finished as winner in the 1985 ACC Women's Basketball Tournament?*  
+
+#### **Output:**  
+Reasoning (Max 500 tokens): [Resoning steps] 
+Answer: Sports & Entertainment  
+"""
+
+prompt_template_question_category = """
+Classify a question into one of the following categories based on the provided tabular data:
+
+1. **Lookup** – Directly retrieves a value from the table without any additional operations.
+2. **Advanced Lookup** – Involves counting, sorting, ranking (including mininmum / maximum), or simple comparison of different values.
+3. **Boolean** – Requires a yes/no or true/false answer.
+4. **Calculation** – Requires arithmetic operations like summation, percentage calculation, subtractions, or any other sophisticaded math calculations.
+5. **Position Related** – Asks about the next, previous, or any other positioned item in the table in relation to a given one (e.g., "Who ranked right after Turkey?").
+
+**Provide concise reasoning (within 500 tokens) and a final classification.**
+
+---
+
+**Input:**  
+- **Question:** {question}  
+- **Table Data:** {table}  
+
+---
+
+### **Output Format:**  
+1. **Step-by-step reasoning** (keywords, operations, and table structure).  
+2. **Final classification:**  
+   **Answer: <category>**  
+
+---
+
+### **Examples**  
+
+#### **Example 1**  
+**Question:** *What was the total regulated business operating revenue of American Water Works in 2023?*  
+**Output:**  
+- Retrieves a single value from the "Total Regulated Businesses" row under "Operating Revenues."
+- No calculations or sorting required → **Lookup**.  
+**Answer: Lookup**  
+
+#### **Example 2**  
+**Question:** *Which state had the fourth most customers in the wastewater sector in 2023?*  
+**Output:**  
+- Requires sorting states by customer count to find the fourth highest value.
+- Involves ranking but no arithmetic → **Advanced Lookup**.  
+**Answer: Advanced Lookup**  
+
+#### **Example 3**  
+**Question:** *How large was the share of customers of Pennsylvania and New Jersey in 2023 relative to all customers?*  
+**Output:**  
+- Requires summing customer counts and calculating percentage relative to total customers.
+- Involves arithmetic → **Calculation**.  
+**Answer: Calculation**  
+
+#### **Example 4**  
+**Question:** *Did Pennsylvania have more customers than New Jersey in 2023?*  
+**Output:**  
+- Requires comparing values to answer a yes/no question.
+- Involves a logical comparison → **Boolean**.  
+**Answer: Boolean**  
+
+#### **Example 5**  
+**Question:** *Who was ranked right after Turkey in the competition?*  
+**Output:**  
+- Requires identifying the next column of the cell containing Turkey as value.
+- Involves position-based reasoning → **Position Related**.  
+**Answer: Position Related**
+"""
 
 [ollama]
 
@@ -67,11 +205,16 @@ embedding_model = "Snowflake/snowflake-arctic-embed-m-v1.5"
 embedding_model = "nomic-embed-text-v1.5"
 
 [openai]
-embedding_model = "text-embedding-ada-002"
+embedding_model = "text-embedding-3-small"
 
 generation_model = "gpt-4o-mini"
+max_tokens = 500
+temperature = 0.0
 
-max_tokens = 100
+[azure]
+model_name_generation = "Phi-4"
+max_tokens_generation = 500
+temperature_generation = 0.0
 
 [fast_embed]
 embedding_model = "BAAI/bge-small-en-v1.5"
@@ -79,11 +222,11 @@ embedding_model = "BAAI/bge-small-en-v1.5"
 [sec_filings]
 data_path = "./data/sec_filings/"
 data_path_single = "./data/sec_filings/awk-20231231.htm" #option: "./data/sec_filings/abnb-20231231.htm"  
-evaluation_data_path = "./data/evaluation/SEC_Evaluation_Dataset_AWW.csv"  # option: "./data/evaluation/SEC_Evaluation_Dataset_ABNB.csv"   
+evaluation_data_path = "./SEC_Filing_Tables_Dataset.csv"  # option: "./data/evaluation/SEC_Evaluation_Dataset_ABNB.csv"   
 evaluation_get_header_data_path = "./data/evaluation/Header_Extraction_Evaluation.csv"
 
 [wiki_table_questions]
-is_single_evaluation = true
+is_single_evaluation = false
 single_document_id = "204-577"
 data_path = "./data/wiki_table_questions/"
 
@@ -91,79 +234,130 @@ data_path = "./data/wiki_table_questions/"
 evaluate_qa = false
 evaluate_ir = false
 run_document_analysis = false
-evaluate_get_headers = true
-num_of_documents = 19
+evaluate_get_headers = false
+evaluate_table_qa_only = true
+num_of_documents = 2 # applied on both wiki-table-questions and sec-filings dataset
+iterations = 2 # only applied when using wiki-table-questions dataset
 
-preprocess_config = {name = "basic-json-records", reduced_sections = false, preprocess_mode = ["basic"], ignore_tables_for_embeddings = false, table_serialization = "json-records", consider_colspans_rowspans = true, merge_sentence_infront_of_table = false}
-preprocess_configs_multi = [
-      {name = "basic-json-records", reduced_sections = false, preprocess_mode = ["basic"], ignore_tables_for_embeddings = false, table_serialization = "json-records", consider_colspans_rowspans = false, merge_sentence_infront_of_table = false},
-      {name = "basic-json-records-merge-sentences", reduced_sections = false, preprocess_mode = ["basic"], ignore_tables_for_embeddings = false, table_serialization = "json-records", consider_colspans_rowspans = false, merge_sentence_infront_of_table = true},
-      {name = "basic-json-split", reduced_sections = false, preprocess_mode = ["basic"], ignore_tables_for_embeddings = false, table_serialization = "json-split", consider_colspans_rowspans = false, merge_sentence_infront_of_table = false},
-      {name = "basic-json-split-merge-sentences", reduced_sections = false, preprocess_mode = ["basic"], ignore_tables_for_embeddings = false, table_serialization = "json-split", consider_colspans_rowspans = false, merge_sentence_infront_of_table = true},
-      {name = "basic-json-index", reduced_sections = false, preprocess_mode = ["basic"], ignore_tables_for_embeddings = false, table_serialization = "json-index", consider_colspans_rowspans = false, merge_sentence_infront_of_table = false},
-      {name = "basic-json-index-merge-sentences", reduced_sections = false, preprocess_mode = ["basic"], ignore_tables_for_embeddings = false, table_serialization = "json-index", consider_colspans_rowspans = false, merge_sentence_infront_of_table = true},
-      {name = "basic-matrix", reduced_sections = false, preprocess_mode = ["basic"], ignore_tables_for_embeddings = false, table_serialization = "matrix", consider_colspans_rowspans = false, merge_sentence_infront_of_table = false},
-      {name = "basic-matrix-merge-sentences", reduced_sections = false, preprocess_mode = ["basic"], ignore_tables_for_embeddings = false, table_serialization = "matrix", consider_colspans_rowspans = false, merge_sentence_infront_of_table = true},
+evaluate_run_document_analysis_path = "./data/sec_filings/"
+evaluate_get_headers_path = "./data/sec_filings/awk-20231231.htm"
 
-    # {name = "none", preprocess_mode = ["none"], ignore_tables_for_embeddings = false, table_serialization = "none", consider_colspans_rowspans = false, merge_sentence_infront_of_table = false},
-    # {name = "basic-none", preprocess_mode = ["basic"], ignore_tables_for_embeddings = false, table_serialization = "none", consider_colspans_rowspans = true, merge_sentence_infront_of_table = false},
-    # {name = "basic-html", preprocess_mode = ["basic"], ignore_tables_for_embeddings = false, table_serialization = "html", consider_colspans_rowspans = true, merge_sentence_infront_of_table = false},
-    # {name = "basic-html-text-only", preprocess_mode = ["basic"], ignore_tables_for_embeddings = true, table_serialization = "html", consider_colspans_rowspans = true, merge_sentence_infront_of_table = false},
-    # {name = "abnb-basic-html-merge-sentences", preprocess_mode = ["basic"], ignore_tables_for_embeddings = false, table_serialization = "html", consider_colspans_rowspans = false, merge_sentence_infront_of_table = true},
-    # {name = "basic-json-records", reduced_sections = false, preprocess_mode = ["basic"], ignore_tables_for_embeddings = false, table_serialization = "json-records", consider_colspans_rowspans = false, merge_sentence_infront_of_table = false},
-    # {name = "basic-json-records-merge-sentences", reduced_sections = false, preprocess_mode = ["basic"], ignore_tables_for_embeddings = false, table_serialization = "json-records", consider_colspans_rowspans = false, merge_sentence_infront_of_table = true},
-    # {name = "basic-markdown", reduced_sections = false, preprocess_mode = ["basic"], ignore_tables_for_embeddings = false, table_serialization = "markdown", consider_colspans_rowspans = false, merge_sentence_infront_of_table = false},
-    #  {name = "basic-markdown-merge-sentences", reduced_sections = false, preprocess_mode = ["basic"], ignore_tables_for_embeddings = false, table_serialization = "markdown", consider_colspans_rowspans = false, merge_sentence_infront_of_table = true},
-  # {name = "basic-csv", reduced_sections = false, preprocess_mode = ["basic"], ignore_tables_for_embeddings = false, table_serialization = "csv", consider_colspans_rowspans = false, merge_sentence_infront_of_table = false},
-  # {name = "basic-csv-merge-sentences", reduced_sections = false, preprocess_mode = ["basic"], ignore_tables_for_embeddings = false, table_serialization = "csv", consider_colspans_rowspans = false, merge_sentence_infront_of_table = true},
-  # {name = "basic-json-records-colspans", reduced_sections = false, preprocess_mode = ["basic"], ignore_tables_for_embeddings = false, table_serialization = "json-records", consider_colspans_rowspans = true, merge_sentence_infront_of_table = false},
-  #   {name = "basic-json-records-merge-sentences-colspans", reduced_sections = false, preprocess_mode = ["basic"], ignore_tables_for_embeddings = false, table_serialization = "json-records", consider_colspans_rowspans = true, merge_sentence_infront_of_table = true},
-  #  {name = "basic-markdown-colspans", reduced_sections = false, preprocess_mode = ["basic"], ignore_tables_for_embeddings = false, table_serialization = "markdown", consider_colspans_rowspans = true, merge_sentence_infront_of_table = false},
-  #   {name = "basic-markdown-colspans-merge-sentences", reduced_sections = false, preprocess_mode = ["basic"], ignore_tables_for_embeddings = false, table_serialization = "markdown", consider_colspans_rowspans = true, merge_sentence_infront_of_table = true},
-  # {name = "basic-csv-colspans", reduced_sections = false, preprocess_mode = ["basic"], ignore_tables_for_embeddings = false, table_serialization = "csv", consider_colspans_rowspans = true, merge_sentence_infront_of_table = false},
-  # {name = "basic-csv-colspans-merge-sentences", reduced_sections = false, preprocess_mode = ["basic"], ignore_tables_for_embeddings = false, table_serialization = "csv", consider_colspans_rowspans = true, merge_sentence_infront_of_table = true},
-]
+# [[evaluation.table_serialization_config]]
+# name = "html"
+# method = "html"
 
+# [[evaluation.table_serialization_config]]
+# name = "plain_text"
+# method = "plain_text"
+
+# [[evaluation.table_serialization_config]]
+# name = "csv"
+# method = "csv"
+
+# [[evaluation.table_serialization_config]]
+# name = "json-records"
+# method = "json-records"
+
+# [[evaluation.table_serialization_config]]
+# name = "tabtree-base"
+# method = "tabtree"
+# context_string_approach = "context_base" # 'context_base' or 'context_text' or 'context_empty'
+# context_string_with_context_intersection = false
+# value_string_approach = "value_base" # 'value_base' or 'value_text'
+# value_string_with_context_intersection = false
+
+[[evaluation.table_serialization_config]]
+name = "tabtree-text"
+method = "tabtree"
+context_string_approach = "context_text" # 'context_base' or 'context_text' or 'context_empty'
+context_string_with_context_intersection = false
+value_string_approach = "value_text" # 'value_text', 'value_text', 'value_text_augmented'
+value_string_with_context_intersection = false
+primary_subtree_approach = "heuristic"
+
+[[evaluation.table_serialization_config]]
+name = "tabtree-text"
+method = "tabtree"
+context_string_approach = "context_text" # 'context_base' or 'context_text' or 'context_empty'
+context_string_with_context_intersection = false
+value_string_approach = "value_text" # 'value_text', 'value_text', 'value_text_augmented'
+value_string_with_context_intersection = false
+primary_subtree_approach = "column_header_tree"
+
+# [[evaluation.table_serialization_config]]
+# name = "tabtree-text-with-context-intersection"
+# method = "tabtree"
+# context_string_approach = "context_text" # 'context_base' or 'context_text' or 'context_empty'
+# context_string_with_context_intersection = true
+# value_string_approach = "value_text" # 'value_text', 'value_text', 'value_text_augmented'
+# value_string_with_context_intersection = true
+
+# [[evaluation.table_serialization_config]]
+# name = "tabtree-text-with-context-intersection-augmented"
+# method = "tabtree"
+# context_string_approach = "context_text" # 'context_base' or 'context_text' or 'context_empty'
+# context_string_with_context_intersection = true
+# value_string_approach = "value_text_augmented" # 'value_text', 'value_text', 'value_text_augmented'
+# value_string_with_context_intersection = true
+
+# [[evaluation.table_serialization_config]]
+# name = "tabtree-text-context-empty"
+# method = "tabtree"
+# context_string_approach = "context_empty" # 'context_base' or 'context_text' or 'context_empty'
+# context_string_with_context_intersection = false
+# value_string_approach = "value_text_augmented" # 'value_text', 'value_text', 'value_text_augmented'
+# value_string_with_context_intersection = true
+
+
+[evaluation.preprocess_config]
+name = "basic-consider-spans"
+reduced_sections = false
+preprocess_mode = ["basic"]
+ignore_tables_for_embeddings = false
+consider_colspans_rowspans = true
+merge_sentence_infront_of_table = false
+
+[[evaluation.preprocess_config_multi]]
+name = "basic-consider-spans"
+reduced_sections = false
+preprocess_mode = ["basic"]
+ignore_tables_for_embeddings = false
+consider_colspans_rowspans = true
+merge_sentence_infront_of_table = false
+    
 
 [tabtree]
 
-llm_method = "openai"
-llm_model = "gpt-4o-mini"
-llm_max_tokens = 200
-
 header_description = '''
-Header rows serve as a structural component at the top of a dataset or table, defining the meaning and context of the columns below them.
-They typically contain labels that describe the type of data in each column, acting as a guide for interpreting the table's contents.
-In tables with hierarchical structures, header rows can span multiple levels, using features like colspans to group related columns visually. Repetitions of the same entry potentially indicate the occurence of colspans.
+Header rows serve as a structural component at the top of a dataset or table, defining the meaning and context of the columns below them. Therefore the probability of a row being header row decreases by increasing row index. It also might happen that a table has no header rows.
+Header rows typically contain labels that describe the type of data in each column, acting as a guide for interpreting the table's contents.
+In tables with hierarchical structures, header rows can span multiple levels, using features like colspans to group related columns visually.
 This layered organization allows for the representation of complex relationships between columns, improving clarity and facilitating detailed analysis of multidimensional data.
 '''
 
 label_description = '''
-Label columns act as a structural component in a table, typically positioned on the left side, and provide descriptive or categorical identifiers for each row. 
-They define the context or grouping of the data within the rows, allowing for easier reference and understanding of the dataset. 
-In hierarchical tables, label columns can represent multiple levels of categorization, employing features like rowspans to visually group related rows under shared labels. Repetitions of the same entry potentially indicate the occurence of rowspans.
+Label columns act as a structural component in a table, typically positioned on the left side, and provide descriptive or categorical identifiers for each row. The probability of column beeing a label column therefore decrease by increasing column index. It also might happen that a table has no row labels.
+Label columns define the context or grouping of the data within the rows, allowing for easier reference and understanding of the dataset. 
+In hierarchical tables, label columns can represent multiple levels of categorization, employing features like rowspans to visually group related rows under shared labels.
 This structure enables the organization of nested relationships within the data, enhancing readability and supporting more detailed analysis of grouped or hierarchical information.
 '''
 
 negative_description = '''
-A column or row that is not classified as {mode_header_name} {mode} would typically be referred to as a data column or data row, respectively. 
-These elements contain the core values or observations of the dataset.
-Data columns: Positioned within the table body, they hold the actual measurements, metrics, or attributes corresponding to each row's label. They rely on header rows for context (e.g., the meaning of the values they contain).
-Data rows: Found below the header row(s), they represent individual records, entries, or instances in the dataset. These rows are often linked to label columns for identification and provide the details of the data points.
+A column or row that should not be classified as {mode_header_name} {mode} contain typically the core values or observations of the dataset, i.e., the actual measurements, metrics, or attributes corresponding to the context given by row labels and column headers.
 '''
 
-prompt_template = '''
+prompt_template_header_detection = '''
 You are tasked with analyzing table data to determine whether the provided {mode} should be classified as a {mode_header_name} or not.  
 
 Instructions:
 1. Review the provided {mode} and the next and previous {mode}s.
-2. Consider typical properties of a {mode_header_name} {mode} when making your determination: For {mode_header_name} {mode}s typically yield: {mode_description}
+2. Consider typical properties of a {mode_header_name} {mode} when making your determination. For {mode_header_name} {mode}s typically yield: {mode_description}
 3. End your response with one of the following:
    - "Answer: Yes" if the {mode} represents a {mode_header_name} {mode}.
    - "Answer: No" if the {mode} contains actual records or entries (e.g., numerical values, measurements, metrics or attributes corresponding to a category).
 4. Reason your answer with maximum 150 tokens.
 
-{mode} to Analyze:  
+{mode} to analyze:  
 {line}
 
 The {mode} index of the provided {mode} is {index}.
@@ -176,11 +370,13 @@ The {mode} index of the provided {mode} is {index}.
 
 '''
 
-context_string_approach = "context_base" # 'context_base' or 'context_text'
+context_string_approach = "context_text" # 'context_base' or 'context_text' or 'context_empty'
 context_string_with_context_intersection = false
 
-value_string_approach = "value_base" # 'value_base' or 'value_text'
+value_string_approach = "value_text" # 'value_base' or 'value_text'
 value_string_with_context_intersection = false
+
+primary_subtree_approach = "heuristic" # 'column_header_tree' or 'row_label_tree' or 'concatenate' or 'heuristic'
 
 
 [test]

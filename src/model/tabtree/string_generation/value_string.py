@@ -22,7 +22,7 @@ class ValueStringGeneration(StringGenerationService):
         secondary_tree: TabTree,
         approach: Optional[NodeApproach] = None,
     ) -> str:
-        generation_service = StringGenerationService.from_config(approach)
+        generation_service = cls.from_config(approach)
         if not isinstance(generation_service, ValueStringGeneration):
             raise ValueError(
                 f"Invalid approach type for value string generation: {generation_service}"
@@ -111,22 +111,28 @@ class ValueStringGenerationText(ValueStringGeneration):
             node, filter_colour=primary_tree.context_colour
         )
 
+        index_str = f"(row index: {node.row_index}, colum index: {node.col_index})"
+
         if not isinstance(parent_node, ContextNode):  # so directly connected to root
             if len(value_sequence) < 1:
                 raise ValueError(
                     f"There must be at least one connected context node the value node: {node.id}"
                 )
             elif len(value_sequence) == 1:
-                return f"The value of the {secondary_tree_str} {value_str} is {node.value}."
+                result = (
+                    f"The value of the {secondary_tree_str} {value_str} is {node.value}"
+                )
             else:
-                return f"The value of the {secondary_tree_str} combination {value_str} is {node.value}."
+                result = f"The value of the {secondary_tree_str} combination {value_str} is {node.value}"
         else:
             if len(value_sequence) < 1:
-                return f"The value of the {primary_tree_str} {parent_node.value} is {node.value}."
+                result = f"The value of the {primary_tree_str} {parent_node.value} is {node.value}"
             elif len(value_sequence) == 1:
-                return f"The value of the {primary_tree_str} {parent_node.value} and the {secondary_tree_str} {value_str} is {node.value}."
+                result = f"The value of the {primary_tree_str} {parent_node.value} and the {secondary_tree_str} {value_str} is {node.value}"
             else:
-                return f"The value of the {primary_tree_str} {parent_node.value} and the {secondary_tree_str} combination {value_str} is {node.value}."
+                result = f"The value of the {primary_tree_str} {parent_node.value} and the {secondary_tree_str} combination {value_str} is {node.value}"
+
+        return f"{result} {index_str}."
 
 
 class ValueStringGenerationBaseWithIntersection(ValueStringGeneration):

@@ -2,6 +2,7 @@ from __future__ import annotations
 import logging
 from typing import Any, List, Optional
 
+from ..config.config import Config
 from ..model.custom_document import CustomDocument
 
 from .qdrant_store import QdrantVectorStore
@@ -18,7 +19,10 @@ class QdrantRetriever(VectorStoreRetriever):
     ) -> None:
         super().__init__(
             vectorstore=vector_store,
-            search_kwargs={"k": retriever_num_documents},
+            search_kwargs={
+                "k": retriever_num_documents,
+                "score_threshold": Config.run.retriever_score_threshold,
+            },
         )
 
     def invoke(

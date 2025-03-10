@@ -1,8 +1,8 @@
 import logging
 import re
-from typing import List, Optional, Tuple
+from typing import List, Optional
 import unicodedata
-from bs4 import BeautifulSoup, Comment, NavigableString, PageElement, Tag
+from bs4 import BeautifulSoup, Comment, NavigableString, Tag
 
 from ..document_preprocessors.preprocess_config import PreprocessConfig
 from ..document_splitters.semantic_chunker_custom import (
@@ -29,8 +29,8 @@ class HTMLPreprocessor(DocumentPreprocessor):
 
         # Serialize tables in the document if table_serialization is enabled
         if self.table_serializer:
-            document.page_content = self.table_serializer.serialize_tables_in_document(
-                document
+            document.page_content, document.splitted_content = (
+                self.table_serializer.serialize_tables_in_document(document)
             )
         return document
 

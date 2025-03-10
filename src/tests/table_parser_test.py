@@ -127,3 +127,38 @@ class TestHTMLTableParsing(unittest.TestCase, AbstractTableTests):
 
         self.assertEqual(len(table_after), 11)
         self.assertEqual(len(table_after[0]), 19)
+
+    def test_real_world_example_rowspan_wikitables(self):
+        # write self.parsed[5] to csv
+        table_before = self.parsed_df[7]
+        table_after = self.custom_parser.delete_nan_columns_and_rows(table_before)
+        table_after = self.custom_parser.delete_duplicate_columns_and_rows(table_before)
+
+        self.assertEqual(len(table_after), 9)
+        self.assertEqual(len(table_after[0]), 9)
+
+        self.assertEqual(table_after.get_cell(5, 5).value, "1000")
+        self.assertEqual(table_after.get_cell(8, 8).value, "[ 5 ]")
+
+    def test_real_world_example_rowspan_wikitables_2(self):
+        # write self.parsed[5] to csv
+        table_before = self.parsed_df[8]
+        table_after = self.custom_parser.delete_nan_columns_and_rows(table_before)
+        table_after = self.custom_parser.delete_duplicate_columns_and_rows(table_before)
+
+        self.assertEqual(len(table_after), 10)
+        self.assertEqual(len(table_after[0]), 4)
+
+        self.assertTrue("Japan" in table_after.get_cell(6, 0).value)
+        self.assertEqual(table_after.get_cell(6, 2).value, "")
+        self.assertTrue(
+            "CD , digital download" in table_after.get_cell(6, 3).value.strip()
+        )
+
+    def test_real_world_example_awk_2(self):
+        table_before = self.parsed_df[9]
+        table_after = self.custom_parser.delete_and_reset_columns_and_rows(table_before)
+        table_after.set_headers(max_column_header_row=0, max_row_label_column=0)
+
+        self.assertEqual(len(table_after), 6)
+        self.assertEqual(len(table_after[0]), 2)

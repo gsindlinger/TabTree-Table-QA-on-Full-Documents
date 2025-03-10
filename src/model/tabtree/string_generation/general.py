@@ -23,6 +23,7 @@ class StringGenerationService(BaseModel):
             ContextStringGenerationBaseWithIntersection,
             ContextStringGenerationText,
             ContextStringGenerationTextWithIntersection,
+            ContextStringGenerationEmpty,
         )
         from .value_string import (
             ValueStringGenerationBase,
@@ -47,6 +48,8 @@ class StringGenerationService(BaseModel):
                     return ContextStringGenerationTextWithIntersection()
                 else:
                     return ContextStringGenerationText()
+            case ContextNodeApproach.EMPTY:
+                return ContextStringGenerationEmpty()
             case ValueNodeApproach.BASE:
                 if approach.include_context_intersection:
                     return ValueStringGenerationBaseWithIntersection()

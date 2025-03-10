@@ -3,7 +3,6 @@ from enum import Enum
 import logging
 from typing import List
 
-
 from ..tabtree_model import CellNode
 
 

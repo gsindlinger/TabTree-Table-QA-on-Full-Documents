@@ -4,17 +4,17 @@ awk-20231231.htm;lookup;How much was the regulated business operating revenue of
 awk-20231231.htm;lookup;How was the number of customers of American Water Works in 2023 in total?;3486;thousands;Total Regulated Business.*?3,?486
 awk-20231231.htm;lookup;How was the number of customers of American Water Works in 2023 in Missouri in total?;507;thousands;Missouri.*?507
 awk-20231231.htm;lookup;How was the number of customers of American Water Works in 2023 in Missouri in the sector of water?;483;thousands;Missouri.*?483
-awk-20231231.htm;lookup;What's the proportion of the regulated business operating revenue made in Pennsylvania for American Water Works in relation to the full operating revenue of the company?;24.6;%;Pennsylvania.*?24.6
-awk-20231231.htm;lookup;How big is the share of American Water Works customers in New Jersey in relation to the total amount of customers?;21.0;%;New Jersey.*?21.0
-awk-20231231.htm;advanced lookup;What has been the total income of American Water Works in 2023 in Illinois?;427;mio. $;Illinois.*?427
-awk-20231231.htm;advanced lookup;How much earnings did American Water Works have in the sector Wastewater in 2023 in the whole U.S.?;327;mio. $;Total Regulated Business.*?327
-awk-20231231.htm;advanced lookup;How much earnings did American Water Works have in the sector Wastewater in 2023 in California?;4;mio. $;California.*?4
-awk-20231231.htm;advanced lookup;How many customers did American Water Works have in New Jersey at the end of 2023?;732;thousands;New Jersey.*?732
-awk-20231231.htm;advanced lookup;What's the proportion of operating revenue of American Water Works of the top five states Pennsylvania, New Jersey, Missouri, Illinois and California?;79.4;%;Total—Top Five States.*?79.4
+awk-20231231.htm;lookup;What's the proportion of the regulated business operating revenue made in Pennsylvania for American Water Works in relation to the full operating revenue of the company?;24.6;%;Pennsylvania.*?24\.6
+awk-20231231.htm;lookup;How big is the share of American Water Works customers in New Jersey in relation to the total amount of customers?;21.0;%;New Jersey.*?21\.0
+awk-20231231.htm;lookup;What has been the total income of American Water Works in 2023 in Illinois?;427;mio. $;Illinois.*?427
+awk-20231231.htm;lookup;How much earnings did American Water Works have in the sector Wastewater in 2023 in the whole U.S.?;327;mio. $;Total Regulated Business.*?327
+awk-20231231.htm;lookup;How much earnings did American Water Works have in the sector Wastewater in 2023 in California?;4;mio. $;California.*?4
+awk-20231231.htm;lookup;How many customers did American Water Works have in New Jersey at the end of 2023?;732;thousands;New Jersey.*?732
+awk-20231231.htm;lookup;What's the proportion of operating revenue of American Water Works of the top five states Pennsylvania, New Jersey, Missouri, Illinois and California?;79.4;%;Total—Top Five States.*?79\.4
 awk-20231231.htm;advanced lookup;What's the amount of earnings American Water Works made in 2023 apart from their top five states in the water sector?;779;mio. $;Other.*?809
 awk-20231231.htm;calculation;Which state was the one with the fourth most customers in the sector of wastewater for American Water Works in 2023?;Missouri;;Missouri.*?24
-awk-20231231.htm;calculation;How large was the share of customers of American Water Works of Pennsylvania and New Jersey in 2023 in relation to all customers of the company?;43.4;%;Pennsylvania.*?21.0
-awk-20231231.htm;calculation;How large was the share of customers of American Water Works of California and New Jersey in 2023 in relation to all customers of the company?;26.5;%;New Jersey.*?21.0.*?California.*?5.5
+awk-20231231.htm;calculation;How large was the share of customers of American Water Works of Pennsylvania and New Jersey in 2023 in relation to all customers of the company?;43.4;%;Pennsylvania.*?21\.0
+awk-20231231.htm;calculation;How large was the share of customers of American Water Works of California and New Jersey in 2023 in relation to all customers of the company?;26.5;%;New Jersey.*?21\.0.*?California.*?5\.5
 awk-20231231.htm;calculation;Which states have been the top three states in terms of operating revenue for American Water Works in the wastewater sector 2023? ;Pennsylvania, New Jersey, Missouri;;Pennsylvania.*?450
 awk-20231231.htm;lookup;What's been the class of customer providing the largest amount of revenue for American Water Works in the years from 2021 to 2023?;Residential;;Residential.*?57
 awk-20231231.htm;lookup;How much was the share of the residential customers of American Water Works in 2022 in terms of operating revenue?;55;%;Residential.*?1,?941.*?55
@@ -81,14 +81,14 @@ awk-20231231.htm;calculation;In which of the years from 2020 to 2023 did the tot
 awk-20231231.htm;calculation;What's been the maximum net income attributable to common shareholders for American Water Works in the years 2021 to 2023?;1263;mio. $;Net income attributable to common shareholders.*?1,?263
 awk-20231231.htm;calculation;What's the sum of all operating revenues including non regulated business for American Water Works over the years 2019 to 2023?;19343;mio. $;Statement of Operations data:.*?Operating revenues.*?3,610
 awk-20231231.htm;lookup;What have been the total operation and maintenance expenses of American Water Works in 2022 including non regulated business?;1589;mio. $;Total operation and maintenance expenses.*?1,?589
-awk-20231231.htm;lookup;What's been the adjusted O&M efficiency ratio for the regulated business for American Water Works in 2021 including non regulated business?;34.1;$;Adjusted O&M efficiency ratio—Regulated Businesses.*?34.1
+awk-20231231.htm;lookup;What's been the adjusted O&M efficiency ratio for the regulated business for American Water Works in 2021 including non regulated business?;34.1;%;Revenue reductions from the amortization of EADIT.*?34.1
 awk-20231231.htm;lookup;How much have been the regulated purchased water expenses for American Water Works in 2022?;154;mio. $;Regulated purchased water expenses.*?154
 awk-20231231.htm;boolean;Did the operation and maintenance expenses increase for American Water Works from 2021 to 2022 considering all expenses including non regulated business as well?;No;;Total operation and maintenance expenses.*?1,?777
 awk-20231231.htm;boolean;Did the operation and maintenance expenses increase for American Water Works from 2022 to 2023?;Yes;;Total operation and maintenance expenses.*?1,?589
 awk-20231231.htm;boolean;Did the operation and maintenance expenses increase for American Water Works from 2021 to 2022 considering only regulated business?;Yes;;Total operation and maintenance expenses—Regulated Businesses.*?1,?325
 awk-20231231.htm;calculation;What has been the difference of total operation and maintenance expenses for American Water Works between 2023 and 2022?;131;mio. $;Total operation and maintenance expenses.*?1,?777
 awk-20231231.htm;calculation;What has been the difference between the total operating revenues in regulated business and the adjusted operating revenues in regulated business for American Water Works in 2023?;95;mio. $;Total operating revenues—Regulated Businesses.*?Adjusted operating revenues—Regulated Businesses.*?3,?825
-awk-20231231.htm;calculation;What has been the average adjusted O&M efficiency ratio for American Water Works from 2021 to 2023?;33.5;%;Adjusted O&M efficiency ratio—Regulated Businesses.*?34.1
+awk-20231231.htm;calculation;What has been the average adjusted O&M efficiency ratio for American Water Works from 2021 to 2023?;33.5;%;Revenue reductions from the amortization of EADIT.*?34.1
 awk-20231231.htm;lookup;What is the total amount in incremental revenue of American Water Works, assuming constant customer count and sales volume, authorized by general rate cases in 2023?;273;mio. $;Total general rate case authorizations.*?273
 awk-20231231.htm;lookup;On what date did the general rate case authorization for Illinois take effect considering the American Water Works company?;January 1, 2023;;General rate cases by state:.*?Illinois.*?67
 awk-20231231.htm;advanced lookup;Which state received the highest incremental revenue authorization for American Water Works, assuming constant customer count and sales volume?;Pennsylvania;;General rate cases by state:.*?Total general rate case authorizations.*?273
@@ -158,7 +158,7 @@ awk-20231231.htm;advanced lookup;What's the class with the highest value of tang
 awk-20231231.htm;advanced lookup;What's the maximum remaing useful life of any of the treatment and pumping facilities of American Water Works?;101;years;Treatment and pumping facilities.*?3 to 101 years
 awk-20231231.htm;boolean;Did the value of construction work in progress of American Water Works exceed 1 billion dollar in 2022?;No;;Construction work in progress.*?974
 awk-20231231.htm;boolean;Did the value of construction work in progress of American Water Works exceed 1 billion dollar in 2023?;Yes;;Construction work in progress.*?1,?040
-awk-20231231.htm;lookup;What's been the worth of the expenses American Water Works had to compensate related to stock shares for their employees in 2021 before tax?;17;mio. $;Stock-based compensation*?17
+awk-20231231.htm;lookup;What's been the worth of the expenses American Water Works had to compensate related to stock shares for their employees in 2021 before tax?;17;mio. $;Stock-based compensation.*?17
 awk-20231231.htm;lookup;How much stock-based compensation had American Water Works in 2021 after tax?;13;mio. $;Stock-based compensation expense, net of tax.*?13
 awk-20231231.htm;calculation;How much did the vale of restricted and performance stock units differ for American Water Works in 2023 compared to 2021?;8;mio. $;RSUs and PSUs.*?26
 awk-20231231.htm;lookup;How many RSUs did American Water Works grant in 2022?;59;thousands;Non-vested total as of December 31, 2022.*?Granted.*?59
@@ -170,15 +170,14 @@ awk-20231231.htm;calculation;What's the difference of total long term debt value
 awk-20231231.htm;lookup;How much outstanding debt could American Water Works list at the end of 2023?;255;mio. $;Outstanding debt.*?255
 awk-20231231.htm;lookup;How much outstanding debtas letters of credit could American Water Works list at the end of 2023?;75;mio. $;Outstanding debt.*?75
 awk-20231231.htm;lookup;How much outstanding debt could American Water Works list at the end of 2022?;1,255;mio. $;Outstanding debt.*?1,?255
-awk-20231231.htm;boolean;Was the amount of outstanding debt of American Water Works 2023 higher than 2022?;No;;Outstanding debt.*?255.*?Outstanding debt.*?1,?255
 awk-20231231.htm;lookup;How much was the amount of deferred income taxes expenses for American Water Works in 2022?;80;mio. $;Total deferred income taxes.*?80
 awk-20231231.htm;calculation;What's the sum of expenses for deferred federal income taxes and amortization of deferred investment tax credits for American Water Works in 2023?;166;mio. $;Deferred income taxes:.*?Federal.*?165.*?Amortization of deferred investment tax credits.*?1
-awk-20231231.htm;advanced lookup;What's been the maximum effective tax for America Water Works in the years 2021 to 2023?;23.0;%;Effective tax rate.*?21.1.*?18.7*?23
-awk-20231231.htm;advanced lookup;In which year did American Water Works have the maximum effective tax rate - 2021, 2022 or 2023?;2021;;Effective tax rate.*?21.1.*?18.7*?23
-awk-20231231.htm;calculation;What's been the mean effective tax rate for America Water Works in the years 2021 to 2023?;20.9;%;Effective tax rate.*?21.1.*?18.7*?23
-awk-20231231.htm;calculation;What's been the median effective tax rate for American Water Works  in the years 2021 to 2023?;21.1;%;Effective tax rate.*?21.1.*?18.7*?23
+awk-20231231.htm;advanced lookup;What's been the maximum effective tax for America Water Works in the years 2021 to 2023?;23.0;%;Effective tax rate.*?21\.1.*?18\.7.*?23\.0
+awk-20231231.htm;advanced lookup;In which year did American Water Works have the maximum effective tax rate - 2021, 2022 or 2023?;2021;;Effective tax rate.*?21\.1.*?18\.7.*?23\.0
+awk-20231231.htm;calculation;What's been the mean effective tax rate for America Water Works in the years 2021 to 2023?;20.9;%;Effective tax rate.*?21\.1.*?18\.7.*?23\.0
+awk-20231231.htm;calculation;What's been the median effective tax rate for American Water Works  in the years 2021 to 2023?;21.1;%;Effective tax rate.*?21\.1.*?18\.7.*?23\.0
 awk-20231231.htm;lookup;What's been the amount of U.S. small caps as equity security for the pensions plans of employees of American Water Works in 2023?;37;mio. $;Equity securities:.*?U.S. small cap.*?37
-awk-20231231.htm;advanced lookup;In which asset category did American Water Works have any assets for their employees pension plans on the third level of fair value hierarchy in 2023 and 2022?;Guarantee annuity contracts;;Asset Category.*?Significant Unobservable Inputs (Level 3).*?32
+awk-20231231.htm;advanced lookup;In which asset category did American Water Works have any assets for their employees pension plans on the third level of fair value hierarchy in 2023 and 2022?;Guarantee annuity contracts;;Significant Unobservable Inputs.*?32
 awk-20231231.htm;calculation;What's been the sum of U.S. large and small caps (in total) as equity security for the pensions plans of employees of American Water Works in 2023?;171;mio. $;Equity securities:.*?U.S. large cap.*?134.*?U.S. small cap.*?37
 awk-20231231.htm;lookup;What has been the percentage of Municipal bonds for plan assets for the pension plans of employees of American Water Works by end of 2022?;1;%;Municipal bonds.*?21.*?21.*?1
 awk-20231231.htm;calculation;What's been the sum of U.S. large and small caps (in total) as equity security for the pensions plans of employees of American Water Works in 2022?;221;mio. $;Equity securities:.*?U.S. large cap.*?142.*?U.S. small cap.*?79
@@ -193,14 +192,11 @@ awk-20231231.htm;lookup;What has been the value of rabbi trust investments at fa
 awk-20231231.htm;lookup;What has been the valueof all level one assets at fair value on recurring basis for American Water Works in 2023?;230;mio. $;Level 1.*?Total assets.*?230
 awk-20231231.htm;lookup;What has been the value of rabbi trust investments at fair value on recurring basis for American Water Works in 2022?;24;mio. $;Rabbi trust investments.*?21
 awk-20231231.htm;lookup;What has been the valueof all level one assets at fair value on recurring basis for American Water Works in 2022?;244;mio. $;Level 1.*?Total assets.*?244
-awk-20231231.htm;advanced lookup;How much did the value of rabbi trust investments at fair value on recurring basis for American Water Works increase from 2022 to 2023?;1;mio. $;Rabbi trust investments.*?22.*?Rabbi trust investments.*?21
-awk-20231231.htm;lookup;What has been the basic EPS for American Water Works in the first quarter 2023 based on unaudited data?;0.91;mio. $;First quarter.*?Net income attributable to common shareholders.*?0.91
-awk-20231231.htm;lookup;What has been the basic EPS for American Water Works in the third quarter 2023 based on unaudited data?;1.66;mio. $;Third quarter.*?Net income attributable to common shareholders.*?1.66
-awk-20231231.htm;advanced lookup;What has been the basic EPS for American Water Works in the first quarter 2023?;0.91;mio. $;First quarter.*?Net income attributable to common shareholders.*?0.91
-awk-20231231.htm;advanced lookup;Which quarter was the one having the largest basic EPS for American Water Works in 2023? 1, 2, 3, 4?;3;;Net income attributable to common shareholders.*?0.88
-awk-20231231.htm;calculation;What's the difference between the quarter with the largest operating income and the lowest operating income for American Water Works in 2023?;183;mio. $;First quarter.*?Third Quarter.*?295.*?478
-awk-20231231.htm;advanced lookup;In which of the years 2022 and 2023 did American Water Works have the most successful quarter in terms of operating revenue?;2023;;First quarter.*?1,?032.*?First quarter.*?931
-awk-20231231.htm;calculation;How much was the difference between the operating income for American Water Works in the third quarter in 2023 and in the third quarter 2022?;49;mio. $;Third quarter.*?478.*?Third Quarter.*?439
+awk-20231231.htm;lookup;What has been the basic EPS for American Water Works in the first quarter 2023 based on unaudited data?;0.91;mio. $;First Quarter.*?Net income attributable to common shareholders.*?0\.91
+awk-20231231.htm;lookup;What has been the basic EPS for American Water Works in the third quarter 2023 based on unaudited data?;1.66;mio. $;Third Quarter.*?Net income attributable to common shareholders.*?1\.66
+awk-20231231.htm;advanced lookup;What has been the basic EPS for American Water Works in the first quarter 2023?;0.91;mio. $;First Quarter.*?Net income attributable to common shareholders.*?0\.91
+awk-20231231.htm;advanced lookup;Which quarter was the one having the largest basic EPS for American Water Works in 2023? 1, 2, 3, 4?;3;;Net income attributable to common shareholders.*?0\.88
+awk-20231231.htm;calculation;What's the difference between the quarter with the largest operating income and the lowest operating income for American Water Works in 2023?;183;mio. $;First Quarter.*?Third Quarter.*?295.*?478
 awk-20231231.htm;not answerable;How much was the regulated business operating revenue of American Water Works in Mississipi in 2023?;None;;
 awk-20231231.htm;not answerable;What's the amount of customers which American Water Works served in the Water sector for the class of Police offices?;None;;
 awk-20231231.htm;not answerable;In which state is the regulatory practice Revenue stability mechanisms not allowed to be applied for American Water Works?;None;;
@@ -212,30 +208,34 @@ awk-20231231.htm;not answerable;How much have been the operational costs for IT 
 awk-20231231.htm;not answerable;What's the rating outlook of Fitch for American Water Works as of January 2024?;None;;
 awk-20231231.htm;not answerable;What's the median useful life for the services, meters and fire hydrants of American Water Works by the end 2023?;None;;
 awk-20231231.htm;not answerable;In which of the months December, September or June did American Water Works paid the highest per share cash dividends in 2023?;None;;
-uber-20231231.htm;lookup;What's the trading symbol of Uber Technologies?;UBER;;Trading Symbol(s).*?UBER
-uber-20231231.htm;lookup;How many monthly active users did Uber have in 2022?;131;mio. $;Monthly Active Platform Consumers (“MAPCs”).*?131
-uber-20231231.htm;lookup;How many people did use Uber on a monthly basis in 2023?;150;mio. $;Monthly Active Platform Consumers (“MAPCs”).*?50
-uber-20231231.htm;lookup;How many trips were booked by Uber in 2023?;9448;mio. $;Trips.*?9,?448
-uber-20231231.htm;lookup;How much did the amount of booked trips on Uber change from 2022 to 2023?;24;%;Trips.*?24
-uber-20231231.htm;calculation;What's the sum of booked trips of Uber in the years 2022 and 2023 combined?;17090;mio. $;Trips.*?7,?642.*?9,?448
+uber-20231231.htm;lookup;What's the trading symbol of Uber Technologies?;UBER;;Trading Symbol.*?UBER
+uber-20231231.htm;lookup;How many monthly active users did Uber have in 2022?;131;mio.;In millions.*?Monthly Active Platform Consumers.*?131
+uber-20231231.htm;lookup;How many people did use Uber on a monthly basis in 2023?;150;mio.;In millions.*?Monthly Active Platform Consumers.*?50
+uber-20231231.htm;lookup;How many trips were booked by Uber in 2023?;9448;mio.;In millions.*?Trips.*?9,?448
+uber-20231231.htm;lookup;How much did the amount of booked trips on Uber change from 2022 to 2023?;24;%;In millions.*?Trips.*?24
+uber-20231231.htm;calculation;What's the sum of booked trips of Uber in the years 2022 and 2023 combined?;17090;mio.;In millions.*?Trips.*?7,?642.*?9,?448
 uber-20231231.htm;lookup;What has been the revenue for Uber in 2022?;31877;mio. $;Revenue.*?31,?877
 uber-20231231.htm;lookup;What has been the sales and marketing expenses for Uber in 2023?;4356;mio. $;Sales and marketing.*?4,?356
 uber-20231231.htm;lookup;How much research and development costs did Uber have in 2022?;2798;mio. $;Research and development.*?2,?798
 uber-20231231.htm;lookup;What has been the total costs and expenses for Uber in 2023?;36171;mio. $;Total costs and expenses.*?36,?171
 uber-20231231.htm;lookup;How much interest expenses did Uber have in 2022?;565;mio. $;Interest expense.*?565
-uber-20231231.htm;advanced lookup;Did Uber have a total loss  considering the operations of the company in 2022?;Yes;;Income (loss) from operations.*?1,?832
-uber-20231231.htm;advanced lookup;Did Uber have a total loss  considering the operations of the company in 2023?;No;;Income (loss) from operations.*?1,?110
-uber-20231231.htm;advanced lookup;Did Uber have a net income loss below 10 billion dollar in 2022?;Yes;;Net income (loss) attributable to Uber Technologies, Inc..*?9,?141
-uber-20231231.htm;advanced lookup;Did Uber have a net income loss below 9 billion dollar in 2022?;No;;Net income (loss) attributable to Uber Technologies, Inc..*?9,?141
+uber-20231231.htm;boolean;Did Uber have a total loss  considering the operations of the company in 2022?;Yes;;Cost of revenue, exclusive of depreciation and amortization shown separately below.*?1,?832
+uber-20231231.htm;boolean;Did Uber have a total loss  considering the operations of the company in 2023?;No;;Cost of revenue, exclusive of depreciation and amortization shown separately below.*?1,?110
+uber-20231231.htm;boolean;Did Uber have a net income loss below 10 billion dollar in 2022?;Yes;;Net income.*?attributable to Uber Technologies, Inc..*?9,?141
+uber-20231231.htm;boolean;Did Uber have a net income loss below 9 billion dollar in 2022?;No;;Net income.*?attributable to Uber Technologies, Inc..*?9,?141
+uber-20231231.htm;advanced lookup;In which year did Uber have more general and administrative expenses, 2022 or 2023?;2022;;Cost of revenue, exclusive of depreciation and amortization shown separately below.*?1,?832
+uber-20231231.htm;advanced lookup;For the year 2023 which of these categories provided the second highest costs and expenses for Uber, operations and support, sales and marketing or research and development?;Research and development;;Cost of revenue, exclusive of depreciation and amortization shown separately below.*?1,?832
+uber-20231231.htm;advanced lookup;For the year 2023 which of these categories provided the most costs and expenses for Uber, operations and support, sales and marketing or research and development?;Sales and marketing;;Cost of revenue, exclusive of depreciation and amortization shown separately below.*?1,?832
 uber-20231231.htm;calculation;How much did the total costs and expenses change for Uber from 2022 to 2023?;2462;mio. $;Total costs and expenses.*?36,?171
 uber-20231231.htm;calculation;What's the sum of sales & marketing costs and research & development costs for Uber in 2022?;5211;;Operations and support.*?2,?413.*?Research and development.*?2,?798
 uber-20231231.htm;calculation;What's the difference between the sales and marketing costs for Uber from 2022 to 2023?;400;mio. $;Sales and marketing.*?4,?356
 uber-20231231.htm;calculation;How much percent did the research and development costs increase for Uber from 2022 to 2023?;13;%;Research and development.*?2,?798
-uber-20231231.htm;lookup;What has been the proportion of operations and support costs with respect to the percentage of revenue for Uber in 2022?;8;%;Operations and support.*?8
-uber-20231231.htm;lookup;What has been the proportion of the total costs  with respect to the percentage of revenue for Uber in 2023?;97;%;Total costs and expenses.*?97
-uber-20231231.htm;lookup;What has been the proportion of income from operations with respect to the perecentage of revenue for Uber in 2023?;3;%;Income (loss) from operations.*?3
-uber-20231231.htm;advanced lookup;Did the proportion of interest expenses with respect to the rounded percentage of the revenue change for Uber from 2022 to 2023?;No;;Interest expense.*?2.*?2
-uber-20231231.htm;calculation;What has been the difference of the proportional operations and support costs for Uber with respect to their revenue in percent?;1;%;Operations and support.*?8.*?7
+uber-20231231.htm;lookup;What has been the proportion of operations and support costs with respect to the percentage of revenue for Uber in 2022?;8;%;Cost of revenue, exclusive of depreciation and amortization shown separately below.*?Total costs and expenses.*?\(22\).*?\(30\)
+uber-20231231.htm;lookup;What has been the proportion of the total costs  with respect to the percentage of revenue for Uber in 2023?;97;%;Cost of revenue, exclusive of depreciation and amortization shown separately below.*?Total costs and expenses.*?\(22\).*?\(30\)
+uber-20231231.htm;lookup;What has been the proportion of income from operations with respect to the perecentage of revenue for Uber in 2023?;3;%;Cost of revenue, exclusive of depreciation and amortization shown separately below.*?Total costs and expenses.*?\(22\).*?\(30\)
+uber-20231231.htm;advanced lookup;In which year was the proportion of sales and marketing costs vor Uber higher, 2022 or 2023?;2022;;Cost of revenue, exclusive of depreciation and amortization shown separately below.*?Total costs and expenses.*?\(22\).*?\(30\)
+uber-20231231.htm;boolean;Did the proportion of interest expenses with respect to the rounded percentage of the revenue change for Uber from 2022 to 2023?;No;;Cost of revenue, exclusive of depreciation and amortization shown separately below.*?Total costs and expenses.*?\(22\).*?\(30\)
+uber-20231231.htm;calculation;What has been the difference of the proportional operations and support costs for Uber with respect to their revenue in percent?;1;%;Cost of revenue, exclusive of depreciation and amortization shown separately below.*?Total costs and expenses.*?\(22\).*?\(30\)
 uber-20231231.htm;lookup;How much revenue made Uber in 2022 within the mobility segment?;14029;mio. $;Mobility.*?14,?029
 uber-20231231.htm;lookup;How much money did Uber earn in freight segment in 2023?;5245;mio. $;Freight.*?5,?245
 uber-20231231.htm;lookup;What's been the relative increase in revenue for Uber in the delivery segment from 2022 to 2023?;12;%;Delivery.*?12
@@ -249,26 +249,29 @@ uber-20231231.htm;advanced lookup;Which quarter was the least successfull for Ub
 uber-20231231.htm;calculation;What's the sum of gross bookings for the segments mobility and freight for Uber in the second quarter of 2023?;18006;mio. $;Mobility.*?16,?728.*?Freight.*?1,?278
 uber-20231231.htm;calculation;What's been the difference between the gross bookings of the segment delivery of the fourth quarter and the third quarter of 2023 for Uber?;917;mio. $;Delivery.*?16,?094.*?17,011
 uber-20231231.htm;lookup;What's been the adjusted EBITDA for Uber in 2023?;4052;mio. $;Adjusted EBITDA.*?4,?052
-uber-20231231.htm;lookup;How much provisions for income tax did Uber have to note in 2023?;213;mio. $;Provision for (benefit from) income taxes.*?213
-uber-20231231.htm;advanced lookup;Did Uber have an Covid-related expenses in 2023?;No;;COVID-19 response initiatives.*?—
-uber-20231231.htm;advanced lookup;Did the income for equite investments of Uber increase from 2022 to 2023?;No;;Income from equity method investments.*?107.*?48
-uber-20231231.htm;advanced lookup;Did Uber had to note any provisions for income taxes in 2023?;Yes;;Provision for (benefit from) income taxes.*?213
-uber-20231231.htm;advanced lookup;Did Uber had to note any provisions for income taxes in 2022?;No;;Provision for (benefit from) income taxes.*?181
+uber-20231231.htm;lookup;How much provisions for income tax did Uber have to note in 2023?;213;mio. $;Provision for.*? income taxes.*?213
+uber-20231231.htm;boolean;Did Uber have an Covid-related expenses in 2023?;No;;COVID-19 response initiatives.*?—
+uber-20231231.htm;boolean;Did the income for equite investments of Uber increase from 2022 to 2023?;No;;Income from equity method investments.*?107.*?48
+uber-20231231.htm;boolean;Did Uber had to note any provisions for income taxes in 2023?;Yes;;Provision for \(benefit from\) income taxes.*?213
+uber-20231231.htm;boolean;Did Uber had to note any provisions for income taxes in 2022?;No;;Provision for \(benefit from\) income taxes.*?181
+uber-20231231.htm;advanced lookup;In which year have been the stock-based compensation expenses higher for Uber, 2022 or 2023?;2023;;Stock-based compensation expense.*?1,?935
 uber-20231231.htm;calculation;What's the sum of income of equity investments of Uber over the years 2022 and 2023?;155;;Income from equity method investments.*?107.*?48
 uber-20231231.htm;lookup;What's been the value of free cash flow of Uber by the end of 2022?;390;mio. $;Free cash flow.*?390
-uber-20231231.htm;advanced lookup;Did the free cash flow by the end of the year increase from 2022 to 2023?;Yes;;Free cash flow.*?390.*?3,?362
+uber-20231231.htm;boolean;Did the free cash flow by the end of the year increase from 2022 to 2023?;Yes;;Free cash flow.*?390.*?3,?362
 uber-20231231.htm;calculation;How much did the free cash flow by the end of the year for Uber increase in absolute terms from 2022 to 2023? ;2972;mio. $;Free cash flow.*?390.*?3,?362
 uber-20231231.htm;lookup;What's been the amount of cash Uber could exhibit by the end of 2022?;4208;mio. $;Cash and cash equivalents.*?4,?208
 uber-20231231.htm;lookup;What's been the net value of property and equipment of Uber by the end of 2023?;2073;mio. $;Property and equipment, net.*?2,?073
 uber-20231231.htm;lookup;What was the worth of all assets of Uber by the end of 2022?;32109;mio. $;Total assets.*?32,?109
 uber-20231231.htm;lookup;How much redeemable non-controlling interests did Uber exhibit by the end of 2022?;430;mio. $;Redeemable non-controlling interests.*?430
-uber-20231231.htm;advanced lookup;Did the value of all assets of Uber increase from 2022 to 2023?;Yes;;Total assets.*?38,?699
+uber-20231231.htm;boolean;Did the value of all assets of Uber increase from 2022 to 2023?;Yes;;Total assets.*?38,?699
+uber-20231231.htm;advanced lookup;Which category was contributing the most to the assets of Uber in 2022, cash and cash equivalents, short-term investments or prepaid expenses?;Cash and cash equivalents;;Cash and cash equivalents.*?1,?681
+uber-20231231.htm;advanced lookup;Which category was contributing the second most to the assets of Uber in 2022, cash and cash equivalents, short-term investments or accounts receivable?;Accounts receivable;;Cash and cash equivalents.*?1,?681
 uber-20231231.htm;calculation;How much did the value of the net property and equipment of Uber decrease from 2022 to 2023?;9;mio. $;Property and equipment, net.*?2,?073
 uber-20231231.htm;calculation;What's the mean worth of all assets of Uber of the years 2022 and 2023?;35404;mio. $;Total assets.*?38,?699
 uber-20231231.htm;lookup;What has been the worth of common stock shares for Uber at the end of 2021?;1949316 ;mio. $;Balance as of December 31, 2021.*?1,?949,?316
 uber-20231231.htm;calculation;How much was the value of common stock shares of Uber higher at the end of 2022 compared to the end of 2021?;56170;mio. $;Balance as of December 31, 2021.*?1,?949,?316.*?Balance as of December 31, 2022.*?2,005,486
 uber-20231231.htm;lookup;What has been the amount of purchases of non-marketable equity securities by Uber in the year 2022?;14;mio. $;Purchases of non-marketable equity securities.*?14
-uber-20231231.htm;advanced lookup;Did amount of purchases of non-marketable equity securities of Uber increase from 2022 to 2023?;Yes;;Purchases of non-marketable equity securities.*?14.*?52
+uber-20231231.htm;boolean;Did amount of purchases of non-marketable equity securities of Uber increase from 2022 to 2023?;Yes;;Purchases of non-marketable equity securities.*?14.*?52
 uber-20231231.htm;advanced lookup;Did Uber have any proceeds from sale of non-marketable equity securities in 2022 or 2023?;No;;Proceeds from sale of non-marketable equity securities.*?—.*?—
 uber-20231231.htm;calculation;What has been the sum of purchases of non-marketable equity securities plus marketable securities of Uber in the year 2022?;1722;mio. $;Purchases of non-marketable equity securities.*?14.*?Purchases of marketable securities.*?1,?708
 uber-20231231.htm;lookup;What has been the fair value of corporate bonds Uber owned at the end of 2022?;15;mio. $;Corporate bonds.*?15
@@ -280,16 +283,16 @@ uber-20231231.htm;advanced lookup;What's the category having the highest value w
 uber-20231231.htm;calculation;What's the difference in value of the leased computer equipment of Uber between the years 2022 and 2023?;29;mio. $;Leased computer equipment.*?712.*?683
 uber-20231231.htm;lookup;What's the amount of loss before provision for the income tax of Uber in the U.S. in 2022?;8523;mio. $;U\.S\..*?8,?523
 uber-20231231.htm;lookup;What's the amount of loss before provision for the income tax of Uber in all non-U.S. countries in 2022?;903;mio. $;Foreign.*?903
-uber-20231231.htm;calculation;What's the share of foreign countries of the benefit from income tax for the year 2021?;67;%;Foreign.*?685.*?Income (loss) before income taxes and income from equity method investments.*?1,?025
+uber-20231231.htm;calculation;What's the share of foreign countries of the benefit from income tax for the year 2021?;67;%;Foreign.*?685.*?Income \(loss\) before income taxes and income from equity method investments.*?1,?025
 uber-20231231.htm;lookup;What was the federal income tax rate for Uber in 2022?;21;%;Federal statutory income tax rate.*?21.*?21.*?21
 uber-20231231.htm;lookup;What has been the tax rate for stock based compensation for Uber in the year 2021?;4.5;%;Stock-based compensation.*?4.5
 uber-20231231.htm;lookup;What has been the effective tax rate for Uber in 2022?;1.9;%;Effective income tax rate.*?1.9
-uber-20231231.htm;advanced lookup;Did the federal income tax rate change for Uber in the years 2021, 2022 and 2023?;No;;Federal statutory income tax rate.*?21.*?21.*?21
+uber-20231231.htm;boolean;Did the federal income tax rate change for Uber in the years 2021, 2022 and 2023?;No;;Federal statutory income tax rate.*?21.*?21.*?21
 uber-20231231.htm;calculation;By how many percentage points did the effective income tax rate increase for Uber from 2022 to 2023?;7.3;%;Effective income tax rate.*?1.9.*?9.2
-uber-20231231.htm;advanced lookup;Was the year 2014 still part of the open tax years for Uber in the U.K. by the end of 2023?;Yes;;United Kingdom.*?2013 - 2023
-uber-20231231.htm;lookup;What has been the basic net loss per share attributable to ordinary shareholders of Uber in 2022?;4.64;mio. $;Basic net income (loss) per share attributable to common stockholders.*?4.64
+uber-20231231.htm;boolean;Was the year 2014 still part of the open tax years for Uber in the U.K. by the end of 2023?;Yes;;United Kingdom.*?2013 - 2023
+uber-20231231.htm;lookup;What has been the basic net loss per share attributable to ordinary shareholders of Uber in 2022?;4.64;mio. $;Basic net income \(loss\) per share attributable to common stockholders.*?4.64
 uber-20231231.htm;lookup;What's the value of RSUs Uber provided its employees in 2023?;25671;mio. $;RSUs.*?25,?671
-uber-20231231.htm;advanced lookup;Did Uber have a loss for its non-diluted share attributable to ordinary shareholders in 2022?;No;;Basic net income (loss) per share attributable to common stockholders.*?0.93
+uber-20231231.htm;boolean;Did Uber have a loss for its non-diluted share attributable to ordinary shareholders in 2022?;No;;Basic net income \(loss\) per share attributable to common stockholders.*?0.93
 uber-20231231.htm;lookup;What's the amount of revue Uber made in the U.K. in 2022?;4215;mio. $;United Kingdom.*?4,?215
 uber-20231231.htm;calculation;How much did the revenue of Uber in the U.K. increase from 2022 to 2023?;2307;mio. $;United Kingdom.*?4,?215.*?6,?522
 uber-20231231.htm;calculation;What's the share of revenue Uber made in 2022 in U.K. in relation to the whole company's total revenue?;13;%;United Kingdom.*?4,?215.*?Total Revenue.*?31,?877
@@ -297,7 +300,7 @@ uber-20231231.htm;lookup;How much has been the balance of allowance for doubtful
 uber-20231231.htm;calculation;How much did the balance of allowance for doubtful receivables differ for Uber in 2022 from the beginning of the period to the end of the period?;29;mio. $;Allowance for doubtful accounts.*?51.*?80
 uber-20231231.htm;not answerable;How many monthly active users did Uber have in 2019?;None;;
 uber-20231231.htm;not answerable;What's the sum of booked trips of Uber in the years 2021, 2022 and 2023 combined?;None;;
-uber-20231231.htm;not answerable;What's the amount research costs (without development) for Uber in 2022?;None;;
+uber-20231231.htm;not answerable;What's the amount research costs \(without development\) for Uber in 2022?;None;;
 uber-20231231.htm;not answerable;How much have been the foreign currency exchange losses for Uber in 2019?;None;;
 uber-20231231.htm;not answerable;What has been the total revenue for Uber in the investement segment in 2022?;None;;
 uber-20231231.htm;not answerable;Which asset category of site improvements, computer equipment or furniture and fixtures exceeds the estimated useful life of 20 years?;None;;

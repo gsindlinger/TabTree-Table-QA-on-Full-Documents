@@ -24,6 +24,7 @@ class FullMetadataRetrieval(FullMetadata):
 class SplitContent(BaseModel):
     type: Literal["table", "text"]
     content: str
+    original_content: Optional[str] = Field(default=None)
     position: Optional[int] = Field(default=None)
     visited: Optional[bool] = Field(default=None)
 
