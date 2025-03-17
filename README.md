@@ -115,7 +115,7 @@ Before running any code, you need to set up Ollama and Qdrant as services using 
 To delete all collections in Qdrant (if needed), you can run the following command:
 
 ```bash
-QDRANT_URL="http://localhost:6333"; curl -s "$QDRANT_URL/collections" | jq -r '.result.collections[].name' | xargs -I {} curl -X DELETE "$QDRANT_URL/collections/{}"
+QDRANT_URL="http://localhost:6333"; curl -s "$QDRANT_URL/collections" | jq -r '.result.collections[].name' | xargs -I {} curl -X DELETE "$QDRANT_URL/collections/{}"; rm -rf ./data/qdrant-data/payloads/*
 ```
 
 ---
