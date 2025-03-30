@@ -4,6 +4,8 @@ from typing import List, Optional
 import unicodedata
 from bs4 import BeautifulSoup, Comment, NavigableString, Tag
 
+from .sentence_splitter import SentenceSplitter
+
 from ..document_preprocessors.preprocess_config import PreprocessConfig
 from ..document_splitters.semantic_chunker_custom import (
     TABLE_REGEX,
@@ -60,11 +62,15 @@ class HTMLPreprocessor(DocumentPreprocessor):
                         content=part,
                         position=index_counter,
                         visited=False,
+                        original_content=part,
                     )
                 )
                 index_counter += 1
+                
+                # generate table summary and store it together with table headers
             else:
-                sentences = re.split(sentence_split_regex, part, flags=re.DOTALL)
+                # sentences = re.split(sentence_split_regex, part, flags=re.DOTALL)
+                sentences = SentenceSplitter.split_sentences(part)
                 for sentence in sentences:
                     content_list.append(
                         SplitContent(
@@ -72,6 +78,7 @@ class HTMLPreprocessor(DocumentPreprocessor):
                             content=sentence,
                             position=index_counter,
                             visited=False,
+                            original_content=sentence,
                         )
                     )
                     index_counter += 1

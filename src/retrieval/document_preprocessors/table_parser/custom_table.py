@@ -27,6 +27,50 @@ class CustomTableWithHeader(BaseModel):
 
     def has_no_headers(self) -> bool:
         return self.max_row_label_column == -1 and self.max_column_header_row == -1
+    
+    def to_html(self) -> str:
+        html = "<table>\n"
+        
+        max_column_header_row = -1
+                
+        # Add table header (thead)
+        if self.max_column_header_row is not None:
+            max_column_header_row = self.max_column_header_row
+        
+        if max_column_header_row >= 0:
+            html += "  <thead>\n"
+            for i in range(self.max_column_header_row + 1):
+                html += "    <tr>\n"
+                for cell in self.table[i]:
+                    if cell.colspan[0] == 0 and cell.rowspan[0] == 0:
+                        colspan = ""
+                        rowspan = ""
+                        if cell.colspan[1] > 0:
+                            colspan = f' colspan="{cell.colspan[1] + 1}"' if cell.colspan[1] > 0 else ""
+                        if cell.rowspan[1] > 0:
+                            rowspan = f' rowspan="{cell.rowspan[1] + 1}"' if cell.rowspan[1] > 0 else ""
+                        html += f'      <th{colspan}{rowspan}>{cell.value}</th>\n'
+                html += "    </tr>\n"
+            html += "  </thead>\n"
+        
+        # Add table body (tbody)
+        html += "  <tbody>\n"
+        for i in range(max_column_header_row + 1, len(self.table)):
+            html += "    <tr>\n"
+            for cell in self.table[i]:
+                if cell.colspan[0] == 0 and cell.rowspan[0] == 0:
+                    colspan = ""
+                    rowspan = ""
+                    if cell.colspan[1] > 0:
+                        colspan = f' colspan="{cell.colspan[1] + 1}"' if cell.colspan[1] > 0 else ""
+                    if cell.rowspan[1] > 0:
+                        rowspan = f' rowspan="{cell.rowspan[1] + 1}"' if cell.rowspan[1] > 0 else ""
+                    html += f'      <td{colspan}{rowspan}>{cell.value}</td>\n'
+            html += "    </tr>\n"
+        html += "  </tbody>\n"
+        
+        html += "</table>"
+        return html
 
     def to_csv(self, file_path: str, include_span: bool = False):
         with open(file_path, "w") as file:

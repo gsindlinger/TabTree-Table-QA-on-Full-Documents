@@ -1,10 +1,12 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
 import json
+import logging
 import re
 from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
 from pydantic import BaseModel
+from sklearn.metrics import f1_score
 
 from ..retrieval.document_preprocessors.table_parser.custom_html_parser import (
     HTMLTableParser,
@@ -21,6 +23,7 @@ class EvaluationResults(BaseModel):
         None
     )
     qa_only_results: Optional[QAOnlyResults] = None
+    error_count: Optional[int] = None
 
     @staticmethod
     def list_to_json(lst: List[EvaluationResults], only_qa_and_ir: bool = False) -> str:
@@ -45,47 +48,76 @@ class EvaluationResults(BaseModel):
 
         accuracy = correct / total
         return accuracy
+    
 
     @staticmethod
-    def calculate_f1_score(predictions: List[Any], ground_truths: List[Any]) -> float:
+    def calculate_f1_score_list(predictions: List[Any], ground_truths: List[Any]) -> float:
         if len(predictions) != len(ground_truths):
             raise ValueError("Predictions and ground truths must have the same length.")
+    
+        return f1_score(ground_truths, predictions, average='macro', zero_division=0)
 
-        true_positive = sum(
-            1 for p, g in zip(predictions, ground_truths) if p == g and p is not None
-        )
-        false_positive = sum(
-            1 for p, g in zip(predictions, ground_truths) if p != g and p is not None
-        )
-        false_negative = sum(
-            1 for p, g in zip(predictions, ground_truths) if p != g and p is None
-        )
+        
 
-        if true_positive == 0:
-            return 0.0  # Avoid division by zero, return 0 when no positive predictions are correct.
+    # calculate f1 score based on word 
+    @staticmethod
+    def calculate_f1_score(predictions: List[str], ground_truths: List[str]) -> float:
+        """ Calculates the macro F1 score for a list of predictions and ground truths."""
+        if len(predictions) != len(ground_truths):
+            raise ValueError("Predictions and ground truths must have the same length.")
+        
+        f1 = 0
 
-        precision = true_positive / (true_positive + false_positive)
-        recall = true_positive / (true_positive + false_negative)
-        f1_score = 2 * (precision * recall) / (precision + recall)
-
-        return f1_score
-
+        for pred_item, gt_item in zip(predictions, ground_truths):
+            # split both on '|' with or without spaces
+            pred_item = pred_item.lower().split("|")
+            gt_item = gt_item.lower().split("|")
+            
+            pred_item.sort()
+            gt_item.sort()
+            
+            pred_items = " ".join(pred_item).split()
+            gt_items = " ".join(gt_item).split()
+            
+            # if either the prediction or the truth is no-answer then f1 = 1 if they agree, 0 otherwise
+            if len(pred_items) == 0 or len(gt_items) == 0:
+                f1 += int(pred_items == gt_items)
+            
+            common_items = set(pred_items) & set(gt_items)
+    
+            # if there are no common tokens then f1 = 0
+            if len(common_items) == 0:
+                continue
+            
+            prec = len(common_items) / len(pred_items)
+            rec = len(common_items) / len(gt_items)
+            
+            f1 += 2 * (prec * rec) / (prec + rec)
+        return f1 / len(predictions)
 
 class IRResults(BaseModel):
-    document_recall: Optional[float] = None
     document_precision: Optional[float] = None
     document_mrr: Optional[float] = None
 
-    chunk_recall: Optional[float] = None
-    chunk_precision: Optional[float] = None
-    chunk_mrr: Optional[float] = None
+    chunk_recall_1_detailed: Optional[float] = None
+    chunk_recall_3_detailed: Optional[float] = None
+    chunk_recall_5_detailed: Optional[float] = None
+    chunk_mrr_5_detailed: Optional[float] = None
+    
+    chunk_recall_1_coarse: Optional[float] = None
+    chunk_recall_3_coarse: Optional[float] = None
+    chunk_recall_5_coarse: Optional[float] = None
+    chunk_mrr_5_coarse: Optional[float] = None
+    
     similarity_scores: Optional[List[List[float]]] = None
+    match_list: Optional[List[int]] = None
 
     @staticmethod
     def calculate_metrics(
         predictions_doc_id: List[List[str] | str],
         ground_truths_doc_id: List[str],
         predictions_text: List[List[str] | str],
+        predictions_table_string: List[List[str] | str],
         ground_truths_search_string: List[str],
         similarity_scores: List[List[float]],
         retriever_num_documents: int,
@@ -100,18 +132,24 @@ class IRResults(BaseModel):
             predictions_doc_id=predictions_doc_id,
             ground_truths_doc_id=ground_truths_doc_id,
             predictions_text=predictions_text,
+            predictions_table_string=predictions_table_string,
             ground_truths_search_string=ground_truths_search_string,
             retriever_num_documents=retriever_num_documents,
         )
 
         return IRResults(
-            document_recall=document_metrics.document_recall,
             document_precision=document_metrics.document_precision,
             document_mrr=document_metrics.document_mrr,
-            chunk_recall=chunk_metrics.chunk_recall,
-            chunk_precision=chunk_metrics.chunk_precision,
-            chunk_mrr=chunk_metrics.chunk_mrr,
+            chunk_recall_1_detailed=chunk_metrics.chunk_recall_1_detailed,
+            chunk_recall_3_detailed=chunk_metrics.chunk_recall_3_detailed,
+            chunk_recall_5_detailed=chunk_metrics.chunk_recall_5_detailed,
+            chunk_mrr_5_detailed=chunk_metrics.chunk_mrr_5_detailed,
+            chunk_recall_1_coarse=chunk_metrics.chunk_recall_1_coarse,
+            chunk_recall_3_coarse=chunk_metrics.chunk_recall_3_coarse,
+            chunk_recall_5_coarse=chunk_metrics.chunk_recall_5_coarse,
+            chunk_mrr_5_coarse=chunk_metrics.chunk_mrr_5_coarse,
             similarity_scores=similarity_scores,
+            match_list=chunk_metrics.match_list,
         )
 
     @staticmethod
@@ -125,14 +163,20 @@ class IRResults(BaseModel):
         document_precisions_count = 0
         document_mrr_count = 0
 
-        for pos, (pred, truth) in enumerate(zip(predictions, ground_truths)):
+        for (pred, truth) in zip(predictions, ground_truths):
             if truth in pred:
                 document_recall_count += 1
-                document_precisions_count += 1 / retriever_num_documents
-                document_mrr_count += 1 / (pos + 1)
+                
+            for pos, doc_id in enumerate(pred):
+                if doc_id == truth:
+                    document_precisions_count += 1 / retriever_num_documents
+                    
+            for pos, doc_id in enumerate(pred):
+                if doc_id == truth:
+                    document_mrr_count += 1 / (pos + 1)
+                    break
 
         return IRResults(
-            document_recall=document_recall_count / len(predictions),
             document_precision=document_precisions_count / len(predictions),
             document_mrr=document_mrr_count / len(predictions),
         )
@@ -142,46 +186,125 @@ class IRResults(BaseModel):
         predictions_doc_id: List[List[str] | str],
         ground_truths_doc_id: List[str],
         predictions_text: List[List[str] | str],
+        predictions_table_string: List[List[str] | str],
         ground_truths_search_string: List[str],
         retriever_num_documents: int,
     ) -> IRResults:
 
         from .sec_filing_evaluator import SECFilingEvaluator
+        
+        match_list = []
 
-        chunk_recall_count = 0
-        chunk_precisions_count = 0
-        chunk_mrr_count = 0
+        chunk_recall_count_detailed_1 = 0.0        
+        chunk_recall_count_detailed_3 = 0.0
+        chunk_recall_count_detailed_5 = 0.0
+        chunk_mrr_count_detailed_5 = 0.0
+        
+        detailed_results_mapper = {
+            1: [chunk_recall_count_detailed_1], 
+            3: [chunk_recall_count_detailed_3], 
+            5: [chunk_recall_count_detailed_5, chunk_mrr_count_detailed_5]
+            }
+        
+        chunk_recall_count_coarse_1 = 0.0
+        chunk_recall_count_coarse_3 = 0.0
+        chunk_recall_count_coarse_5 = 0.0
+        chunk_mrr_count_coarse_5 = 0.0
+        
+        normal_coarse_mismatch_counter = 0
+        
+        coarse_results_mapper = {
+            1: [chunk_recall_count_coarse_1], 
+            3: [chunk_recall_count_coarse_3], 
+            5: [chunk_recall_count_coarse_5, chunk_mrr_count_coarse_5]
+            }
+        
+        
 
         all_documents = zip(
             predictions_doc_id,
             ground_truths_doc_id,
             predictions_text,
+            predictions_table_string,
             ground_truths_search_string,
+            
         )
         for (
             predictions_doc_id_temp,
             ground_truths_doc_id_temp,
             predictions_text_temp,
+            predictions_table_string_temp,
             ground_truths_search_string_temp,
         ) in all_documents:
-            if ground_truths_doc_id_temp in predictions_doc_id_temp:
-                # search ground truth string in retrieved text as regex
+            # search ground truth string in retrieved text as regex with normal search
+            detailed_match = False
+            coarse_match = False
+            match_list_checker = True
+            for i in [1, 3, 5]:
+                predictions_text_temp_reduced = predictions_text_temp[:i]
+            
                 for pos, predictions_text_single_temp in enumerate(
-                    predictions_text_temp
+                    predictions_text_temp_reduced
                 ):
+                    if ground_truths_doc_id_temp != predictions_doc_id_temp[pos]:
+                        continue
+                    
                     if SECFilingEvaluator.search_table_by_regexp(
-                        string_to_search=ground_truths_doc_id_temp,
+                        string_to_search=ground_truths_search_string_temp,
                         chunk=predictions_text_single_temp,
+                        chunk_table_string=predictions_table_string_temp[pos],
+                        mode="detailed"
                     ):
-                        chunk_recall_count += 1
-                        chunk_precisions_count += 1 / retriever_num_documents
-                        chunk_mrr_count += 1 / (pos + 1)
+                        detailed_results_mapper[i][0] += 1 # recall
+                        if i == 5:
+                            detailed_match = True
+                            detailed_results_mapper[5][1] += (1 / (pos + 1))# mrr
                         break
-
+                    
+                # search ground truth string in retrieved text as regex with detailed mode
+                for pos, predictions_text_single_temp in enumerate(
+                    predictions_text_temp_reduced
+                ):
+                    if ground_truths_doc_id_temp != predictions_doc_id_temp[pos]:
+                        continue
+                    
+                    
+                    if SECFilingEvaluator.search_table_by_regexp(
+                        string_to_search=ground_truths_search_string_temp,
+                        chunk=predictions_text_single_temp,
+                        chunk_table_string=predictions_table_string_temp[pos],
+                        mode="normal"
+                    ):
+                        coarse_results_mapper[i][0] += 1
+                        if match_list_checker:
+                            match_list.append(i)
+                            match_list_checker = False
+                        if i == 5:
+                            coarse_match = True
+                            coarse_results_mapper[5][1] += (1 / (pos + 1))
+                        break
+                    
+                        
+                if i == 5:
+                    if not detailed_match == coarse_match:
+                        normal_coarse_mismatch_counter += 1
+                        
+                    if not coarse_match:
+                        match_list.append(-1)
+                        
+            
+        logging.info(f"Number of normal-coarse mismatches: {normal_coarse_mismatch_counter}")
+        
         return IRResults(
-            chunk_recall=chunk_recall_count / len(predictions_doc_id),
-            chunk_precision=chunk_precisions_count / len(predictions_doc_id),
-            chunk_mrr=chunk_mrr_count / len(predictions_doc_id),
+            chunk_recall_1_detailed=detailed_results_mapper[1][0]/len(predictions_doc_id),
+            chunk_recall_3_detailed=detailed_results_mapper[3][0]/len(predictions_doc_id),
+            chunk_recall_5_detailed=detailed_results_mapper[5][0]/len(predictions_doc_id),
+            chunk_mrr_5_detailed=detailed_results_mapper[5][1]/len(predictions_doc_id),
+            chunk_recall_1_coarse=coarse_results_mapper[1][0]/len(predictions_doc_id),
+            chunk_recall_3_coarse=coarse_results_mapper[3][0]/len(predictions_doc_id),
+            chunk_recall_5_coarse=coarse_results_mapper[5][0]/len(predictions_doc_id),
+            chunk_mrr_5_coarse=coarse_results_mapper[5][1]/len(predictions_doc_id),
+            match_list=match_list,
         )
 
 
@@ -218,11 +341,34 @@ class QAResults(BaseModel):
     f1_score: float
     official_accuracy: Optional[float] = None
     data: Optional[Dict] = None
+    
+    @staticmethod
+    def postprocess_qa_results(predictions: List[str], ground_truths: List[str]):
+        for i in range(len(predictions)):
+            predictions[i] = re.sub(r"\s+", " ", predictions[i])
+            ground_truths[i] = re.sub(r"\s+", " ", ground_truths[i])
+            
+            if "%" in predictions[i] and "%" in ground_truths[i]:
+                predictions[i] = predictions[i].replace("%", "").strip()
+                
+            # equalize thousands separators if answer contains only digits
+            if predictions[i].replace(",", "").replace(".","").isdigit() or ground_truths[i].replace(",", "").replace(".","").isdigit():
+                predictions[i] = predictions[i].replace(",", "")
+                ground_truths[i] = ground_truths[i].replace(",", "")
+            # if ground truth is a number with decimals, ensure that prediction is rounded to the same number of decimal places
+            if ground_truths[i].replace(".", "").isdigit():
+                if "." in ground_truths[i]:
+                    decimals = len(ground_truths[i].split(".")[1])
+                    predictions[i] = f"{float(predictions[i]):.{decimals}f}"
+        return predictions, ground_truths
 
     @staticmethod
     def calculate_metrics(
         predictions: List[str], ground_truths: List[str]
     ) -> QAResults:
+        
+        predictions, ground_truths = QAResults.postprocess_qa_results(predictions, ground_truths)
+        
         accuracy = EvaluationResults.calculate_accuracy(predictions, ground_truths)
         official_accuracy = QAResults.calculate_official_accuracy(
             predictions, ground_truths
@@ -382,6 +528,7 @@ class TableSummary(BaseModel):
         num_tokens = []
 
         for table in tables_str:
+            
             if table.original_content is None:
                 raise ValueError("Table must have original content.")
             custom_parsed_table = HTMLTableParser.parse_and_clean_table(
@@ -438,14 +585,14 @@ class HeaderDetectionResults(BaseModel):
             pred_mod = pred.copy()
             gt_mod = gt.copy()
             if len(pred) < len(gt):
-                pred_mod.extend([None] * (len(gt) - len(pred)))  # type: ignore
+                pred_mod.extend([-1] * (len(gt) - len(pred)))  # type: ignore
             elif len(pred) > len(gt):
-                gt_mod.extend([None] * (len(pred) - len(gt)))  # type: ignore
+                gt_mod.extend([-1] * (len(pred) - len(gt)))  # type: ignore
             advanced_accuracy.append(
                 EvaluationResults.calculate_accuracy(pred_mod, gt_mod)
             )
             advanced_f1_score.append(
-                EvaluationResults.calculate_f1_score(pred_mod, gt_mod)
+                EvaluationResults.calculate_f1_score_list(pred_mod, gt_mod)
             )
 
         return advanced_accuracy, advanced_f1_score

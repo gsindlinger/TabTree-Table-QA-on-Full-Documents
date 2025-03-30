@@ -109,10 +109,11 @@ class SECFilingLoader(DocumentLoader):
             raise ValueError(
                 "Trying to add tables to questions, but some tables are None."
             )
-
-        table = find_table_by_regex_in_list_of_tables(tables, question.search_reference)  # type: ignore
-
-        if table == "":
+        if question.search_reference.strip() != "":
+            table = find_table_by_regex_in_list_of_tables(tables, question.search_reference)  # type: ignore
+        else:
+            table = ""
+        if table == "" and question.category != 'not answerable':
             logging.warning(
                 f"Table not found for question {question.doc_id} and search reference {question.search_reference}"
             )
@@ -130,20 +131,17 @@ class SECFilingLoader(DocumentLoader):
         self,
         num_of_documents: Optional[int] = None,
     ) -> List[CustomDocument]:
-
+        
+        from ...evaluation.sec_filing_evaluator import SECFilingEvaluator
+    
+        ids = SECFilingEvaluator.get_full_documents_by_evaluation_docs()
         documents = []
         count = 0
-        for file_path in glob.glob(self.folder_path + "*"):
+        
+        for id in ids:
             if num_of_documents and count == num_of_documents:
                 break
-            with open(file_path, "r", encoding="utf-8") as file:
-                html_content = file.read()
-                filing = CustomDocument(
-                    page_content=html_content,
-                    metadata=FullMetadata(doc_id=os.path.basename(file_path)),
-                )
-
-            # Append to documents
-            documents.append(filing)
+            document = self.load_single_document_with_id(id=id)
+            documents.append(document)
             count += 1
         return documents

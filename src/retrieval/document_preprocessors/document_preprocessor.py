@@ -15,7 +15,7 @@ class DocumentPreprocessor(ABC, BaseModel):
     table_serializer: Optional[TableSerializer] = None
 
     @classmethod
-    def from_config(cls, preprocess_config: PreprocessConfig) -> DocumentPreprocessor:
+    def from_config(cls, preprocess_config: PreprocessConfig) -> DocumentPreprocessor:        
         mode = Config.run.dataset
         table_serializer = TableSerializer.from_preprocess_config(preprocess_config)
 
@@ -24,7 +24,7 @@ class DocumentPreprocessor(ABC, BaseModel):
             from .html_preprocessor import HTMLPreprocessor
 
             return HTMLPreprocessor(
-                preprocess_config=preprocess_config, table_serializer=table_serializer
+                preprocess_config=preprocess_config, table_serializer=table_serializer,
             )
         else:
             raise ValueError(f"Unknown mode: {mode}")

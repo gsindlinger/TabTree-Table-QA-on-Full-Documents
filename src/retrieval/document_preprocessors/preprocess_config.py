@@ -72,7 +72,7 @@ class PreprocessConfig(BaseModel):
     def from_config_single(
         cls, preprocess_data: Dict, table_serializer_data: Dict
     ) -> PreprocessConfig:
-        if not table_serializer_data or "name" not in table_serializer_data:
+        if not table_serializer_data or ("name" not in table_serializer_data):
             raise ValueError(
                 "The config_data for table serialization must contain the field 'method' at least"
             )
@@ -83,7 +83,6 @@ class PreprocessConfig(BaseModel):
             and "context_string_with_context_intersection" in table_serializer_data
             and "value_string_approach" in table_serializer_data
             and "value_string_with_context_intersection" in table_serializer_data
-            and "primary_subtree_approach" in table_serializer_data
         ):
             tabtree_approach = NodeApproach.from_dict(table_serializer_data)
             table_serialization = table_serializer_data.get("method")
@@ -108,8 +107,10 @@ class PreprocessConfig(BaseModel):
         )
 
         if table_serializer_data.get("name"):
-            obj.name = f"{obj.name}-{table_serializer_data.get('name')}"
-
+            if obj.name.strip() != "":
+                obj.name = f"{obj.name}-{table_serializer_data.get('name')}"
+            else:
+                obj.name = table_serializer_data.get("name", "Missing_Table_Serializer_Name")
         return obj
 
     @classmethod
@@ -119,8 +120,8 @@ class PreprocessConfig(BaseModel):
 
         lst = []
         for preprocess_config in preprocess_data:
-            for table_serializer_data in table_serializer_data:
+            for table_serializer_data_single in table_serializer_data:
                 lst.append(
-                    cls.from_config_single(preprocess_config, table_serializer_data)
+                    cls.from_config_single(preprocess_config, table_serializer_data_single)
                 )
         return lst

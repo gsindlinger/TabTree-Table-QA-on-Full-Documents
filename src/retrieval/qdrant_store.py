@@ -18,7 +18,9 @@ class QdrantVectorStore(_QdrantVectorStore):
         """Create a QdrantVectorStore instance from the config"""
 
         client = QdrantClient()
-        vector_size = len(embedding_model.embed_documents(["Hello World!"])[0])
+        
+        test_embed = embedding_model.embed_documents(["Hello World!"])
+        vector_size = len(test_embed[0])
         if not client.is_populated(collection_name=collection_name):
             client.create_index(
                 collection_name=collection_name,

@@ -17,6 +17,7 @@ import pandas as pd
 from pydantic import BaseModel
 import tiktoken
 
+
 from ..retrieval.document_preprocessors.table_serializer import HTMLSerializer
 
 from ..model.custom_document import CustomDocument
@@ -49,6 +50,7 @@ from .evaluation_document import (
     EvaluationDocument,
     EvaluationDocumentWithTable,
     HeaderEvaluationDocument,
+    HeaderEvaluationDocumentReduced,
 )
 from ..config.config import Config
 from ..retrieval.document_preprocessors.document_preprocessor import (
@@ -116,7 +118,7 @@ class Evaluator(ABC, BaseModel):
         if Config.evaluation.num_of_documents:
             evaluation_num_documents = Config.evaluation.num_of_documents
         else:
-            evaluation_num_documents = 10
+            evaluation_num_documents = 300
 
         if Config.evaluation.iterations:
             evaluation_iterations = Config.evaluation.iterations
@@ -126,7 +128,7 @@ class Evaluator(ABC, BaseModel):
         match llm_config.dataset:
             case "wiki-table-questions":
                 from .wiki_tables_evaluator.wiki_table_questions_evaluator import (
-                    WikiTableQuestionsEvaluator,
+                    WikiTableQuestionsEvaluator
                 )
 
                 return WikiTableQuestionsEvaluator(
@@ -174,32 +176,41 @@ class Evaluator(ABC, BaseModel):
         dataset_summary = None
 
         if EvaluationType.EVALUATE_GET_HEADERS in self.evaluation_types:
-            self.evaluate_table_header_detection()
+            self.evaluate_table_header_detection_all()
+        
         if (
             EvaluationType.RUN_DOCUMENT_ANALYSIS in self.evaluation_types
-            and isinstance(self, WikiTableQuestionsEvaluator)
         ):
-            qa_docs = self.get_evaluation_docs_list()
-            dataset_summary = self._get_dataset_summary(evaluation_data=qa_docs) # type: ignore
-        if EvaluationType.EVALUATE_TABLE_QA_ONLY in self.evaluation_types:
-            qa_docs = self.get_evaluation_docs_list()
-            qa_only_results = self._evaluate_table_qa_only(evaluation_data=qa_docs)    # type: ignore
-        else:
-            evaluation_docs = self.get_evaluation_docs()
-            if EvaluationType.EVALUATE_QA in self.evaluation_types:
-                qa_results = self._evaluate_qa(evaluation_data=evaluation_docs) # type: ignore
-            if EvaluationType.EVALUATE_IR in self.evaluation_types:
-                ir_results = self._evaluate_ir(evaluation_data=evaluation_docs) # type: ignore
-            if EvaluationType.RUN_DOCUMENT_ANALYSIS in self.evaluation_types:
+            if isinstance(self, WikiTableQuestionsEvaluator):
+                qa_docs = self.get_evaluation_docs_list()
+                dataset_summary = self._get_dataset_summary(evaluation_data=qa_docs) # type: ignore
+            else:
+                evaluation_docs = self.get_evaluation_docs()
                 dataset_summary = self._get_dataset_summary(
                     evaluation_data=evaluation_docs # type: ignore
                 )
+        
+        if EvaluationType.EVALUATE_TABLE_QA_ONLY in self.evaluation_types:
+            if isinstance(self, WikiTableQuestionsEvaluator):
+                qa_docs = self.get_evaluation_docs_list()
+            else:
+                self.evaluation_iterations = 1
+                self.evaluation_num_documents = len(self.get_evaluation_docs())
+                qa_docs = [self.get_evaluation_docs()]
+            qa_only_results = self._evaluate_table_qa_only(evaluation_data=qa_docs)    # type: ignore
+        if EvaluationType.EVALUATE_QA in self.evaluation_types:
+            evaluation_docs = self.get_evaluation_docs()
+            qa_results = self._evaluate_qa(evaluation_data=evaluation_docs) # type: ignore
+        if EvaluationType.EVALUATE_IR in self.evaluation_types:
+            evaluation_docs = self.get_evaluation_docs()
+            ir_results = self._evaluate_ir(evaluation_data=evaluation_docs) # type: ignore
 
         full_results = EvaluationResults(
             qa_results=qa_results,
             ir_results=ir_results,
             dataset_summary=dataset_summary,
             qa_only_results=qa_only_results,
+            error_count=self.run_setup.pipeline.error_count,
         )
         return full_results
 
@@ -207,6 +218,7 @@ class Evaluator(ABC, BaseModel):
         predictions_doc_id = []
         ground_truths_doc_id = []
         predictions_text = []
+        predictions_table_string = []
         ground_truths_search_string = []
         similarity_scores = []
 
@@ -227,21 +239,58 @@ class Evaluator(ABC, BaseModel):
             predictions_doc_id.append(
                 [doc.metadata.doc_id for doc in retriever_response]  # type: ignore
             )
+            predictions_table_string.append(
+                [doc.metadata.table_string for doc in retriever_response] # type: ignore
+            )
+            
             ground_truths_doc_id.append(doc_id)
             ground_truths_search_string.append(search_string)
 
             similarity_scores.append(
                 [doc.metadata.similarity_score for doc in retriever_response]  # type: ignore
             )
+            
+            # Sleep to avoid rate limiting
+            time.sleep(1)
 
-        return IRResults.calculate_metrics(
+        ir_results = IRResults.calculate_metrics(
             predictions_doc_id=predictions_doc_id,
             ground_truths_doc_id=ground_truths_doc_id,
             predictions_text=predictions_text,
+            predictions_table_string=predictions_table_string,
             ground_truths_search_string=ground_truths_search_string,
             similarity_scores=similarity_scores,
             retriever_num_documents=self.retriever_num_documents,
         )
+        
+        self.write_match_list_to_dict(ir_results=ir_results, evaluation_data=evaluation_data)
+        
+        return ir_results
+    
+    def write_match_list_to_dict(self, ir_results: IRResults, evaluation_data: List[EvaluationDocumentWithTable]) -> None:
+        # write ir_results.match_list to disk with question category and question html_table
+        match_list_dict = []
+        for i, match in enumerate(ir_results.match_list):
+            html_table = HTMLSerializer().serialize_table_to_str(
+                table_str=evaluation_data[i].html_table,
+            )
+            
+            match_dict = {
+                "question": evaluation_data[i].question,
+                "question_category": evaluation_data[i].category,
+                "question_html_table_parsed": html_table,
+                "question_html_table": evaluation_data[i].html_table,
+                "match": match,
+            }
+            match_list_dict.append(match_dict)
+        # timestamp
+        timestamp = time.strftime("%Y-%m-%d-%H-%M-%S")
+        # create directory if it does not exist
+        directory = os.path.dirname("../data/evaluation/ir/")
+        os.makedirs(directory, exist_ok=True)
+        # write to json
+        with open(f"./data/evaluation/ir/match_list-{timestamp}.json", "w") as f:
+            json.dump(match_list_dict, f, indent=4)
 
     def _evaluate_table_qa_only(
         self, evaluation_data: List[List[EvaluationDocument]]
@@ -254,6 +303,10 @@ class Evaluator(ABC, BaseModel):
     def _evaluate_table_qa_single(
         self, evaluation_data: List[EvaluationDocument]
     ) -> QAResults:
+        from .wiki_tables_evaluator.wiki_table_questions_evaluator import (
+            WikiTableQuestionsEvaluator,
+        )
+
         predictions = []
         predictions_parsed = []
         ground_truths = []
@@ -261,22 +314,24 @@ class Evaluator(ABC, BaseModel):
         doc_id = ""
         for row in evaluation_data:
             # only run serialization again if doc_id changes
+            if isinstance(row, EvaluationDocumentWithTable) and row.html_table.strip() == "":
+                continue
             if not isinstance(row, EvaluationDocumentWithTable):
                 raise ValueError(
                     "Data must be of type EvaluationDocumentWithTable to run TableQA evaluation"
                 )
-            if row.doc_id != doc_id:
-                if not self.llm_config.table_serializer:
-                    raise ValueError(
-                        "Table serializer must be set to run TableQA evaluation"
-                    )
-
-                table_serializer = self.llm_config.table_serializer
-                table = table_serializer.serialize_table_to_str(
-                    table_str=row.html_table,
+            
+            if not self.llm_config.table_serializer:
+                raise ValueError(
+                    "Table serializer must be set to run TableQA evaluation"
                 )
-                table = table[0]
-                doc_id = row.doc_id
+
+            table_serializer = self.llm_config.table_serializer
+            table = table_serializer.serialize_table_to_str(
+                table_str=row.html_table,
+            )
+            table = table[0]
+            # doc_id = row.doc_id
 
             question = row.question
             answer = row.answer
@@ -294,10 +349,17 @@ class Evaluator(ABC, BaseModel):
             llm_response = self.run_setup.pipeline.invoke(
                 table=table, question=question, table_title=row.table_title
             )
-            print(llm_response)
+            print(f"Question: {question}")
+            print(f"Answer: {llm_response}")
+            logging.info(f"LLM Question: {question}")
+            logging.info(f"LLM Response: {llm_response}")
+            
             predictions.append(llm_response.strip())
             predictions_parsed.append(self.parse_llm_response(llm_response))
             ground_truths.append(answer)
+            
+            # Sleep to avoid rate limiting
+            # time.sleep(2)
 
         evaluation_results = QAResults.calculate_metrics(
             predictions_parsed, ground_truths
@@ -313,6 +375,8 @@ class Evaluator(ABC, BaseModel):
         return evaluation_results
 
     def parse_llm_response(self, llm_response: str) -> str:
+        """ Find pattern in string: Answer: <Answer> and return list of answers split by '|'. If only one answer is found, return it directly. """
+        
         # Find Pattern in string: Answer: <Answer>
         answer = re.search(r"Answer: (.*)", llm_response)
 
@@ -320,8 +384,9 @@ class Evaluator(ABC, BaseModel):
         if answer:
             answer = answer.group(1)
             answer = answer.split(";")
-            # Remove trailing LLM artifacts like '**', '*' or other symbols
+            # Remove trailing LLM artifacts like '**', '*' or other symbols and split multiple answers by '|'
             return "|".join([re.sub(r"[\*\s]+$", "", a.strip()) for a in answer])
+
 
         return "None"
 
@@ -513,6 +578,8 @@ class Evaluator(ABC, BaseModel):
         names: Optional[List[str]] = None,
     ) -> None:
         timestamp = time.strftime("%Y-%m-%d-%H-%M-%S")
+        
+        file_path_base = "./data/evaluation/"
 
         file_path_json = f"./data/evaluation/evaluation_results-{timestamp}.json"
 
@@ -523,6 +590,13 @@ class Evaluator(ABC, BaseModel):
         file_path_dataset_summary_plot = (
             f"./data/evaluation/dataset_analysis/plots/{timestamp}.png"
         )
+        
+        if all(result.ir_results and not result.qa_results and not result.qa_only_results and not result.dataset_summary for result in evaluation_results):
+            file_path_json = file_path_base + f"/ir/evaluation_results-{timestamp}.json"
+        elif all(result.qa_results and not result.ir_results and not result.qa_only_results and not result.dataset_summary for result in evaluation_results):
+            file_path_json = file_path_base + f"/qa/evaluation_results-{timestamp}.json"
+        elif all(result.qa_only_results and not result.ir_results and not result.qa_results and not result.dataset_summary for result in evaluation_results):
+            file_path_json = file_path_base + f"/qa_only/evaluation_results-{timestamp}.json"
 
         if any(
             result.ir_results or result.qa_results or result.qa_only_results
@@ -575,6 +649,7 @@ class Evaluator(ABC, BaseModel):
         cls,
         evaluation_types: List[EvaluationType],
         preprocess_config: Optional[PreprocessConfig] = None,
+        retriever_num_documents: Optional[int] = None,
     ) -> Evaluator:
         if (
             EvaluationType.EVALUATE_TABLE_QA_ONLY in evaluation_types
@@ -589,13 +664,20 @@ class Evaluator(ABC, BaseModel):
                 evaluation_types=evaluation_types,
             )
         else:
+            if not retriever_num_documents:
+                retriever_num_documents = Config.run.retriever_num_documents[0]
+            
+            if not isinstance(retriever_num_documents, int):
+                raise ValueError("Retriever num documents must be an integer")
+            
             config = RAGConfig.from_config(preprocess_config=preprocess_config)
+            config.retriever_num_documents = retriever_num_documents
             run_setup = RunSetupRAG.run_setup(config)
-
+                        
             evaluator = cls.from_config(
                 run_setup=run_setup,
                 llm_config=config,
-                retriever_num_documents=config.retriever_num_documents,
+                retriever_num_documents=retriever_num_documents,
                 evaluation_types=evaluation_types,
             )
 
@@ -606,11 +688,13 @@ class Evaluator(ABC, BaseModel):
         cls,
         save_results: bool = True,
         preprocess_config: Optional[PreprocessConfig] = None,
+        retriever_num_documents: Optional[int] = None,
     ) -> Evaluator:
         evaluation_types = EvaluationType.get_evaluation_type_from_config()
         evaluator = cls.get_evaluator(
             evaluation_types=evaluation_types,
             preprocess_config=preprocess_config,
+            retriever_num_documents=retriever_num_documents,
         )
 
         # Check if indexing is required
@@ -637,10 +721,14 @@ class Evaluator(ABC, BaseModel):
             in EvaluationType.get_evaluation_type_from_config()
             or EvaluationType.RUN_DOCUMENT_ANALYSIS
             in EvaluationType.get_evaluation_type_from_config()
+            or EvaluationType.EVALUATE_GET_HEADERS
+            in EvaluationType.get_evaluation_type_from_config()
         ):
             cls.run_multi_evaluation_without_rag(preprocess_configs=preprocess_configs)
         else:
-            retriever_num_documents = [1, 2, 3]
+            retriever_num_documents = Config.run.retriever_num_documents
+            if not retriever_num_documents:
+                retriever_num_documents = [3]
             cls.run_multi_evaluation_rag(
                 preprocess_configs=preprocess_configs,
                 retriever_num_documents=retriever_num_documents,
@@ -676,6 +764,7 @@ class Evaluator(ABC, BaseModel):
                 single_evaluation = cls.run_single_evaluation(
                     preprocess_config=preprocess_config,
                     save_results=False,
+                    retriever_num_documents=retriever_num_documents_temp,
                 )
                 evaluation_results.append(single_evaluation.evaluation_results)
 
@@ -687,53 +776,79 @@ class Evaluator(ABC, BaseModel):
                 ],
             )
 
-    @abstractmethod
-    def get_tabtree_header_evaluation_data(self) -> List[HeaderEvaluationDocument]:
-        pass
-
-    def evaluate_table_header_detection(self):
-        eval_data = self.get_tabtree_header_evaluation_data()
-
-        # Ensure that col and rowspans are not deleted by resetting the table serializer
-        self.llm_config.preprocess_config.table_serialization = "none"
-        self.llm_config.preprocess_config.consider_colspans_rowspans = True
-
-        document = IndexingService.load_and_preprocess_document(
-            preprocess_config=self.llm_config.preprocess_config
+    def evaluate_table_header_detection(self) -> None:
+        eval_data = self.evaluate_table_header_detection_prepare()
+        self.evaluate_table_header_detection_single(eval_data=eval_data)
+        
+    def evaluate_table_header_detection_all(self) -> None:
+        from ..evaluation.sec_filing_evaluator import SECFilingEvaluator
+        from ..evaluation.wiki_tables_evaluator.wiki_table_questions_evaluator import (
+            WikiTableQuestionsEvaluator,
         )
+        
+        sec_evaluator = SECFilingEvaluator(
+            run_setup=self.run_setup,
+            retriever_num_documents=self.retriever_num_documents,
+            evaluation_types=self.evaluation_types,
+            llm_config=self.llm_config,
+            evaluation_num_documents=self.evaluation_num_documents,
+            evaluation_iterations=self.evaluation_iterations,
+        )
+        wiki_evaluator = WikiTableQuestionsEvaluator(
+            run_setup=self.run_setup,
+            retriever_num_documents=self.retriever_num_documents,
+            evaluation_types=self.evaluation_types,
+            llm_config=self.llm_config,
+            evaluation_num_documents=self.evaluation_num_documents,
+            evaluation_iterations=self.evaluation_iterations,
+        )
+        
+        
+        sec_eval_data = sec_evaluator.evaluate_table_header_detection_prepare()
+        wiki_eval_data = wiki_evaluator.evaluate_table_header_detection_prepare()
+        # combine the two lists
+        eval_data = sec_eval_data + wiki_eval_data
+        self.evaluate_table_header_detection_single(eval_data=eval_data)
+    
+    @abstractmethod
+    def evaluate_table_header_detection_prepare(self) -> List[HeaderEvaluationDocumentReduced]:
+        pass
+    
 
-        if not document.splitted_content:
-            raise ValueError("Document has no splitted content")
-
+    
+    
+    def evaluate_table_header_detection_single(self, eval_data: List[HeaderEvaluationDocumentReduced]) -> None:        
         results = HeaderDetectionResults()
         for data in eval_data:
-            # Find the corresponding document content by position
-            html_table = [
-                content
-                for content in document.splitted_content
-                if content.position == data.position
-            ][0]
-            data.html_data = html_table.content
-            html_table = HTMLTableParser.parse_and_clean_table(data.html_data)
-            if not html_table:
-                continue
+            table = data.html_table
+            
+            # document_loader = DocumentLoader.from_config()
+            # max_column_header_row, max_row_label_column = document_loader.get_header_from_table_string(table_str=table)
+            max_column_header_row = None
+            max_row_label_column = None
+            
+            
+            if max_column_header_row is None or max_row_label_column is None:
+                # Find the corresponding document content by position
+                html_table = HTMLTableParser.parse_and_clean_table(table)
+                
 
-            # Ensure that no header / label is set
-            html_table.max_column_header_row = None
-            html_table.max_row_label_column = None
-            html_table_with_headers = TabTreeService.set_headers(html_table)
+                # Ensure that no header / label is set
+                html_table.max_column_header_row = None
+                html_table.max_row_label_column = None
+                html_table_with_headers = TabTreeService.set_headers(html_table)
 
-            # Ask LLM for Headers
-            column_header_rows, row_label_columns = (
-                html_table_with_headers.max_column_header_row,
-                html_table_with_headers.max_row_label_column,
-            )
+                # Ask LLM for Headers
+                max_column_header_row, max_row_label_column = (
+                    html_table_with_headers.max_column_header_row,
+                    html_table_with_headers.max_row_label_column,
+                )
 
             results.predictions_column_header_rows.append(
-                list(range(column_header_rows + 1))
+                list(range(max_column_header_row + 1))
             )
             results.predictions_row_label_columns.append(
-                list(range(row_label_columns + 1))
+                list(range(max_row_label_column + 1))
             )
 
             results.ground_truth_column_header_rows.append(data.column_header_rows)
@@ -801,10 +916,10 @@ class Evaluator(ABC, BaseModel):
 
         # plot and save histogram of row and column f1 scores
         plt.hist(
-            results.advanced_analysis["f1_score_rows"], bins=3, alpha=0.5, label="Rows"
+            results.advanced_analysis["f1_score_column_header_rows"], bins=3, alpha=0.5, label="Rows"
         )
         plt.hist(
-            results.advanced_analysis["f1_score_columns"],
+            results.advanced_analysis,
             bins=3,
             alpha=0.5,
             label="Columns",
@@ -834,6 +949,7 @@ class Evaluator(ABC, BaseModel):
         # Write all results to disk
         with open(file_path_json, "w", encoding="utf-8") as file:
             file.write(results.model_dump_json(indent=2))
+
 
     def store_sample_documents(
         self, valid_questions: List[List[EvaluationDocumentWithTable]], mapper_path: str
@@ -870,8 +986,7 @@ class Evaluator(ABC, BaseModel):
                     (
                         item
                         for item in id_mapper
-                        if item["id"] == question.doc_id
-                        and item["question_id"] == question.question_id
+                        if item["question_id"] == question.question_id
                     ),
                     None,
                 )

@@ -33,7 +33,12 @@ class PrimarySubtreeApproach(Enum):
         cls, table: CustomTableWithHeader, approach: Optional[PrimarySubtreeApproach] = None
     ) -> NodeColor | Literal[PrimarySubtreeApproach.CONCATENATE]:
         if not approach:
-            config_approach = cls.from_str(Config.tabtree.primary_subtree_approach)
+            try:
+                primary_subtree_approach = Config.tabtree.primary_subtree_approach
+                config_approach = cls.from_str(primary_subtree_approach)
+            except Exception as e:
+                # if the config is not available, we use the heuristic approach
+                config_approach = cls.HEURISTIC
         else:
             config_approach = approach
             

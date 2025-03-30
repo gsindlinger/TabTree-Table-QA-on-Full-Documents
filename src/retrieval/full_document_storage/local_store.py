@@ -1,4 +1,5 @@
 from __future__ import annotations
+import json
 import logging
 import os
 from typing import List, Optional
@@ -47,6 +48,26 @@ class LocalStore(FullDocumentStore):
                 logging.info(f"Stored tables locally")
         except Exception as e:
             logging.error(f"Failed to store tables: {e}")
+            
+    def store_splits(self, chunks: List[CustomDocument]):
+        """ Stores the document splits locally in the specified directory.
+        Attention: Input is a flattened list of all chunks of all documents.
+        """
+        # Ensure the directory exists
+        split_path = os.path.join(self.path, "document_splits/")
+        os.makedirs(split_path, exist_ok=True)
+        
+        doc_ids = set([doc.metadata.doc_id for doc in chunks]) # type: ignore
+        for doc_id in doc_ids:
+            chunks = [doc for doc in chunks if doc.metadata.doc_id == doc_id] # type: ignore
+            split_data = [{i: chunk.page_content} for i, chunk in enumerate(chunks)]            
+            try:
+                file_path = os.path.join(split_path, doc_id + ".json") # type: ignore ; use first chunk id as file name
+                with open(file_path, "w", encoding="utf-8") as f:
+                    json.dump(split_data, f, indent=4)
+                logging.info(f"Stored splits locally for document {doc_id}")
+            except Exception as e:
+                logging.error(f"Failed to store splits: {e}")
 
     def store_full_documents(
         self,

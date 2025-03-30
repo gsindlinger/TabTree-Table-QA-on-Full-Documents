@@ -6,19 +6,16 @@ import os
 
 import os
 import random
+import time
 from typing import List, override
 
-import numpy as np
 
-from ...pipeline import QuestionCategoryPipeline, QuestionDomainPipeline
-
-from ...retrieval.document_preprocessors.table_serializer import HTMLSerializer
-
+from ...retrieval.indexing_service import IndexingService
 from ...retrieval.document_preprocessors.table_parser.custom_html_parser import (
     HTMLTableParser,
 )
 from ...config.config import Config
-from ..evaluation_document import EvaluationDocumentWithTable, HeaderEvaluationDocument
+from ..evaluation_document import EvaluationDocumentWithTable, HeaderEvaluationDocument, HeaderEvaluationDocumentReduced
 from ...retrieval.document_loaders.wiki_table_questions_loader import (
     WikiTableQuestionsLoader,
 )
@@ -82,6 +79,19 @@ class WikiTableQuestionsEvaluator(Evaluator):
             if i == self.evaluation_num_documents * self.evaluation_iterations:
                 break
         self.store_sample_documents(valid_questions)
+        
+        # write flattened questions to file
+        flattened_questions = [
+            {
+            "doc_id": question.doc_id, 
+            "question_id": question.question_id,
+            "question": question.question
+            } for questions in valid_questions for question in questions]
+        
+        with open(f"./data/wiki_table_questions/evaluation_ids_{len(flattened_questions)}.json", "w") as f:
+            json.dump(flattened_questions, f, indent=4)
+            
+            
         return valid_questions
 
     @override
@@ -93,4 +103,33 @@ class WikiTableQuestionsEvaluator(Evaluator):
         return super().store_sample_documents(questions, mapper_path)
 
     def get_tabtree_header_evaluation_data(self) -> List[HeaderEvaluationDocument]:
-        raise NotImplementedError
+        file_path: str = Config.wiki_table_questions.evaluation_get_header_data_path
+        eval_data = HeaderEvaluationDocument.from_wiki_table_questions_csv(file_path=file_path)
+        return eval_data
+    
+    
+    def evaluate_table_header_detection_prepare(self) -> List[HeaderEvaluationDocumentReduced]:
+
+        
+        eval_data = self.get_tabtree_header_evaluation_data()
+
+        # Ensure that col and rowspans are not deleted by resetting the table serializer
+        self.llm_config.preprocess_config.table_serialization = "none"
+        self.llm_config.preprocess_config.consider_colspans_rowspans = True
+        
+        tables = IndexingService.load_and_preprocess_documents(
+            preprocess_config=self.llm_config.preprocess_config, 
+            id_list=[doc.doc_id for doc in eval_data],
+            dataset="wiki-table-questions"
+        )
+        
+        results = [HeaderEvaluationDocumentReduced(
+            html_table=table.page_content,
+            row_label_columns=data.row_label_columns,
+            column_header_rows=data.column_header_rows,
+        ) for data, table in zip(eval_data, tables)]
+
+        return results
+
+    
+    

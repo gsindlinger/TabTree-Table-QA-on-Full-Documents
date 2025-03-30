@@ -117,15 +117,6 @@ class ContextStringGenerationEmpty(ContextStringGeneration):
         return ""
 
 
-class ContextStringGenerationEmpty(ContextStringGeneration):
-    def generate_context_string(
-        self,
-        node: ContextNode,
-        primary_tree: TabTree,
-    ) -> str:
-        return ""
-
-
 class ContextStringGenerationBase(ContextStringGeneration):
     approach: Optional[NodeApproach] = NodeApproach(
         approach=ContextNodeApproach.BASE, include_context_intersection=False

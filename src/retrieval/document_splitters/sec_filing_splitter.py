@@ -4,11 +4,13 @@ from typing import List, Optional
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_text_splitters import Language
 
+from ...model.custom_document import SplitContent
+
 
 from ..document_preprocessors.table_serializer import TableSerializer
 
 from .semantic_chunker_custom import (
-    SemanticChunkerCustom,
+    SemanticChunkerCustom
 )
 from .document_splitter import DocumentSplitter
 
@@ -44,3 +46,9 @@ class SECFilingSplitterSemantic(DocumentSplitter):
             table_serializer=table_serializer,
             preprocess_config=preprocess_config,
         )
+        
+    def split_text_to_list(self, text: List[SplitContent]) -> List[SplitContent]:
+        if isinstance(self.text_splitter, SemanticChunkerCustom):
+            return self.text_splitter.split_text_to_list(text)
+        else:
+            raise ValueError("Text splitter is not a SemanticChunkerCustom instance")

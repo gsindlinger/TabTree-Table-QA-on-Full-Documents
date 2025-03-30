@@ -109,7 +109,8 @@ class TableSerializer(ABC, BaseModel):
         self, custom_table: ExtendedTable, value: str
     ) -> ExtendedTable:
         df = custom_table.df
-        df = df.fillna(value)
+        df.fillna(value, inplace=True)
+        df = df.infer_objects()
         return ExtendedTable(
             df=df,
             has_header=custom_table.has_header,

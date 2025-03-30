@@ -1,7 +1,10 @@
+import json
+import os
 from qdrant_client.http.models import Distance, VectorParams, PointStruct
 from qdrant_client import QdrantClient as _QdrantClient
+from langchain_core.documents.base import Document
 
-from ..model.custom_document import CustomDocument
+from ..model.custom_document import CustomDocument, FullMetadata
 from ..config import Config
 from itertools import count
 from time import sleep
@@ -13,6 +16,13 @@ import uuid
 class QdrantClient(_QdrantClient):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **(self._default_kwargs() | kwargs))
+        
+        payload_folder_path = Config.qdrant.payload_folder_path
+        if payload_folder_path[-1] != "/":
+            payload_folder_path += "/"
+        
+        self.payload_folder_path = Config.qdrant.payload_folder_path
+
 
     @staticmethod
     def _default_kwargs() -> dict:
@@ -88,13 +98,62 @@ class QdrantClient(_QdrantClient):
             logging.info(
                 f"Index {collection_name} already exists, adding documents to existing index"
             )
-        points = [
+            
+        ids = [str(uuid.uuid4()) for _ in range(len(vectors))]
+        points = [PointStruct(id=id, vector=vec, payload = CustomDocument(id=id, page_content="", metadata=FullMetadata(doc_id="", additional_metadata={"manual_id": id})).to_payload()) for (vec, id) in zip(vectors, ids)]
+        self.upload_points(collection_name=collection_name, points=points)
+        
+        
+        points_with_payloads = [
             PointStruct(
-                id=str(uuid.uuid4()),
+                id=id,
                 vector=vec,
                 payload=doc.to_payload(),
-            )
-            for doc, vec in zip(documents, vectors)
-        ]
-        self.upload_points(collection_name=collection_name, points=points)
+            ) for doc, vec, id in zip(documents, vectors, ids)]
+        self.store_payloads(documents=points_with_payloads, collection_name=collection_name)
         logging.info(f"added {len(documents)} documents to {collection_name}")
+
+        
+    def store_payloads(self, documents: List[PointStruct], collection_name: str) -> None:
+        
+        # check if directory with file path + collection name exists and create it if not
+        if not os.path.exists(self.payload_folder_path):
+            os.makedirs(self.payload_folder_path)
+            
+        payloads = {}
+        for doc in documents:
+            payloads[doc.id] = doc.payload
+            
+        # store payloads in json file
+        with open(f"{self.payload_folder_path}{collection_name}.json", "w") as file:
+            json.dump(payloads, file, indent=4)
+            
+            
+    def load_payloads(self, collection_name: str) -> dict:
+        try:
+            with open(f"{self.payload_folder_path}{collection_name}.json", "r") as file:
+                payloads = json.load(file)
+            return payloads
+        except FileNotFoundError:
+            raise FileNotFoundError(f"Payload file for collection {collection_name} not found")
+    
+    @staticmethod
+    def extend_docs_with_payload(docs: List[Document]) -> List[Document]:
+        if len(docs) == 0:
+            return docs
+        
+        collection_name = docs[0].metadata['_collection_name']
+        client = QdrantClient()
+        payloads = client.load_payloads(collection_name=collection_name)
+        
+        final_payloads = []
+        for doc in docs:
+            doc_id = doc.metadata['manual_id']
+            payload = payloads[doc_id]
+            doc.page_content = payload['page_content']
+            doc.metadata.update(payload['metadata'])
+            final_payloads.append(doc)
+        
+        
+        return final_payloads    
+    

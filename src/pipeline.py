@@ -4,6 +4,9 @@ import logging
 from typing import Iterator, List, Literal, Tuple
 from pydantic import BaseModel
 
+from .retrieval.document_preprocessors.table_serializer import TableSerializer
+from .retrieval.document_preprocessors.preprocess_config import PreprocessConfig
+
 from .retrieval.document_preprocessors.table_parser.custom_table import (
     CustomTableWithHeaderOptional,
 )
@@ -26,6 +29,7 @@ class AbstractPipeline(ABC, BaseModel):
     output_parser: StrOutputParser
     llm: BaseLanguageModel
     llm_chain: RunnableSerializable
+    error_count: int = 0
 
     class Config:
         arbitrary_types_allowed = True
@@ -70,10 +74,12 @@ class TableQAPipeline(AbstractPipeline):
             )
         except Exception as e:
             logging.error(f"Error invoking pipeline: {e}")
-            return "Anwer: None"
+            self.error_count += 1
+            return "Answer: None"
 
 
 class RAGPipeline(AbstractPipeline):
+    table_serializer: TableSerializer | None
     retriever: MultiQueryRetriever | QdrantRetriever
 
     class Config:
@@ -81,23 +87,29 @@ class RAGPipeline(AbstractPipeline):
 
     @classmethod
     def from_config(
-        cls, vector_store: QdrantVectorStore, retriever_num_documents: int
+        cls, vector_store: QdrantVectorStore, retriever_num_documents: int, preprocess_config: PreprocessConfig
     ) -> RAGPipeline:
+        table_serializer = TableSerializer.from_preprocess_config(preprocess_config)
+        
         retriever = QdrantRetriever(
             vector_store, retriever_num_documents=retriever_num_documents
         )
         template = Config.text_generation.prompt_template_rag
         llm = LLM.from_config()
         prompt = PromptTemplate(
-            input_variables=["context", "question"],
+            input_variables=["context", "related_tables", "question"],
             template=template,
         )
         output_parser = StrOutputParser()
+        
 
         # retriever = MultiQueryRetriever.from_llm(retriever=retriever_base, llm=llm)
         llm_chain = (
-            {
-                "context": retriever | retriever.format_docs,
+            retriever 
+            | (lambda docs: retriever.format_docs(docs=docs, table_serializer=table_serializer)) 
+            | {
+                "context": lambda x: x[0],
+                "related_tables": lambda x: x[1],
                 "question": RunnablePassthrough(),
             }
             | prompt
@@ -111,6 +123,7 @@ class RAGPipeline(AbstractPipeline):
             prompt=prompt,
             output_parser=output_parser,
             llm_chain=llm_chain,  # type: ignore
+            table_serializer=table_serializer,
         )
 
     def retrieve(self, question: str = "What is love?") -> List[CustomDocument]:
@@ -120,7 +133,15 @@ class RAGPipeline(AbstractPipeline):
         return CustomDocument.docs_to_custom_docs(docs)
 
     def invoke(self, question: str = "What is love?") -> str:
-        return self.llm_chain.invoke(question)
+        try:
+            response = self.llm_chain.invoke(question)
+            logging.info(f"Question: {question}")
+            logging.info(f"Answer: {response}")
+            return response
+        except Exception as e:
+            logging.error(f"Error invoking pipeline: {e}")
+            self.error_count += 1
+            return "Answer: None"
 
     def stream(self, question: str = "What is love?") -> Iterator:
         return self.llm_chain.stream(question)
@@ -182,12 +203,43 @@ class QuestionCategoryPipeline(AbstractPipeline):
         return self.llm_chain.invoke(input={"question": question, "table": table})
 
 
+class TableSummaryPipeline(AbstractPipeline):
+    @classmethod
+    def from_config(
+        cls,
+    ) -> TableSummaryPipeline:
+        template = Config.text_generation.prompt_template_table_summary
+        llm = LLM.from_config()
+        prompt = PromptTemplate(
+            input_variables=["table", "preceding_sentence"],
+            template=template,
+        )
+        output_parser = StrOutputParser()
+
+        llm_chain = (prompt | llm | output_parser).with_config(
+            {"tags": ["table-summary"]}
+        )
+        return cls(
+            template=template,
+            llm=llm,
+            prompt=prompt,
+            output_parser=output_parser,
+            llm_chain=llm_chain,
+        )
+
+    def predict_table_summary(self, table: str, preceding_sentence: str) -> str:
+        return self.llm_chain.invoke(input={"table": table, "preceding_sentence": preceding_sentence})
+
+
+
 class TableHeaderRowsPipeline(AbstractPipeline):
     @classmethod
     def from_config(
         cls,
     ) -> TableHeaderRowsPipeline:
-        template = Config.tabtree.prompt_template_header_detection
+        # template = Config.tabtree.prompt_template_header_detection
+        # template = Config.tabtree.prompt_template_header_detection_1_range
+        template = Config.tabtree.prompt_template_header_detection_full_table
         llm = LLM.from_config()
         prompt = PromptTemplate(
             input_variables=["table"],
@@ -213,10 +265,10 @@ class TableHeaderRowsPipeline(AbstractPipeline):
         First item of return tuple refers to max column header row and second item refers to max row label column.
         """
         max_column_header_row = self.predict_headers_single(
-            full_table=custom_table.raw_table, table_df=custom_table, mode="row"
+            full_table=custom_table.to_html(), table_df=custom_table, mode="row"
         )
         max_row_label_column = self.predict_headers_single(
-            full_table=custom_table.raw_table, table_df=custom_table, mode="column"
+            full_table=custom_table.to_html(), table_df=custom_table, mode="column"
         )
 
         if max_column_header_row == len(custom_table):
@@ -248,7 +300,7 @@ class TableHeaderRowsPipeline(AbstractPipeline):
 
             match mode:
                 case "row":
-                    if index + 1 == table_df.rows:
+                    if index + 2 == table_df.rows:
                         break
 
                     items = table_df.get_row(index + 1)
@@ -261,7 +313,7 @@ class TableHeaderRowsPipeline(AbstractPipeline):
                     if index + 4 < table_df.rows:
                         second_next_items = table_df.get_row(index + 3)
                 case "column":
-                    if index + 1 == table_df.columns:
+                    if index + 2 == table_df.columns:
                         break
 
                     items = table_df.get_column(index + 1)

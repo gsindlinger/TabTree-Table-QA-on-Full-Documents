@@ -1,5 +1,5 @@
 import logging
-from typing import List, Optional
+from typing import List, Literal, Optional
 from pydantic import BaseModel
 
 from ..model.custom_document import CustomDocument
@@ -24,10 +24,11 @@ class IndexingService(BaseModel):
         overwrite_existing_collection: bool = False,
     ) -> None:
         # Check if collection exists, if so overwrite / delete it or return depending the overwrite_existing_collection flag
-        self.check_collection_existant_handler(overwrite_existing_collection)
-
+        if self.check_collection_existant_handler(overwrite_existing_collection):
+            return
+        
         # Load & Preprocess documents
-        documents = [self.load_and_preprocess_document(preprocess_config)]
+        documents = self.load_and_preprocess_documents(preprocess_config)
 
         # Store full documents locally for debugging purposes
         initial_number_of_documents = self.store_documents(documents, preprocess_config)
@@ -47,9 +48,10 @@ class IndexingService(BaseModel):
     @staticmethod
     def load_and_preprocess_document(
         preprocess_config: PreprocessConfig,
+        dataset: Optional[Literal["sec-filings", "wiki-table-questions"]] = None,
     ) -> CustomDocument:
         # Load & Preprocess documents
-        document_loader = DocumentLoader.from_config()
+        document_loader = DocumentLoader.from_config(dataset=dataset)
         document = document_loader.load_single_document()
 
         # Perform preprocessing
@@ -64,9 +66,10 @@ class IndexingService(BaseModel):
         preprocess_config: PreprocessConfig,
         num_of_documents: Optional[int] = None,
         id_list: Optional[List[str]] = None,
+        dataset: Optional[Literal["sec-filings", "wiki-table-questions"]] = None,
     ) -> List[CustomDocument]:
         # Load & Preprocess documents
-        document_loader = DocumentLoader.from_config()
+        document_loader = DocumentLoader.from_config(dataset=dataset)
 
         if id_list:
             documents = [document_loader.load_single_document(id=id) for id in id_list]
@@ -100,12 +103,13 @@ class IndexingService(BaseModel):
     def split_documents(
         self, documents: List[CustomDocument], preprocess_config: PreprocessConfig
     ) -> List[CustomDocument]:
+        """ Split documents into chunks and returns flattened list of all chunks of all documents """
         # Split documents
         document_splitter = DocumentSplitter.from_config(
             embeddings=self.vector_store.embeddings,  # type: ignore
             preprocess_config=preprocess_config,
         )
-        documents = document_splitter.split_documents(
+        chunks = document_splitter.split_documents(
             documents=documents,
             ignore_tables_for_embeddings=(
                 preprocess_config.ignore_tables_for_embeddings
@@ -113,7 +117,15 @@ class IndexingService(BaseModel):
                 else False
             ),
         )
-        return documents
+        
+        # Store splits
+        local_store = LocalStore.from_preprocess_config(
+            preprocess_config=preprocess_config
+        )
+        local_store.store_splits(chunks=chunks) # type: ignore
+        
+        
+        return chunks
 
     def generate_embeddings(self, documents: List[CustomDocument]) -> List[List[float]]:
         # Embed documents
@@ -134,7 +146,7 @@ class IndexingService(BaseModel):
 
     def check_collection_existant_handler(
         self, overwrite_existing_collection: bool
-    ) -> None:
+    ) -> bool:
         if self.vector_store.client.is_populated(
             collection_name=self.vector_store.collection_name, accept_empty=False
         ):
@@ -145,8 +157,9 @@ class IndexingService(BaseModel):
                 logging.info(
                     f"Deleted existing collection {self.vector_store.collection_name}"
                 )
+                return False
             else:
                 logging.info(
                     f"Collection {self.vector_store.collection_name} already exists, skipping indexing"
                 )
-                return
+                return True

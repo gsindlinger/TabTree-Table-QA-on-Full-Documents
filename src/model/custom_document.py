@@ -19,14 +19,17 @@ class FullMetadata(BaseModel):
 
 class FullMetadataRetrieval(FullMetadata):
     similarity_score: Optional[float] = Field(default=None)
+    table_string: Optional[str] = Field(default=None)
 
 
 class SplitContent(BaseModel):
     type: Literal["table", "text"]
     content: str
     original_content: Optional[str] = Field(default=None)
-    position: Optional[int] = Field(default=None)
+    position: Optional[int | str] = Field(default=None)
     visited: Optional[bool] = Field(default=None)
+    table_summary: Optional[str] = Field(default=None)
+    table_serialized: Optional[str] = Field(default=None)
 
 
 class CustomDocument(Document):
@@ -50,6 +53,12 @@ class CustomDocument(Document):
         if self.metadata:
             self.metadata.chunk_id = chunk_id
             self.metadata.additional_metadata = additional_metadata
+        else:
+            self.metadata = FullMetadataRetrieval(
+                doc_id=self.id if self.id else "",
+                chunk_id=chunk_id,
+                additional_metadata=additional_metadata,
+            )
         return self.metadata
 
     def get_full_metadata(self) -> Optional[Dict[str, str]]:
@@ -69,12 +78,14 @@ class CustomDocument(Document):
         chunk_id = metadata_dict.get("chunk_id")
         additional_metadata = metadata_dict.get("additional_metadata")
         similarity_score = metadata_dict.get("similarity_score")
+        table_string = metadata_dict.get("table_string")
 
         metadata = FullMetadataRetrieval(
             doc_id=metadata_dict["doc_id"],
             chunk_id=str(chunk_id),
             additional_metadata=additional_metadata,
             similarity_score=similarity_score,
+            table_string=table_string,
         )
 
         return CustomDocument(

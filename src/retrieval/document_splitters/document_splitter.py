@@ -5,11 +5,12 @@ from typing import List, Optional, Tuple
 from langchain_text_splitters import TextSplitter
 from pydantic import BaseModel
 
+
 from ...retrieval.embeddings.custom_embeddings import CustomEmbeddings
 from ..document_preprocessors.table_serializer import TableSerializer
 from ..document_preprocessors.preprocess_config import PreprocessConfig
 from ...config.config import Config
-from ...model.custom_document import CustomDocument, SplitContent
+from ...model.custom_document import CustomDocument, FullMetadata, SplitContent
 from langchain_core.embeddings import Embeddings
 
 
@@ -64,21 +65,32 @@ class DocumentSplitter(ABC, BaseModel):
     ) -> List[CustomDocument]:
         if document.splitted_content:
             splitted_text = self.split_text(document.splitted_content)
+            splitted_documents = [
+                CustomDocument(
+                    page_content=chunk.content, # type: ignore
+                    metadata=FullMetadata(doc_id=document.metadata.doc_id, chunk_id=f"{document.metadata.doc_id}_{i}", additional_metadata={"table_string": chunk.original_content, "contains_table": chunk.type == "table"}) # type: ignore
+                )
+                for i, chunk in enumerate(splitted_text)
+            ]
+            return splitted_documents
+    
         else:
             splitted_text = self.split_text(document.page_content)
-        return [
-            CustomDocument(
-                page_content=chunk,
-                metadata=document.extend_metadata(chunk_id=i),
-            )
-            for i, chunk in enumerate(splitted_text)
-        ]
+            return [
+                CustomDocument(
+                    page_content=chunk,
+                    metadata=document.extend_metadata(chunk_id=i), # type: ignore
+                    
+                )
+                for i, chunk in enumerate(splitted_text)
+            ]
 
     def split_documents(
         self,
         documents: List[CustomDocument],
         ignore_tables_for_embeddings: bool = False,
     ) -> List[CustomDocument]:
+        """ Returns a flattened list of all chunks of all documents """
         splitted_documents = []
         for document in documents:
             splitted_documents.extend(
@@ -93,7 +105,14 @@ class DocumentSplitter(ABC, BaseModel):
         )
         return splitted_documents
 
-    def split_text(self, text: str | List[SplitContent]) -> List[str]:
+    def split_text(self, text: str | List[SplitContent]) -> List[str] | List[SplitContent]:
+        from .sec_filing_splitter import SECFilingSplitterSemantic
         if self.text_splitter is None:
             raise ValueError("Text splitter is not initialized")
-        return self.text_splitter.split_text(text)  # type: ignore
+        elif isinstance(text, list) and not isinstance(self, SECFilingSplitterSemantic):
+            return self.text_splitter.split_text(" ".join([chunk.content for chunk in text]))
+        elif isinstance(self, SECFilingSplitterSemantic):
+            split_content = self.split_text_to_list(text) # type: ignore
+            return split_content
+        
+        return self.text_splitter.split_text(text) # type: ignore

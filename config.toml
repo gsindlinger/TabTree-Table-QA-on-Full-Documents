@@ -7,8 +7,8 @@ evaluation_multi = false
 
 # choose from "sec-filings", "wiki-table-questions"
 dataset = "wiki-table-questions"
-retriever_num_documents = [3]
-retriever_score_threshold = 0.8
+retriever_num_documents = [5] 
+retriever_score_threshold = 0.5
 
 
 [indexing]
@@ -23,31 +23,37 @@ full_document_storage_path = "./data/preprocessed_documents/"
 
 table_header_path = "./data/tables.json"
 
+approach = "normal" # "normal" or "summary_only"
+
 
 [text_generation]
 
-# choose from "ollama", "huggingface","openai", ...
+# choose from "ollama", "huggingface","openai", "azure"...
 
 method = "openai"
 
 prompt_template_table_qa = '''
 You are tasked with answering questions based on the provided table data. Your task is to give the correct answer based on the given table data. Only use the information presented. If you can't find a correct answer based upon the provided data indicate so.
 
-Think step-by-step, but in a short and comprehensive manner (max 500 tokens). Provide your final conclusion to the question as a single statement using the following format:
+Think step-by-step, but in a short and comprehensive manner (max 500 tokens). After the reasoning, provide your final conclusion to the question as a single statement using the following format:
 Answer: <Answer>
 
 Provide the answer <Answer> as one of the following:
 - A number for questions about quantities.
 - A word or phrase for questions about categories, names, etc.
+- Yes or No for questions that can be answered with a boolean.
 - A semicolon separated list if the question asks for multiple answers (e.g. Brazil; Argentina; Germany).
 - 'None' if the context doesn't provide information about the given question.
 
 Example:
 - What was the sales revenue of Company Y from 2022 to 2024?
+  <Step-by-step reasoning>
   Answer: 2,500
 - What is the main product of Company Z?
+  <Step-by-step reasoning>
   Answer: ZetaDrug
 - What's stock market price of Company X in 2021?
+  <Step-by-step reasoning>
   Answer: None
 
 {table_title}
@@ -60,27 +66,78 @@ Question: {question}
 
 
 prompt_template_rag = '''
-You are tasked with answering questions based on document chunks. Your task is to give the correct answer based on the given data. Only use the information presented. If you can't find a correct answer based upon the provided data indicate so.
-Think step-by-step, but in a short and comprehensive manner (max 500 tokens). Provide your final conclusion to the question as a single statement using the following format:
+You are tasked with answering questions based on document chunks and related tables. Your goal is to provide the most accurate answer using only the provided data. **Do not assume or invent information.** If no sufficient answer can be found, indicate so.
+Think step-by-step, but in a short and comprehensive manner (max 600 tokens). After the reasoning, provide your final conclusion to the question as a single statement using the following format:
 Answer: <Answer>
 
-Provide the answer <Answer> as one of the following:
-- A number for questions about quantities.
-- A word or phrase for questions about categories, names, boolean, etc.
+### **Instructions**:
+1. **Analyze the provided document chunks and related tables carefully.**
+2. **Clearly indicate if neither the chunks nor the tables provide enough data.**
+
+### Output Format:
+Provide the answer <Answer> after your step-by-step reasoning as one of the following:
+- A number (without units) for questions about quantities.
+- A word or phrase for questions about categories, names, etc.
+- Yes or No for questions that can be answered with a boolean.
+- A semicolon separated list if the question asks for multiple answers (e.g. Brazil; Argentina; Germany).
 - 'None' if the context doesn't provide information about the given question.
 
-Example:
-- What was the sales revenue of Company Y from 2022 to 2024?
-  Answer: 2,500
-- What is the main product of Company Z?
-  Answer: ZetaDrug
-- What's stock market price of Company X in 2021?
-  Answer: None
+### **Examples**:
+- **What was the revenue of Company Y in 2022?**  
+  <Step-by-step reasoning>
+  Answer: 2,500  
 
-Context: 
+- **What is the main product of Company Z?**  
+  <Step-by-step reasoning> 
+  Answer: ZetaDrug  
+
+- **What was Company X's stock price in 2021?**  
+  <Step-by-step reasoning> 
+  Answer: None  
+
+### Question: {question}
+
+### **Context**:
 {context}
 
-Question: {question}
+### **Related Tables**:
+{related_tables}
+'''
+
+prompt_template_without_related_tables = '''
+You are tasked with answering questions based on document chunks and related tables. Your goal is to provide the most accurate answer using only the provided data. **Do not assume or invent information.** If no sufficient answer can be found, indicate so.
+Think step-by-step, but in a short and comprehensive manner (max 600 tokens). After the reasoning, provide your final conclusion to the question as a single statement using the following format:
+Answer: <Answer>
+
+### **Instructions**:
+1. **Analyze the provided document chunks carefully.**
+2. **Clearly indicate if neither the chunks nor the tables provide enough data.**
+
+### Output Format:
+Provide the answer <Answer> after your step-by-step reasoning as one of the following:
+- A number (without units) for questions about quantities.
+- A word or phrase for questions about categories, names, etc.
+- Yes or No for questions that can be answered with a boolean.
+- A semicolon separated list if the question asks for multiple answers (e.g. Brazil; Argentina; Germany).
+- 'None' if the context doesn't provide information about the given question.
+
+### **Examples**:
+- **What was the revenue of Company Y in 2022?**  
+  <Step-by-step reasoning>
+  Answer: 2,500  
+
+- **What is the main product of Company Z?**  
+  <Step-by-step reasoning> 
+  Answer: ZetaDrug  
+
+- **What was Company X's stock price in 2021?**  
+  <Step-by-step reasoning> 
+  Answer: None  
+
+### Question: {question}
+
+### **Context**:
+{context}
 '''
 
 prompt_template_question_domain = """
@@ -188,6 +245,25 @@ Classify a question into one of the following categories based on the provided t
 **Answer: Position Related**
 """
 
+prompt_template_table_summary = '''
+You are an AI assistant tasked with summarizing tables in a **coherent, structured, and concise manner** for retrieval-based applications. Your goal is to generate a short but meaningful summary that retains the most relevant details while being easy to understand.
+
+### **Instructions:**
+- **Preceding Sentence:** {preceding_sentence}  
+  *(This is the sentence that directly precedes the table. It may provide context, but sometimes it may not be helpful.)*  
+- **Table Summary:**  
+  - The summary **must begin with:** "Presented in this table..."  
+  - Provide a **coherent summary** in **a maximum of 3 sentences**.  
+  - Capture the **columns, row structure, and intent** of the table.  
+  - Highlight **key insights or trends** if applicable.  
+- **Limit the output to 500 tokens** while ensuring clarity and completeness.
+
+Here is the table that needs summarization:
+{table}
+
+Table Summary: Presented in this table <concise summary in 3 sentences>.
+'''
+
 [ollama]
 
 # choose out of "gemma:2b", "mistral-nemo"
@@ -195,11 +271,8 @@ model = "gemma:2b"
 
 [huggingface]
 
-# choose out of "mistralai/Mistral-Nemo-Instruct-2407", "google/gemma-2-2b-it"
-generation_model = "mistralai/Mistral-Nemo-Instruct-2407"
+endpoint_url = "https://zau3a2c9fld8j87p.us-east-1.aws.endpoints.huggingface.cloud" # select based on model
 
-# choose out of "sentence-transformers/all-MiniLM-l6-v2", "Snowflake/snowflake-arctic-embed-m-v1.5", "Alibaba-NLP/gte-base-en-v1.5"
-embedding_model = "Snowflake/snowflake-arctic-embed-m-v1.5"
 
 [nomic]
 embedding_model = "nomic-embed-text-v1.5"
@@ -207,13 +280,14 @@ embedding_model = "nomic-embed-text-v1.5"
 [openai]
 embedding_model = "text-embedding-3-small"
 
-generation_model = "gpt-4o-mini"
-max_tokens = 500
+generation_model = "gpt-4o-mini" # gpt-4o-mini or gpt-4o
+max_tokens = 800
 temperature = 0.0
 
 [azure]
-model_name_generation = "Phi-4"
-max_tokens_generation = 500
+model_name_generation = "Phi-4" # Phi-4 or Llama-3.3-70B-Instruct, Phi-4-multimodal-instruct
+
+max_tokens_generation = 800
 temperature_generation = 0.0
 
 [fast_embed]
@@ -223,12 +297,13 @@ embedding_model = "BAAI/bge-small-en-v1.5"
 data_path = "./data/sec_filings/"
 data_path_single = "./data/sec_filings/awk-20231231.htm" #option: "./data/sec_filings/abnb-20231231.htm"  
 evaluation_data_path = "./SEC_Filing_Tables_Dataset.csv"  # option: "./data/evaluation/SEC_Evaluation_Dataset_ABNB.csv"   
-evaluation_get_header_data_path = "./data/evaluation/Header_Extraction_Evaluation.csv"
+evaluation_get_header_data_path = "./Header_Extraction_Evaluation_SEC_Filings.csv"
 
 [wiki_table_questions]
 is_single_evaluation = false
 single_document_id = "204-577"
 data_path = "./data/wiki_table_questions/"
+evaluation_get_header_data_path = "./Header_Extraction_Evaluation_WikiTableQuestions.csv"
 
 [evaluation]
 evaluate_qa = false
@@ -236,8 +311,9 @@ evaluate_ir = false
 run_document_analysis = false
 evaluate_get_headers = false
 evaluate_table_qa_only = true
-num_of_documents = 2 # applied on both wiki-table-questions and sec-filings dataset
-iterations = 2 # only applied when using wiki-table-questions dataset
+
+num_of_documents = 50 # applied on both wiki-table-questions and sec-filings dataset
+iterations = 4 # only applied when using wiki-table-questions dataset
 
 evaluate_run_document_analysis_path = "./data/sec_filings/"
 evaluate_get_headers_path = "./data/sec_filings/awk-20231231.htm"
@@ -259,6 +335,10 @@ evaluate_get_headers_path = "./data/sec_filings/awk-20231231.htm"
 # method = "json-records"
 
 # [[evaluation.table_serialization_config]]
+# name = "markdown"
+# method = "markdown"
+
+# [[evaluation.table_serialization_config]]
 # name = "tabtree-base"
 # method = "tabtree"
 # context_string_approach = "context_base" # 'context_base' or 'context_text' or 'context_empty'
@@ -266,64 +346,143 @@ evaluate_get_headers_path = "./data/sec_filings/awk-20231231.htm"
 # value_string_approach = "value_base" # 'value_base' or 'value_text'
 # value_string_with_context_intersection = false
 
-[[evaluation.table_serialization_config]]
-name = "tabtree-text"
-method = "tabtree"
-context_string_approach = "context_text" # 'context_base' or 'context_text' or 'context_empty'
-context_string_with_context_intersection = false
-value_string_approach = "value_text" # 'value_text', 'value_text', 'value_text_augmented'
-value_string_with_context_intersection = false
-primary_subtree_approach = "heuristic"
-
-[[evaluation.table_serialization_config]]
-name = "tabtree-text"
-method = "tabtree"
-context_string_approach = "context_text" # 'context_base' or 'context_text' or 'context_empty'
-context_string_with_context_intersection = false
-value_string_approach = "value_text" # 'value_text', 'value_text', 'value_text_augmented'
-value_string_with_context_intersection = false
-primary_subtree_approach = "column_header_tree"
+# [[evaluation.table_serialization_config]]
+# name = "tabtree-text"
+# method = "tabtree"
+# context_string_approach = "context_text" # 'context_base' or 'context_text' or 'context_empty'
+# context_string_with_context_intersection = false
+# value_string_approach = "value_text" # 'value_base' or 'value_text'
+# value_string_with_context_intersection = true
 
 # [[evaluation.table_serialization_config]]
 # name = "tabtree-text-with-context-intersection"
 # method = "tabtree"
 # context_string_approach = "context_text" # 'context_base' or 'context_text' or 'context_empty'
 # context_string_with_context_intersection = true
-# value_string_approach = "value_text" # 'value_text', 'value_text', 'value_text_augmented'
-# value_string_with_context_intersection = true
+# value_string_approach = "value_text" # 'value_base' or 'value_text'
+# value_string_with_context_intersection = false
+
+[[evaluation.table_serialization_config]]
+name = "tabtree-text-augmented-with-context-intersection"
+method = "tabtree"
+context_string_approach = "context_text" # 'context_base' or 'context_text' or 'context_empty'
+context_string_with_context_intersection = true
+value_string_approach = "value_text_augmented" # 'value_base' or 'value_text', 'value_text_augmented'
+value_string_with_context_intersection = true
 
 # [[evaluation.table_serialization_config]]
-# name = "tabtree-text-with-context-intersection-augmented"
-# method = "tabtree"
-# context_string_approach = "context_text" # 'context_base' or 'context_text' or 'context_empty'
-# context_string_with_context_intersection = true
-# value_string_approach = "value_text_augmented" # 'value_text', 'value_text', 'value_text_augmented'
-# value_string_with_context_intersection = true
-
-# [[evaluation.table_serialization_config]]
-# name = "tabtree-text-context-empty"
+# name = "tabtree-context-empty"
 # method = "tabtree"
 # context_string_approach = "context_empty" # 'context_base' or 'context_text' or 'context_empty'
-# context_string_with_context_intersection = false
-# value_string_approach = "value_text_augmented" # 'value_text', 'value_text', 'value_text_augmented'
+# context_string_with_context_intersection = true
+# value_string_approach = "value_text_augmented" # 'value_base' or 'value_text'
 # value_string_with_context_intersection = true
+
+# [[evaluation.table_serialization_config]]
+# name = "tabtree-text-heuristic"
+# method = "tabtree"
+# context_string_approach = "context_text" # 'context_base' or 'context_text' or 'context_empty'
+# context_string_with_context_intersection = false
+# value_string_approach = "value_text" # 'value_text', 'value_text', 'value_text_augmented'
+# value_string_with_context_intersection = false
+# primary_subtree_approach = "heuristic"
+
+# [[evaluation.table_serialization_config]]
+# name = "tabtree-text-column-header-tree"
+# method = "tabtree"
+# context_string_approach = "context_text" # 'context_base' or 'context_text' or 'context_empty'
+# context_string_with_context_intersection = false
+# value_string_approach = "value_text" # 'value_text', 'value_text', 'value_text_augmented'
+# value_string_with_context_intersection = false
+# primary_subtree_approach = "column_header_tree"
+
+# [[evaluation.table_serialization_config]]
+# name = "tabtree-text-row-label-tree"
+# method = "tabtree"
+# context_string_approach = "context_text" # 'context_base' or 'context_text' or 'context_empty'
+# context_string_with_context_intersection = false
+# value_string_approach = "value_text" # 'value_text', 'value_text', 'value_text_augmented'
+# value_string_with_context_intersection = false
+# primary_subtree_approach = "row_label_tree"
+
+# [[evaluation.table_serialization_config]]
+# name = "tabtree-text-concatenate"
+# method = "tabtree"
+# context_string_approach = "context_text" # 'context_base' or 'context_text' or 'context_empty'
+# context_string_with_context_intersection = false
+# value_string_approach = "value_text" # 'value_text', 'value_text', 'value_text_augmented'
+# value_string_with_context_intersection = false
+# primary_subtree_approach = "concatenate"
+
+# [[evaluation.table_serialization_config]]
+# name = "tabtree-base-heuristic"
+# method = "tabtree"
+# context_string_approach = "context_base" # 'context_base' or 'context_text' or 'context_empty'
+# context_string_with_context_intersection = false
+# value_string_approach = "value_base" # 'value_text', 'value_text', 'value_text_augmented'
+# value_string_with_context_intersection = false
+# primary_subtree_approach = "heuristic"
+
+# [[evaluation.table_serialization_config]]
+# name = "tabtree-base-column-header-tree"
+# method = "tabtree"
+# context_string_approach = "context_base" # 'context_base' or 'context_text' or 'context_empty'
+# context_string_with_context_intersection = false
+# value_string_approach = "value_base" # 'value_base', 'value_text', 'value_text_augmented'
+# value_string_with_context_intersection = false
+# primary_subtree_approach = "column_header_tree"
+
+# [[evaluation.table_serialization_config]]
+# name = "tabtree-base-row-label-tree"
+# method = "tabtree"
+# context_string_approach = "context_base" # 'context_base' or 'context_text' or 'context_empty'
+# context_string_with_context_intersection = false
+# value_string_approach = "value_base" # 'value_base', 'value_text', 'value_text_augmented'
+# value_string_with_context_intersection = false
+# primary_subtree_approach = "row_label_tree"
+
+# [[evaluation.table_serialization_config]]
+# name = "tabtree-base-concatenate"
+# method = "tabtree"
+# context_string_approach = "context_base" # 'context_base' or 'context_text' or 'context_empty'
+# context_string_with_context_intersection = false
+# value_string_approach = "value_base" # 'value_text', 'value_text', 'value_text_augmented'
+# value_string_with_context_intersection = false
+# primary_subtree_approach = "concatenate"
 
 
 [evaluation.preprocess_config]
-name = "basic-consider-spans"
+name = ""
 reduced_sections = false
 preprocess_mode = ["basic"]
 ignore_tables_for_embeddings = false
 consider_colspans_rowspans = true
 merge_sentence_infront_of_table = false
 
+# [[evaluation.preprocess_config_multi]]
+# name = "summary_only"
+# reduced_sections = false
+# preprocess_mode = ["basic"]
+# ignore_tables_for_embeddings = false
+# consider_colspans_rowspans = true
+# merge_sentence_infront_of_table = false
+
+
 [[evaluation.preprocess_config_multi]]
-name = "basic-consider-spans"
+name = "tabtree"
 reduced_sections = false
 preprocess_mode = ["basic"]
 ignore_tables_for_embeddings = false
 consider_colspans_rowspans = true
 merge_sentence_infront_of_table = false
+
+# [[evaluation.preprocess_config_multi]]
+# name = "hf-with-merging"
+# reduced_sections = false
+# preprocess_mode = ["basic"]
+# ignore_tables_for_embeddings = false
+# consider_colspans_rowspans = true
+# merge_sentence_infront_of_table = true
     
 
 [tabtree]
@@ -336,7 +495,7 @@ This layered organization allows for the representation of complex relationships
 '''
 
 label_description = '''
-Label columns act as a structural component in a table, typically positioned on the left side, and provide descriptive or categorical identifiers for each row. The probability of column beeing a label column therefore decrease by increasing column index. It also might happen that a table has no row labels.
+Label columns act as a structural component in a table, typically positioned on the left side, and provide descriptive or categorical identifiers for each row. The probability of column beeing a label column therefore decrease by increasing column index. It also might happen that a table has no label columns.
 Label columns define the context or grouping of the data within the rows, allowing for easier reference and understanding of the dataset. 
 In hierarchical tables, label columns can represent multiple levels of categorization, employing features like rowspans to visually group related rows under shared labels.
 This structure enables the organization of nested relationships within the data, enhancing readability and supporting more detailed analysis of grouped or hierarchical information.
@@ -355,7 +514,7 @@ Instructions:
 3. End your response with one of the following:
    - "Answer: Yes" if the {mode} represents a {mode_header_name} {mode}.
    - "Answer: No" if the {mode} contains actual records or entries (e.g., numerical values, measurements, metrics or attributes corresponding to a category).
-4. Reason your answer with maximum 150 tokens.
+4. Reason your answer with maximum 500 tokens.
 
 {mode} to analyze:  
 {line}
@@ -370,6 +529,47 @@ The {mode} index of the provided {mode} is {index}.
 
 '''
 
+prompt_template_header_detection_1_range = '''
+You are tasked with analyzing table data to determine whether the provided {mode} should be classified as a {mode_header_name} or not.  
+
+Instructions:
+1. Review the provided {mode} and the next and previous {mode}.
+2. Consider typical properties of a {mode_header_name} {mode} when making your determination. For {mode_header_name} {mode}s typically yield: {mode_description}
+3. End your response with one of the following:
+   - "Answer: Yes" if the {mode} represents a {mode_header_name} {mode}.
+   - "Answer: No" if the {mode} contains actual records or entries (e.g., numerical values, measurements, metrics or attributes corresponding to a category).
+4. Reason your answer with maximum 500 tokens.
+
+{mode} to analyze:  
+{line}
+
+The {mode} index of the provided {mode} is {index}.
+
+{previous_index}
+
+{next_index}
+'''
+
+prompt_template_header_detection_full_table = '''
+You are tasked with analyzing table data to determine whether the provided {mode} should be classified as a {mode_header_name} or not.  
+
+Instructions:
+1. Carefully review the table, provided in HTML format. The table lacks predefined headers, and all rows are wrapped in <tr> tags.  
+2. Consider typical properties of a {mode_header_name} {mode} when making your determination. For {mode_header_name} {mode}s typically yield: {mode_description}
+3. End your response with one of the following:
+   - "Answer: Yes" if the {mode} represents a {mode_header_name} {mode}.
+   - "Answer: No" if the {mode} contains actual records or entries (e.g., numerical values, measurements, metrics or attributes corresponding to a category).
+4. Reason your answer with maximum 500 tokens.
+
+{mode} to analyze:  
+{line}
+
+The {mode} index of the provided {mode} is {index}.
+
+Table data:
+{table}
+'''
+
 context_string_approach = "context_text" # 'context_base' or 'context_text' or 'context_empty'
 context_string_with_context_intersection = false
 
@@ -381,6 +581,11 @@ primary_subtree_approach = "heuristic" # 'column_header_tree' or 'row_label_tree
 
 [test]
 sample_table_html_path = "./src/tests/data/"
+
+
+[qdrant]
+
+payload_folder_path = "./data/qdrant-data/payloads/"
 
 
 

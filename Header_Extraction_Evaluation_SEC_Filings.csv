@@ -1,0 +1,12 @@
+﻿position;row_label_columns;column_header_rows;search regexp;best orientation;note
+119;0;0,1;"Operating Revenues \(in millions\).*?3,?486.*?100.0	";;
+138;0;0,1;\(In thousands\).*?Residential.*?3,?269.*?261;;
+507;0;0;Name.*?John C\. Griffith.*?.*?Cheryl Norton.*?59;;
+1309;0;0,1;2023.*?Total operation and maintenance expenses.*?34\.1;;
+1581;0,1;1;AWCC.*?Senior notes.*?Total retirements and redemptions.*?282;;
+2137;0;0;Revenues from Contracts with Customers.*?4,?234;;
+2224;0;0,1;Regulated Business.*?Goodwill from acquisitions.*?1,?143;;
+2737;0;0;Other investments - Available-for-sale fixed-income securities.*?146;;
+2010;0;0;Standard.*?Accounting for Contract Assets and Contract Liabilities from Contracts with Customers.*?This standard did not have a material impact on the Consolidated Financial Statements;;
+1695;0;0,1;2024 Target Allocation.*?37.*?41.*?100;;rowspan
+1856;0;0,1;Balance as of December 31, 2020.*?Balance as of December 31, 2023.*?9,?797;;rowspan

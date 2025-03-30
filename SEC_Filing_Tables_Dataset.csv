@@ -16,34 +16,34 @@ awk-20231231.htm;calculation;Which state was the one with the fourth most custom
 awk-20231231.htm;calculation;How large was the share of customers of American Water Works of Pennsylvania and New Jersey in 2023 in relation to all customers of the company?;43.4;%;Pennsylvania.*?21\.0
 awk-20231231.htm;calculation;How large was the share of customers of American Water Works of California and New Jersey in 2023 in relation to all customers of the company?;26.5;%;New Jersey.*?21\.0.*?California.*?5\.5
 awk-20231231.htm;calculation;Which states have been the top three states in terms of operating revenue for American Water Works in the wastewater sector 2023? ;Pennsylvania, New Jersey, Missouri;;Pennsylvania.*?450
-awk-20231231.htm;lookup;What's been the class of customer providing the largest amount of revenue for American Water Works in the years from 2021 to 2023?;Residential;;Residential.*?57
-awk-20231231.htm;lookup;How much was the share of the residential customers of American Water Works in 2022 in terms of operating revenue?;55;%;Residential.*?1,?941.*?55
-awk-20231231.htm;lookup;How much was the share of the residential customers of American Water Works in 2021 in terms of operating revenue?;57;%;Residential.*?1,?935.*?57
-awk-20231231.htm;lookup;How much income did American Water Works have in the class of fire services in the year 2021?;151;mio. $;Fire service.*?151
-awk-20231231.htm;boolean;Did the share of operating revenue for the class of commercial customers of American Water Works change within the years 2021 to 2023 in relation to the full operating revenue?;No;;Commercial.*?20.*?20.*?20
-awk-20231231.htm;advanced lookup;What's been the class of customers with the second most amount of operating revenue for American Water Works in 2023?;Commercial;;Residential.*?2,?143.*?Commercial.*?798
-awk-20231231.htm;advanced lookup;What's been the class of customers with the third most amount of operating revenue for American Water Works in 2022 considering residential, commercial, fire service, industrial and public?;Fire service;;Residential.*?1,?941.*?Public and other water.*?267
-awk-20231231.htm;calculation;What's been the average percentage of revenue of American Water Works for residential customers in the years 2021, 2022 and 2023?;55.7;%;Residential.*?55.*?55.*?57
-awk-20231231.htm;calculation;What's been the average operating revenue for the fire service class for American Water Works from 2021 to 2023?;152;mio. $;Fire service.*?158.*?147.*?151
-awk-20231231.htm;calculation;What's the sum of the operating revenues for the class of commercial and fire service customers for American Water Works in 2022?;857;mio. $;Commercial.*?710.*?Fire service.*?147
-awk-20231231.htm;calculation;What's the sum of the operating revenues for the class of commercial and industrial customers for American Water Works in 2022?;863;mio. $;Commercial.*?710.*?Industrial.*?153
-awk-20231231.htm;lookup;How many customers did American Water Works serve in the commercial area in the water sector in 2023?;221;thousands;Commercial.*?221
-awk-20231231.htm;lookup;How many customers did American Water Works serve in the commercial area in the water sector in 2021?;225;thousands;Commercial.*?225
-awk-20231231.htm;lookup;How many customers did American Water Works serve in the class of residential customers in the water sector in 2022?;2870;thousands;Residential.*?2,?870
-awk-20231231.htm;lookup;How many fire service customers did American Water Works have in the wastewater sector in 2022?;0;;Fire service.*?—
-awk-20231231.htm;boolean;Did American Water Works have any fire service customers in the wastewater sector in 2021 to 2023?;No;;Fire service.*?—
-awk-20231231.htm;boolean;Did the amount of customers for American Water Works increase from 2022 to 2023  in both sectors water and wastewater?;Yes;;Total.*?288
-awk-20231231.htm;advanced lookup;What's the class of customers with the smallest amount of customers for American Water Works in 2023 in the water sector?;Fire Service;;Fire service.*?4
-awk-20231231.htm;boolean;Did the class of customers with the smallest amount of customers for American Water Works change from 2022 to 2023?;Yes;;Fire service.*?4.*?Industrial.*?4
-awk-20231231.htm;calculation;How many customers did American Water Works loose from 2021 to 2022 in the commercial area in the water sector?;6;thousands;Commercial.*?225
-awk-20231231.htm;calculation;What's been the average amount of customers of American Water Works in the wastewater sector in residential area in the years 2021 to 2023?;264.7;thousands;Residential.*?245
-awk-20231231.htm;calculation;What's the difference of the total amount of customers for American Water Works in the area of wastewater from 2023 to 2021?;37;thousands;Total.*?261
+awk-20231231.htm;lookup;What's been the class of customer providing the largest amount of revenue for American Water Works in the years from 2021 to 2023?;Residential;;\(In millions\).*?Residential.*?57
+awk-20231231.htm;lookup;How much was the share of the residential customers of American Water Works in 2022 in terms of operating revenue?;55;%;\(In millions\).*?Residential.*?1,?941.*?55
+awk-20231231.htm;lookup;How much was the share of the residential customers of American Water Works in 2021 in terms of operating revenue?;57;%;\(In millions\).*?Residential.*?1,?935.*?57
+awk-20231231.htm;lookup;How much income did American Water Works have in the class of fire services in the year 2021?;151;mio. $;\(In millions\).*?Fire service.*?151
+awk-20231231.htm;boolean;Did the share of operating revenue for the class of commercial customers of American Water Works change within the years 2021 to 2023 in relation to the full operating revenue?;No;;\(In millions\).*?Commercial.*?20.*?20.*?20
+awk-20231231.htm;advanced lookup;What's been the class of customers with the second most amount of operating revenue for American Water Works in 2023?;Commercial;;\(In millions\).*?Residential.*?2,?143.*?Commercial.*?798
+awk-20231231.htm;advanced lookup;What's been the class of customers with the third most amount of operating revenue for American Water Works in 2022 considering residential, commercial, fire service, industrial and public?;Fire service;;\(In millions\).*?Residential.*?1,?941.*?Public and other water.*?267
+awk-20231231.htm;calculation;What's been the average percentage of revenue of American Water Works for residential customers in the years 2021, 2022 and 2023?;55.7;%;\(In millions\).*?Residential.*?55.*?55.*?57
+awk-20231231.htm;calculation;What's been the average operating revenue for the fire service class for American Water Works from 2021 to 2023?;152;mio. $;\(In millions\).*?Fire service.*?158.*?147.*?151
+awk-20231231.htm;calculation;What's the sum of the operating revenues for the class of commercial and fire service customers for American Water Works in 2022?;857;mio. $;\(In millions\).*?Commercial.*?710.*?Fire service.*?147
+awk-20231231.htm;calculation;What's the sum of the operating revenues for the class of commercial and industrial customers for American Water Works in 2022?;863;mio. $;\(In millions\).*?Commercial.*?710.*?Industrial.*?153
+awk-20231231.htm;lookup;How many customers did American Water Works serve in the commercial area in the water sector in 2023?;221;thousands;\(In thousands\).*?Commercial.*?221
+awk-20231231.htm;lookup;How many customers did American Water Works serve in the commercial area in the water sector in 2021?;225;thousands;\(In thousands\).*?Commercial.*?225
+awk-20231231.htm;lookup;How many customers did American Water Works serve in the class of residential customers in the water sector in 2022?;2870;thousands;\(In thousands\).*?Residential.*?2,?870
+awk-20231231.htm;lookup;How many fire service customers did American Water Works have in the wastewater sector in 2022?;0;;\(In thousands\).*?Fire service.*?—
+awk-20231231.htm;boolean;Did American Water Works have any fire service customers in the wastewater sector in 2021 to 2023?;No;;\(In thousands\).*?Fire service.*?—
+awk-20231231.htm;boolean;Did the amount of customers for American Water Works increase from 2022 to 2023  in both sectors water and wastewater?;Yes;;\(In thousands\).*?Total.*?288
+awk-20231231.htm;advanced lookup;What's the class of customers with the smallest amount of customers for American Water Works in 2023 in the water sector?;Fire Service;;\(In thousands\).*?Fire service.*?4
+awk-20231231.htm;boolean;Did the class of customers with the smallest amount of customers for American Water Works change from 2022 to 2023?;Yes;;\(In thousands\).*?Fire service.*?4.*?Industrial.*?4
+awk-20231231.htm;calculation;How many customers did American Water Works loose from 2021 to 2022 in the commercial area in the water sector?;6;thousands;\(In thousands\).*?Commercial.*?225
+awk-20231231.htm;calculation;What's been the average amount of customers of American Water Works in the wastewater sector in residential area in the years 2021 to 2023?;264.7;thousands;\(In thousands\).*?Residential.*?245
+awk-20231231.htm;calculation;What's the difference of the total amount of customers for American Water Works in the area of wastewater from 2023 to 2021?;37;thousands;\(In thousands\).*?Total.*?261
 awk-20231231.htm;boolean;Does American Water Works  apply the utility plant recovery mechanism in California?;Yes;;Utility plant recovery mechanisms.*?CA
 awk-20231231.htm;boolean;Does American Water Works  apply the utility plant recovery mechanism in Illinois?;Yes;;Utility plant recovery mechanisms.*?IL
 awk-20231231.htm;advanced lookup;Which regulatory practice is allowed to be applied for American Water Works in all states?;Deferred accounting;;Deferred accounting.*?All
 awk-20231231.htm;calculation;In how many states is American Water Works allowed to apply the revenue stability mechanisms as regulatory practice?;2;;Revenue stability mechanisms.*?CA, IL
 awk-20231231.htm;calculation;In how many more states does American Water Works apply the infrastructure replacement surcharge mechanisms compared to the future test year regulatory practice?;1;;Infrastructure replacement surcharge mechanisms.*?CA, HI, IA, IL, IN, KY, PA, TN, VA
-awk-20231231.htm;lookup;What's been the proportion of source type surface water for the whole regulated business for American Water Works compared to all source types in 2023?;71;%;Surface Water.*?Regulated Business.*71
+awk-20231231.htm;lookup;What's been the proportion of source type surface water for the whole regulated business for American Water Works compared to all source types in 2023?;71;%;Surface Water.*?Regulated Businesses.*?71
 awk-20231231.htm;lookup;What's been the proportion of ground water as source type for American Water Works compared to other source types in in Pennsylvania in 2023?;7;%;Surface Water.*?Pennsylvania.*?7
 awk-20231231.htm;lookup;What's been the proportion of purchased water as source type for American Water Works compared to other source types in in Illinois in 2023?;10;%;Surface Water.*?Illinois.*?10
 awk-20231231.htm;boolean;Did American Water Works have any surface water as source type for their water supply in 2023 in California?;No;;Surface Water.*?California.*?—
@@ -268,15 +268,15 @@ uber-20231231.htm;advanced lookup;Which category was contributing the most to th
 uber-20231231.htm;advanced lookup;Which category was contributing the second most to the assets of Uber in 2022, cash and cash equivalents, short-term investments or accounts receivable?;Accounts receivable;;Cash and cash equivalents.*?1,?681
 uber-20231231.htm;calculation;How much did the value of the net property and equipment of Uber decrease from 2022 to 2023?;9;mio. $;Property and equipment, net.*?2,?073
 uber-20231231.htm;calculation;What's the mean worth of all assets of Uber of the years 2022 and 2023?;35404;mio. $;Total assets.*?38,?699
-uber-20231231.htm;lookup;What has been the worth of common stock shares for Uber at the end of 2021?;1949316 ;mio. $;Balance as of December 31, 2021.*?1,?949,?316
-uber-20231231.htm;calculation;How much was the value of common stock shares of Uber higher at the end of 2022 compared to the end of 2021?;56170;mio. $;Balance as of December 31, 2021.*?1,?949,?316.*?Balance as of December 31, 2022.*?2,005,486
+uber-20231231.htm;lookup;What has been the sum of common stock shares for Uber at the end of 2021?;1949316 ;mio. $;Balance as of December 31, 2021.*?1,?949,?316
+uber-20231231.htm;calculation;How much was the sum of common stock shares of Uber higher at the end of 2022 compared to the end of 2021?;56170;mio. $;Balance as of December 31, 2021.*?1,?949,?316.*?Balance as of December 31, 2022.*?2,005,486
 uber-20231231.htm;lookup;What has been the amount of purchases of non-marketable equity securities by Uber in the year 2022?;14;mio. $;Purchases of non-marketable equity securities.*?14
 uber-20231231.htm;boolean;Did amount of purchases of non-marketable equity securities of Uber increase from 2022 to 2023?;Yes;;Purchases of non-marketable equity securities.*?14.*?52
 uber-20231231.htm;advanced lookup;Did Uber have any proceeds from sale of non-marketable equity securities in 2022 or 2023?;No;;Proceeds from sale of non-marketable equity securities.*?—.*?—
 uber-20231231.htm;calculation;What has been the sum of purchases of non-marketable equity securities plus marketable securities of Uber in the year 2022?;1722;mio. $;Purchases of non-marketable equity securities.*?14.*?Purchases of marketable securities.*?1,?708
 uber-20231231.htm;lookup;What has been the fair value of corporate bonds Uber owned at the end of 2022?;15;mio. $;Corporate bonds.*?15
 uber-20231231.htm;lookup;What's the overall sum of level two assets Uber owned by the end of 2022?;2066;mio. $;Total financial assets.*?2,?066
-uber-20231231.htm;advanced lookup;Did Uber have any certificates of deposit by the end of 2022?;No;;As of December 31, 2022.*?Certificates of deposit.*?—
+uber-20231231.htm;boolean;Did Uber have any certificates of deposit by the end of 2022?;No;;As of December 31, 2022.*?Certificates of deposit.*?—
 uber-20231231.htm;calculation;What has been the sum of level one and level two assets Uber owned by the end of 2023?;10274;mio. $;Total financial assets.*?4,?554.*?5,?720
 uber-20231231.htm;lookup;What's the value of constructions which are in progress of Uber in 2023?;203;mio. $;Construction in progress.*?203
 uber-20231231.htm;advanced lookup;What's the category having the highest value within the property and equipment of Uber by the end of 2022?;Leased computer equipment;;Leased computer equipment.*?712
@@ -285,13 +285,13 @@ uber-20231231.htm;lookup;What's the amount of loss before provision for the inco
 uber-20231231.htm;lookup;What's the amount of loss before provision for the income tax of Uber in all non-U.S. countries in 2022?;903;mio. $;Foreign.*?903
 uber-20231231.htm;calculation;What's the share of foreign countries of the benefit from income tax for the year 2021?;67;%;Foreign.*?685.*?Income \(loss\) before income taxes and income from equity method investments.*?1,?025
 uber-20231231.htm;lookup;What was the federal income tax rate for Uber in 2022?;21;%;Federal statutory income tax rate.*?21.*?21.*?21
-uber-20231231.htm;lookup;What has been the tax rate for stock based compensation for Uber in the year 2021?;4.5;%;Stock-based compensation.*?4.5
+uber-20231231.htm;lookup;What has been the tax rate for stock based compensation for Uber in the year 2021?;4.5;%;Federal statutory income tax rate.*?21.*?21.*?21
 uber-20231231.htm;lookup;What has been the effective tax rate for Uber in 2022?;1.9;%;Effective income tax rate.*?1.9
 uber-20231231.htm;boolean;Did the federal income tax rate change for Uber in the years 2021, 2022 and 2023?;No;;Federal statutory income tax rate.*?21.*?21.*?21
 uber-20231231.htm;calculation;By how many percentage points did the effective income tax rate increase for Uber from 2022 to 2023?;7.3;%;Effective income tax rate.*?1.9.*?9.2
 uber-20231231.htm;boolean;Was the year 2014 still part of the open tax years for Uber in the U.K. by the end of 2023?;Yes;;United Kingdom.*?2013 - 2023
 uber-20231231.htm;lookup;What has been the basic net loss per share attributable to ordinary shareholders of Uber in 2022?;4.64;mio. $;Basic net income \(loss\) per share attributable to common stockholders.*?4.64
-uber-20231231.htm;lookup;What's the value of RSUs Uber provided its employees in 2023?;25671;mio. $;RSUs.*?25,?671
+uber-20231231.htm;lookup;What's the amount of RSUs Uber provided its employees in 2023?;25671;mio. $;RSUs.*?25,?671
 uber-20231231.htm;boolean;Did Uber have a loss for its non-diluted share attributable to ordinary shareholders in 2022?;No;;Basic net income \(loss\) per share attributable to common stockholders.*?0.93
 uber-20231231.htm;lookup;What's the amount of revue Uber made in the U.K. in 2022?;4215;mio. $;United Kingdom.*?4,?215
 uber-20231231.htm;calculation;How much did the revenue of Uber in the U.K. increase from 2022 to 2023?;2307;mio. $;United Kingdom.*?4,?215.*?6,?522

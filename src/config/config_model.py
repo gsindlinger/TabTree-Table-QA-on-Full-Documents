@@ -46,6 +46,7 @@ class RunSetupRAG(RunSetup):
         pipeline = RAGPipeline.from_config(
             vector_store=vector_store,
             retriever_num_documents=rag_config.retriever_num_documents,
+            preprocess_config=rag_config.preprocess_config,
         )
         indexing_service = IndexingService(vector_store=vector_store)
 
