@@ -17,27 +17,6 @@ services:
     volumes:
       - ./data/qdrant-data:/qdrant/storage
 
-  ollama-pull:
-    image: &image-ollama ollama/ollama:latest
-    volumes: &volumes-ollama
-      - ./data/ollama:/root/.ollama
-    entrypoint: >
-      bash -c "set -e; echo ${OLLAMA_PULL_MODELS}; ollama serve & for model in ${OLLAMA_PULL_MODELS}; do ollama pull $$model; done"
-    restart: on-failure
-    networks: &networks
-      - rag-project # All of the containers will join the same Docker bridge network
-    
-
-  ollama:
-    image: *image-ollama
-    volumes: *volumes-ollama
-    ports:
-      - ${OLLAMA_BIND_HOST}:${OLLAMA_PORT}:11434
-    networks: *networks
-    depends_on:
-      ollama-pull:
-        condition: service_completed_successfully
-
 networks:
   rag-project:
 
