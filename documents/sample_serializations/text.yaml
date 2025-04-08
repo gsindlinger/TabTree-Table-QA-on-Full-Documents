@@ -1,0 +1,47 @@
+The table has first level column headers grades.
+    The column header grades has children null, 2023, 2024.
+        The column header null has siblings 2023, 2024. The children of null are age.
+            The column header age has no siblings. The values of age are:
+                The value of the column header combination grades, age and row label combination A, John is 17.
+                The value of the column header combination grades, age and row label combination A, Tiffany is 16.
+                The value of the column header combination grades, age and row label combination B, Michael is 17.
+        The column header 2023 has siblings null, 2024. The children of 2023 are math, english.
+            The column header math has siblings english. The values of math are:
+                The value of the column header combination grades, 2023, math and row label combination A, John is A.
+                The value of the column header combination grades, 2023, math and row label combination A, Tiffany is C.
+                The value of the column header combination grades, 2023, math and row label combination A, Michael is B.
+            The column header english has siblings math. The values of english are:
+                The value of the column header combination grades, 2023, english and row label combination A, John is C.
+                The value of the column header combination grades, 2023, english and row label combination A, Tiffany is B.
+                The value of the column header combination grades, 2023, english and row label combination A, Michael is B.
+        The column header 2024 has siblings null, 2023. The children of 2024 are math, english.
+            The column header math has siblings english. The values of math are:
+                ...
+            The column header english has siblings math. The values of english are:
+                ...
+
+            
+-------
+
+The tables has first level row labels A, B.
+    The row label A has siblings B. The children of A are John, Tiffany.
+        The row label John has siblings Tiffany. The values of John are:
+            The value of the row label combination A, John and column header combination grades, age is 17.
+            The value of the row label combination A, John and column header combination grades, 2023, math is A.
+            The value of the row label combination A, John and column header combination grades, 2023, english is C.
+            The value of the row label combination A, John and column header combination grades, 2024, math is A.
+            The value of the row label combination A, John and column header combination grades, 2024, english is B.
+        The column header Tiffany has siblings John. The values of Tiffany are:
+            The value of the row label combination A, Tiffany and column header combination grades, age is 16.
+            The value of the row label combination A, Tiffany and column header combination grades, 2023, math is B.
+            The value of the row label combination A, Tiffany and column header combination grades, 2023, english is B.
+            The value of the row label combination A, Tiffany and column header combination grades, 2024, math is C.
+            The value of the row label combination A, Tiffany and column header combination grades, 2024, english is B.
+    The column header B has siblings A. The children of B are Michael.
+        The column header Michael has no siblings. The values of Michael are:
+            The value of the row label combination B, Michael and column header combination grades, age is 17.
+            The value of the row label combination B, Michael and column header combination grades, 2023, math is D.
+            The value of the row label combination B, Michael and column header combination grades, 2023, english is D.
+            The value of the row label combination B, Michael and column header combination grades, 2024, math is D.
+            The value of the row label combination B, Michael and column header combination grades, 2024, english is D.
+        
