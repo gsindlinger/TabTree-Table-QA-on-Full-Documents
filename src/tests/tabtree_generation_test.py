@@ -1,3 +1,4 @@
+import json
 import re
 import unittest
 from matplotlib import pyplot as plt
@@ -786,3 +787,51 @@ class TestTabTreeModel(unittest.TestCase, AbstractTableTests):
         full_str_mod = re.sub(pattern, "", full_str)
         expected_str_mod = re.sub(pattern, "", expected_str)
         self.assertEqual(full_str_mod, expected_str_mod)
+        
+        
+    def test_and_write_all_serializations_for_sample_table(self):
+        base = (
+            NodeApproach(approach=ContextNodeApproach.BASE, include_context_intersection=False),
+            NodeApproach(approach=ValueNodeApproach.BASE, include_context_intersection=False),
+        )
+        text = (
+            NodeApproach(approach=ContextNodeApproach.TEXT, include_context_intersection=False),
+            NodeApproach(approach=ValueNodeApproach.TEXT, include_context_intersection=False),
+        )
+        text_with_context_intersection = (
+            NodeApproach(approach=ContextNodeApproach.TEXT, include_context_intersection=True),
+            NodeApproach(approach=ValueNodeApproach.TEXT, include_context_intersection=True),
+        )
+        text_augmented_with_context_intersection = (
+            NodeApproach(approach=ContextNodeApproach.TEXT, include_context_intersection=True),
+            NodeApproach(approach=ValueNodeApproach.TEXT_AUGMENTED, include_context_intersection=True),
+        )
+        context_empty = (
+            NodeApproach(approach=ContextNodeApproach.EMPTY, include_context_intersection=False),
+            NodeApproach(approach=ValueNodeApproach.TEXT_AUGMENTED, include_context_intersection=True),
+        )
+        
+        approaches = [base, text, text_with_context_intersection, text_augmented_with_context_intersection, context_empty]
+        names = ["Base", "Text", "Text w/ Context-Intersection", "Text-Augmentation w/ Context-Intersection", "Context-Empty"]
+    
+    
+        results = {}
+        for approach, name in zip(approaches, names):
+            full_str = self.tabtree_service.generate_serialized_string(
+                tabtree=self.full_tabtree,
+                primary_colour=NodeColor.YELLOW,
+                approaches=approach,
+            )
+            results[name] = full_str
+            
+        # write results to json at "./analysis/sample_tabtree_serializations.json"
+        
+        with open("./analysis/sample_tabtree_serializations.yaml", "w") as f:
+            for name, string in results.items():
+                f.write(f"--- {name} ---\n")
+                f.write(string)
+                f.write("\n\n")
+            
+        
+        
+        

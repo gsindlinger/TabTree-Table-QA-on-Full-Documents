@@ -97,8 +97,8 @@ class DocumentLoader(ABC, BaseModel):
             logging.info(f"Loading headers from file for table hash: {table_str}")
 
             return (
-                table_header_dict[table_str].get("max_column_header_row_new", None),
-                table_header_dict[table_str].get("max_row_label_column_new", None),
+                table_header_dict[table_str].get("max_column_header_row", None),
+                table_header_dict[table_str].get("max_row_label_column", None),
             )
         else:
             return None, None

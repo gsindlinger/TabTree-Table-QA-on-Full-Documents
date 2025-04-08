@@ -8,9 +8,11 @@ from bs4 import BeautifulSoup
 from pydantic import BaseModel
 import pandas as pd
 
+from ...retrieval.document_preprocessors.table_parser.custom_html_parser import HTMLTableParser
+
 from ...model.tables import ExtendedTable, SerializedTable
 from ...model.custom_document import CustomDocument, SplitContent
-from .preprocess_config import PreprocessConfig
+from .preprocess_config import PreprocessConfig, TableSerializerPreprocessConfig
 
 END_OF_TABLE: str = r"<EOT>"
 BEGINNING_OF_TABLE: str = r"<BOT>"
@@ -22,45 +24,49 @@ END_OF_TABLE_REGEX: str = rf"{END_OF_TABLE}|(?<=</table>)|(?<=</table\s>)"
 
 class TableSerializer(ABC, BaseModel):
     table_splitter_backup: str = r"</\s*[^>]+>\s*?"
+    
+    @classmethod
+    def from_table_serializer_preprocess_config(cls, table_serialization: TableSerializerPreprocessConfig):
+        from ...model.tabtree.tabtree_serializer import TabTreeSerializer
+
+        if table_serialization.table_serializer == "html":
+            return HTMLSerializer()
+        elif table_serialization.table_serializer == "csv":
+            return CSVSerializer()
+        elif table_serialization.table_serializer == "tsv":
+            return TSVSerializer()
+        elif table_serialization.table_serializer == "df-loader":
+            return DFLoaderSerializer()
+        elif table_serialization.table_serializer == "json-records":
+            return JSONSerializerRecords()
+        elif table_serialization.table_serializer == "json-split":
+            return JSONSerializerSplit()
+        elif table_serialization.table_serializer == "json-index":
+            return JSONSerializerIndex()
+        elif table_serialization.table_serializer == "markdown":
+            return MarkdownSerializer()
+        elif table_serialization.table_serializer == "text":
+            return TextSerializer()
+        elif table_serialization.table_serializer == "text-bullet-points":
+            return TextSerializerBulletPoints()
+        elif table_serialization.table_serializer == "list-item":
+            return ListItemSerializer()
+        elif table_serialization.table_serializer == "matrix":
+            return MatrixSerializer()
+        elif table_serialization.table_serializer == "none":
+            return None
+        elif table_serialization.table_serializer == "plain_text":
+            return PlainTextSerializer()
+        elif table_serialization.table_serializer == "tabtree":
+            return TabTreeSerializer(node_approach=table_serialization.tabtree_approach)
+        else:
+            raise ValueError(
+                f"Table serialization type {table_serialization.table_serializer} is not supported"
+            )
 
     @classmethod
     def from_preprocess_config(cls, config: PreprocessConfig) -> TableSerializer | None:
-        from ...model.tabtree.tabtree_serializer import TabTreeSerializer
-
-        if config.table_serialization == "html":
-            return HTMLSerializer()
-        elif config.table_serialization == "csv":
-            return CSVSerializer()
-        elif config.table_serialization == "tsv":
-            return TSVSerializer()
-        elif config.table_serialization == "df-loader":
-            return DFLoaderSerializer()
-        elif config.table_serialization == "json-records":
-            return JSONSerializerRecords()
-        elif config.table_serialization == "json-split":
-            return JSONSerializerSplit()
-        elif config.table_serialization == "json-index":
-            return JSONSerializerIndex()
-        elif config.table_serialization == "markdown":
-            return MarkdownSerializer()
-        elif config.table_serialization == "text":
-            return TextSerializer()
-        elif config.table_serialization == "text-bullet-points":
-            return TextSerializerBulletPoints()
-        elif config.table_serialization == "list-item":
-            return ListItemSerializer()
-        elif config.table_serialization == "matrix":
-            return MatrixSerializer()
-        elif config.table_serialization == "none":
-            return None
-        elif config.table_serialization == "plain_text":
-            return PlainTextSerializer()
-        elif config.table_serialization == "tabtree":
-            return TabTreeSerializer(node_approach=config.tabtree_approach)
-        else:
-            raise ValueError(
-                f"Table serialization type {config.table_serialization} is not supported"
-            )
+        return cls.from_table_serializer_preprocess_config(table_serialization=config.table_serialization)
 
     def serialize_table_to_str(
         self,
@@ -194,14 +200,18 @@ class DFLoaderSerializer(TableSerializer):
 
 class HTMLSerializer(TableSerializer):
     table_splitter_backup: str = r"</\s*[^>]+>\s*?"
-
+    
     def df_to_serialized_string(self, df_with_header: ExtendedTable) -> str:
-        df = df_with_header.df
-        df_html = df.to_html(header=df_with_header.has_header, index=False, na_rep="")
-        soup = BeautifulSoup(df_html, "html.parser")
-        for tag in soup.find_all(True):
-            tag.attrs = {}
-        return str(soup)
+        raise NotImplementedError(
+            "HTMLSerializer should not be used for serialization. Use HTMLTableParser instead."
+        )
+    
+    @override
+    def serialize_table_to_extended_table(self, table_str: str) -> ExtendedTable | None:
+        html_table = HTMLTableParser.parse_and_clean_table(table_str)
+        if not html_table:
+            return None
+        return html_table.to_extended_table(serialized_table=html_table.to_html())
 
 
 class CSVSerializer(TableSerializer):

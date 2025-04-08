@@ -15,6 +15,7 @@ from langchain_core.runnables import RunnableConfig
 
 class QdrantRetriever(VectorStoreRetriever):
     search_type_custom: str = "similarity_with_scores"
+    exceed_chunk_size: List[int] = [0, 0]  # [chunk, table]
 
     def __init__(
         self, vector_store: QdrantVectorStore, retriever_num_documents: int
@@ -48,8 +49,7 @@ class QdrantRetriever(VectorStoreRetriever):
         else:
             return super().invoke(input, config, **kwargs)
 
-    @staticmethod
-    def format_docs(docs: List[Document], table_serializer: TableSerializer | None, max_character: int = 200000,) -> Tuple[str, str]:
+    def format_docs(self, docs: List[Document], table_serializer: TableSerializer | None, include_related_tables: bool, max_character: int = 40000) -> Tuple[str, str]:
         from ..retrieval.document_preprocessors.html_preprocessor import HTMLPreprocessor
         
         """
@@ -74,37 +74,45 @@ class QdrantRetriever(VectorStoreRetriever):
                 context_list.append(chunk_text)
                 current_length += len(chunk_text)
             else:
+                logging.warning(f"MAX_CHUNK_EXCEED: Chunk {i+1} exceeds max character limit. Skipping.")
+                self.exceed_chunk_size[0] += 1
                 break  # Stop adding more chunks if the limit is exceeded
 
         context_str = "\n\n".join(context_list)
 
-        # Extract and format related tables (if space allows)
-        related_tables_list = []
-        
-        for doc in custom_docs:                
-            if isinstance(doc.metadata, FullMetadataRetrieval) and doc.metadata.table_string:
-                table_list = []
-                if table_serializer:
-                    string_splits = HTMLPreprocessor()._split_sentences_and_tables(doc.metadata.table_string)
-                    for split_content in string_splits:
-                        if split_content.type == "table":
-                            table_list.append(split_content.content)
+        if include_related_tables:
+            # Extract and format related tables (if space allows)
+            related_tables_list = []
+            table_list = []
+            
+            for doc in custom_docs:                
+                if isinstance(doc.metadata, FullMetadataRetrieval) and doc.metadata.table_string:
+                    table_list = []
+                    if table_serializer:
+                        string_splits = HTMLPreprocessor()._split_sentences_and_tables(doc.metadata.table_string)
+                        for split_content in string_splits:
+                            if split_content.type == "table":
+                                table_list.append(split_content.content)
+                    else:
+                        table_list.append(doc.metadata.table_string)
+                    
+            for i, table in enumerate(table_list): 
+                if table_serializer:  
+                    table_serialized = table_serializer.serialize_table_to_str(table)[0]
+                else: 
+                    table_serialized = table
+                table_text = f"Table {i+1}:\n{table_serialized}"
+                if current_length + len(table_text) <= max_character:
+                    related_tables_list.append(table_text)
+                    current_length += len(table_text)
                 else:
-                    table_list.append(doc.metadata.table_string)
-                
-        for i, table in enumerate(table_list): 
-            if table_serializer:  
-                table_serialized = table_serializer.serialize_table_to_str(table)
-            else: 
-                table_serialized = table
-            table_text = f"Table {i+1}:\n{table_serialized}"
-            if current_length + len(table_text) <= max_character:
-                related_tables_list.append(table_text)
-                current_length += len(table_text)
-            else:
-                break  # Stop adding tables if the character limit is exceeded
+                    logging.warning(f"RELATED_TABLE_EXCEED: Table {i+1} exceeds max character limit. Skipping.")
+                    self.exceed_chunk_size[1] += 1
+                    break  # Stop adding tables if the character limit is exceeded
 
-        related_tables_str = "\n\n".join(related_tables_list) if related_tables_list else "None"
+            related_tables_str = "\n\n".join(related_tables_list) if len(related_tables_list) > 0 else ""
+        else:
+            related_tables_str = ""
 
         return context_str, related_tables_str
 

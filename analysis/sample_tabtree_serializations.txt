@@ -1,0 +1,134 @@
+--- Base ---
+
+  grades:
+    null:
+      age:
+        A > John: 17
+        A > Tiffany: 16
+        B > Michael: 17
+    2023:
+      math:
+        A > John: A
+        A > Tiffany: B
+        B > Michael: D
+      english:
+        A > John: C
+    2024:
+      math:
+        A > Tiffany: C
+      english:
+        A > John: B
+
+
+--- Text ---
+The table captures grades as its main column header.
+  The column header grades has no siblings. The children of grades are null, 2023, 2024.
+    The column header null has siblings 2023, 2024. The children of null are age.
+      The values of the column header age are:
+        The value of the column header age and the row label combination A, John is 17 (row index: 3, colum index: 2).
+        The value of the column header age and the row label combination A, Tiffany is 16 (row index: 4, colum index: 2).
+        The value of the column header age and the row label combination B, Michael is 17 (row index: 5, colum index: 2).
+    The column header 2023 has siblings null, 2024. The children of 2023 are math, english.
+      The column header math has siblings english. The values of math are:
+        The value of the column header math and the row label combination A, John is A (row index: 3, colum index: 3).
+        The value of the column header math and the row label combination A, Tiffany is B (row index: 4, colum index: 3).
+        The value of the column header math and the row label combination B, Michael is D (row index: 5, colum index: 3).
+      The column header english has siblings math. The values of english are:
+        The value of the column header english and the row label combination A, John is C (row index: 3, colum index: 4).
+        The value of the column header english and the row label combination A, Tiffany is B (row index: 4, colum index: 4).
+        The value of the column header english and the row label combination B, Michael is D (row index: 5, colum index: 4).
+    The column header 2024 has siblings null, 2023. The children of 2024 are math, english.
+      The column header math has siblings english. The values of math are:
+        The value of the column header math and the row label combination A, John is A (row index: 3, colum index: 5).
+        The value of the column header math and the row label combination A, Tiffany is C (row index: 4, colum index: 5).
+        The value of the column header math and the row label combination B, Michael is D (row index: 5, colum index: 5).
+      The column header english has siblings math. The values of english are:
+        The value of the column header english and the row label combination A, John is B (row index: 3, colum index: 6).
+        The value of the column header english and the row label combination A, Tiffany is B (row index: 4, colum index: 6).
+        The value of the column header english and the row label combination B, Michael is D (row index: 5, colum index: 6).
+
+
+--- Text w/ Context-Intersection ---
+The table captures grades as its main column header.
+  The column header grades has no siblings. The children of grades are null, 2023, 2024.
+    The column header null has siblings 2023, 2024. The children of null are age.
+      The column header age represents class and name. The values of the column header age are:
+        The value of the column header age and the row label combination grades & class & A, grades & name & John is 17 (row index: 3, colum index: 2).
+        The value of the column header age and the row label combination grades & class & A, grades & name & Tiffany is 16 (row index: 4, colum index: 2).
+        The value of the column header age and the row label combination grades & class & B, grades & name & Michael is 17 (row index: 5, colum index: 2).
+    The column header 2023 has siblings null, 2024. The children of 2023 are math, english.
+      The column header math represents class and name. The column header math has siblings english. The values of the column header math are:
+        The value of the column header math and the row label combination grades & class & A, grades & name & John is A (row index: 3, colum index: 3).
+        The value of the column header math and the row label combination grades & class & A, grades & name & Tiffany is B (row index: 4, colum index: 3).
+        The value of the column header math and the row label combination grades & class & B, grades & name & Michael is D (row index: 5, colum index: 3).
+      The column header english represents class and name. The column header english has siblings math. The values of the column header english are:
+        The value of the column header english and the row label combination grades & class & A, grades & name & John is C (row index: 3, colum index: 4).
+        The value of the column header english and the row label combination grades & class & A, grades & name & Tiffany is B (row index: 4, colum index: 4).
+        The value of the column header english and the row label combination grades & class & B, grades & name & Michael is D (row index: 5, colum index: 4).
+    The column header 2024 has siblings null, 2023. The children of 2024 are math, english.
+      The column header math represents class and name. The column header math has siblings english. The values of the column header math are:
+        The value of the column header math and the row label combination grades & class & A, grades & name & John is A (row index: 3, colum index: 5).
+        The value of the column header math and the row label combination grades & class & A, grades & name & Tiffany is C (row index: 4, colum index: 5).
+        The value of the column header math and the row label combination grades & class & B, grades & name & Michael is D (row index: 5, colum index: 5).
+      The column header english represents class and name. The column header english has siblings math. The values of the column header english are:
+        The value of the column header english and the row label combination grades & class & A, grades & name & John is B (row index: 3, colum index: 6).
+        The value of the column header english and the row label combination grades & class & A, grades & name & Tiffany is B (row index: 4, colum index: 6).
+        The value of the column header english and the row label combination grades & class & B, grades & name & Michael is D (row index: 5, colum index: 6).
+
+
+--- Text-Augmentation w/ Context-Intersection ---
+The table captures grades as its main column header.
+  The column header grades has no siblings. The children of grades are null, 2023, 2024.
+    The column header null has siblings 2023, 2024. The children of null are age.
+      The column header age represents class and name. The values of the column header age are:
+        The value of the column header combination grades, null, class & name & age and the row label combination grades & class & A, grades & name & John is 17 (row index: 3, colum index: 2).
+        The value of the column header combination grades, null, class & name & age and the row label combination grades & class & A, grades & name & Tiffany is 16 (row index: 4, colum index: 2).
+        The value of the column header combination grades, null, class & name & age and the row label combination grades & class & B, grades & name & Michael is 17 (row index: 5, colum index: 2).
+    The column header 2023 has siblings null, 2024. The children of 2023 are math, english.
+      The column header math represents class and name. The column header math has siblings english. The values of the column header math are:
+        The value of the column header combination grades, 2023, class & name & math and the row label combination grades & class & A, grades & name & John is A (row index: 3, colum index: 3).
+        The value of the column header combination grades, 2023, class & name & math and the row label combination grades & class & A, grades & name & Tiffany is B (row index: 4, colum index: 3).
+        The value of the column header combination grades, 2023, class & name & math and the row label combination grades & class & B, grades & name & Michael is D (row index: 5, colum index: 3).
+      The column header english represents class and name. The column header english has siblings math. The values of the column header english are:
+        The value of the column header combination grades, 2023, class & name & english and the row label combination grades & class & A, grades & name & John is C (row index: 3, colum index: 4).
+        The value of the column header combination grades, 2023, class & name & english and the row label combination grades & class & A, grades & name & Tiffany is B (row index: 4, colum index: 4).
+        The value of the column header combination grades, 2023, class & name & english and the row label combination grades & class & B, grades & name & Michael is D (row index: 5, colum index: 4).
+    The column header 2024 has siblings null, 2023. The children of 2024 are math, english.
+      The column header math represents class and name. The column header math has siblings english. The values of the column header math are:
+        The value of the column header combination grades, 2024, class & name & math and the row label combination grades & class & A, grades & name & John is A (row index: 3, colum index: 5).
+        The value of the column header combination grades, 2024, class & name & math and the row label combination grades & class & A, grades & name & Tiffany is C (row index: 4, colum index: 5).
+        The value of the column header combination grades, 2024, class & name & math and the row label combination grades & class & B, grades & name & Michael is D (row index: 5, colum index: 5).
+      The column header english represents class and name. The column header english has siblings math. The values of the column header english are:
+        The value of the column header combination grades, 2024, class & name & english and the row label combination grades & class & A, grades & name & John is B (row index: 3, colum index: 6).
+        The value of the column header combination grades, 2024, class & name & english and the row label combination grades & class & A, grades & name & Tiffany is B (row index: 4, colum index: 6).
+        The value of the column header combination grades, 2024, class & name & english and the row label combination grades & class & B, grades & name & Michael is D (row index: 5, colum index: 6).
+
+
+--- Context-Empty ---
+
+  
+    
+      
+        The value of the column header combination grades, null, class & name & age and the row label combination grades & class & A, grades & name & John is 17 (row index: 3, colum index: 2).
+        The value of the column header combination grades, null, class & name & age and the row label combination grades & class & A, grades & name & Tiffany is 16 (row index: 4, colum index: 2).
+        The value of the column header combination grades, null, class & name & age and the row label combination grades & class & B, grades & name & Michael is 17 (row index: 5, colum index: 2).
+    
+      
+        The value of the column header combination grades, 2023, class & name & math and the row label combination grades & class & A, grades & name & John is A (row index: 3, colum index: 3).
+        The value of the column header combination grades, 2023, class & name & math and the row label combination grades & class & A, grades & name & Tiffany is B (row index: 4, colum index: 3).
+        The value of the column header combination grades, 2023, class & name & math and the row label combination grades & class & B, grades & name & Michael is D (row index: 5, colum index: 3).
+      
+        The value of the column header combination grades, 2023, class & name & english and the row label combination grades & class & A, grades & name & John is C (row index: 3, colum index: 4).
+        The value of the column header combination grades, 2023, class & name & english and the row label combination grades & class & A, grades & name & Tiffany is B (row index: 4, colum index: 4).
+        The value of the column header combination grades, 2023, class & name & english and the row label combination grades & class & B, grades & name & Michael is D (row index: 5, colum index: 4).
+    
+      
+        The value of the column header combination grades, 2024, class & name & math and the row label combination grades & class & A, grades & name & John is A (row index: 3, colum index: 5).
+        The value of the column header combination grades, 2024, class & name & math and the row label combination grades & class & A, grades & name & Tiffany is C (row index: 4, colum index: 5).
+        The value of the column header combination grades, 2024, class & name & math and the row label combination grades & class & B, grades & name & Michael is D (row index: 5, colum index: 5).
+      
+        The value of the column header combination grades, 2024, class & name & english and the row label combination grades & class & A, grades & name & John is B (row index: 3, colum index: 6).
+        The value of the column header combination grades, 2024, class & name & english and the row label combination grades & class & A, grades & name & Tiffany is B (row index: 4, colum index: 6).
+        The value of the column header combination grades, 2024, class & name & english and the row label combination grades & class & B, grades & name & Michael is D (row index: 5, colum index: 6).
+
+

@@ -56,7 +56,7 @@ class SemanticChunkerCustom(SemanticChunker, TextSplitter):
         
         if isinstance(self.table_serializer, TabTreeSerializer):
             self.breakpoint_threshold_amount = 0.95
-        elif Config.indexing.approach == "summary_only":
+        elif self.preprocess_config.indexing_approach == "summary_only":
             self.breakpoint_threshold_amount = breakpoint_threshold_amount
         else:
             self.breakpoint_threshold_amount = breakpoint_threshold_amount
@@ -413,7 +413,7 @@ class SemanticChunkerCustom(SemanticChunker, TextSplitter):
         split_content_list: List[SplitContent],
     ) -> List[SplitContent]:
         
-        summary_only = Config.indexing.approach == "summary_only"
+        summary_only = self.preprocess_config.indexing_approach == "summary_only"
         if summary_only:
             split_content_list = self.apply_table_summaries(split_content_list)
         
@@ -564,7 +564,7 @@ class SemanticChunkerCustom(SemanticChunker, TextSplitter):
             elif content.type == "table":
                 # Different approaches for different serialization techniques
                 # First TabTree - Split using regular sentences
-                if isinstance(self.table_serializer, TabTreeSerializer) and Config.indexing.approach != "summary_only":
+                if isinstance(self.table_serializer, TabTreeSerializer) and self.preprocess_config.indexing_approach != "summary_only":
                     if len(content.content) > 0.9*self.max_chunk_length:
                         split = SentenceSplitter.split_sentences(content.content)
                         sentences.extend(

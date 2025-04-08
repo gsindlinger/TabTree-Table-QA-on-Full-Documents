@@ -121,7 +121,7 @@ class SECFilingEvaluator(Evaluator):
         eval_data = self.get_tabtree_header_evaluation_data()
 
         # Ensure that col and rowspans are not deleted by resetting the table serializer
-        self.llm_config.preprocess_config.table_serialization = "none"
+        self.llm_config.preprocess_config.table_serialization.table_serializer = "none"
         self.llm_config.preprocess_config.consider_colspans_rowspans = True
         
         document = IndexingService.load_and_preprocess_document(

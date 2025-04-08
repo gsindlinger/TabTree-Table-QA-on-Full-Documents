@@ -237,30 +237,33 @@ class ValueStringGenerationTextAugmented(ValueStringGeneration):
             if secondary_tree.context_colour == NodeColor.YELLOW
             else "row label"
         )
-
+        
+        index_str = f"(row index: {node.row_index}, colum index: {node.col_index})"
+        
+        
         if len(value_sequence_primary) < 1:
             if len(value_sequence_secondary) < 1:
                 raise ValueError(
                     f"There must be at least one connected context node to the value node: {node.id}"
                 )
             elif len(value_sequence_secondary) == 1:
-                return f"The value of the {secondary_tree_str} {value_str_secondary} is {node.value}."
+                return f"The value of the {secondary_tree_str} {value_str_secondary} is {node.value} {index_str}."
             elif len(value_sequence_secondary) > 1:
-                return f"The value of the {secondary_tree_str} combination {value_str_secondary} is {node.value}."
+                return f"The value of the {secondary_tree_str} combination {value_str_secondary} is {node.value} {index_str}."
         elif len(value_sequence_primary) == 1:
             if len(value_sequence_secondary) < 1:
-                return f"The value of the {primary_tree_str} {value_str_primary} is {node.value}."
+                return f"The value of the {primary_tree_str} {value_str_primary} is {node.value} {index_str}."
             elif len(value_sequence_secondary) == 1:
-                return f"The value of the {primary_tree_str} {value_str_primary} and the {secondary_tree_str} {value_str_secondary} is {node.value}."
+                return f"The value of the {primary_tree_str} {value_str_primary} and the {secondary_tree_str} {value_str_secondary} is {node.value} {index_str}."
             elif len(value_sequence_secondary) > 1:
-                return f"The value of the {primary_tree_str} {value_str_primary} and the {secondary_tree_str} combination {value_str_secondary} is {node.value}."
+                return f"The value of the {primary_tree_str} {value_str_primary} and the {secondary_tree_str} combination {value_str_secondary} is {node.value} {index_str}."
         elif len(value_sequence_primary) > 1:
             if len(value_sequence_secondary) < 1:
-                return f"The value of the {primary_tree_str} combination {value_str_primary} is {node.value}."
+                return f"The value of the {primary_tree_str} combination {value_str_primary} is {node.value} {index_str}."
             elif len(value_sequence_secondary) == 1:
-                return f"The value of the {primary_tree_str} combination {value_str_primary} and the {secondary_tree_str} {value_str_secondary} is {node.value}."
+                return f"The value of the {primary_tree_str} combination {value_str_primary} and the {secondary_tree_str} {value_str_secondary} is {node.value} {index_str}."
             elif len(value_sequence_secondary) > 1:
-                return f"The value of the {primary_tree_str} combination {value_str_primary} and the {secondary_tree_str} combination {value_str_secondary} is {node.value}."
+                return f"The value of the {primary_tree_str} combination {value_str_primary} and the {secondary_tree_str} combination {value_str_secondary} is {node.value} {index_str}."
 
         raise ValueError(
             f"Invalid value sequence lengths: {len(value_sequence_primary)} and {len(value_sequence_secondary)}"

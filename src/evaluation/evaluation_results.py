@@ -24,6 +24,7 @@ class EvaluationResults(BaseModel):
     )
     qa_only_results: Optional[QAOnlyResults] = None
     error_count: Optional[int] = None
+    chunk_size_exceed_count: Optional[List[int]] = None
 
     @staticmethod
     def list_to_json(lst: List[EvaluationResults], only_qa_and_ir: bool = False) -> str:
@@ -344,6 +345,14 @@ class QAResults(BaseModel):
     
     @staticmethod
     def postprocess_qa_results(predictions: List[str], ground_truths: List[str]):
+        def is_float(value: str) -> bool:
+            try:
+                float(value)
+                return True
+            except ValueError:
+                return False
+        
+        
         for i in range(len(predictions)):
             predictions[i] = re.sub(r"\s+", " ", predictions[i])
             ground_truths[i] = re.sub(r"\s+", " ", ground_truths[i])
@@ -359,7 +368,8 @@ class QAResults(BaseModel):
             if ground_truths[i].replace(".", "").isdigit():
                 if "." in ground_truths[i]:
                     decimals = len(ground_truths[i].split(".")[1])
-                    predictions[i] = f"{float(predictions[i]):.{decimals}f}"
+                    if is_float(predictions[i]):
+                        predictions[i] = f"{float(predictions[i]):.{decimals}f}"
         return predictions, ground_truths
 
     @staticmethod

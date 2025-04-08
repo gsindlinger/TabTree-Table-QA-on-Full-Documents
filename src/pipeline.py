@@ -1,8 +1,10 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
 import logging
+from operator import itemgetter
 from typing import Iterator, List, Literal, Tuple
 from pydantic import BaseModel
+from tenacity import RetryCallState, retry, stop_after_attempt, wait_random_exponential
 
 from .retrieval.document_preprocessors.table_serializer import TableSerializer
 from .retrieval.document_preprocessors.preprocess_config import PreprocessConfig
@@ -15,12 +17,14 @@ from .model.custom_document import CustomDocument
 from .retrieval.retriever import QdrantRetriever
 from .retrieval.qdrant_store import QdrantVectorStore
 from .config import Config
-from langchain.prompts import PromptTemplate
-from langchain_core.output_parsers import StrOutputParser
+
+
 from langchain_core.runnables.base import RunnableSerializable
 from langchain_core.runnables import RunnablePassthrough
 from langchain_core.language_models.base import BaseLanguageModel
 from langchain.retrievers.multi_query import MultiQueryRetriever
+from langchain.prompts import PromptTemplate
+from langchain_core.output_parsers.string import StrOutputParser
 
 
 class AbstractPipeline(ABC, BaseModel):
@@ -87,29 +91,51 @@ class RAGPipeline(AbstractPipeline):
 
     @classmethod
     def from_config(
-        cls, vector_store: QdrantVectorStore, retriever_num_documents: int, preprocess_config: PreprocessConfig
+        cls,
+        vector_store: QdrantVectorStore,
+        retriever_num_documents: int,
+        preprocess_config: PreprocessConfig,
     ) -> RAGPipeline:
-        table_serializer = TableSerializer.from_preprocess_config(preprocess_config)
-        
+        if preprocess_config.table_serialization_related_tables:
+            table_serializer = TableSerializer.from_table_serializer_preprocess_config(
+                preprocess_config.table_serialization_related_tables
+            )
+        else:
+            table_serializer = TableSerializer.from_preprocess_config(preprocess_config)
+
         retriever = QdrantRetriever(
             vector_store, retriever_num_documents=retriever_num_documents
         )
-        template = Config.text_generation.prompt_template_rag
+        if preprocess_config.table_serialization.include_related_tables:
+            template = Config.text_generation.prompt_template_rag
+        else:
+            template = Config.text_generation.prompt_template_without_related_tables
+
         llm = LLM.from_config()
         prompt = PromptTemplate(
             input_variables=["context", "related_tables", "question"],
             template=template,
         )
         output_parser = StrOutputParser()
-        
 
         # retriever = MultiQueryRetriever.from_llm(retriever=retriever_base, llm=llm)
+        retrieval_chain = (
+            retriever
+            | (
+                lambda docs: retriever.format_docs(
+                    docs=docs,
+                    table_serializer=table_serializer,
+                    include_related_tables=preprocess_config.table_serialization.include_related_tables,
+                )
+            )
+            | (lambda result: {"context": result[0], "related_tables": result[1]})
+        )
+
+        # llm_chain = retrieval_chain
         llm_chain = (
-            retriever 
-            | (lambda docs: retriever.format_docs(docs=docs, table_serializer=table_serializer)) 
-            | {
-                "context": lambda x: x[0],
-                "related_tables": lambda x: x[1],
+            {
+                "context": retrieval_chain | itemgetter("context"),
+                "related_tables": retrieval_chain | itemgetter("related_tables"),
                 "question": RunnablePassthrough(),
             }
             | prompt
@@ -132,16 +158,33 @@ class RAGPipeline(AbstractPipeline):
         docs = self.retriever.invoke(question)
         return CustomDocument.docs_to_custom_docs(docs)
 
+    @staticmethod
+    def log_before_retry(retry_state: RetryCallState):
+        logging.warning(
+            f"Retrying due to error: {retry_state.outcome.exception()}. "
+            f"Attempt #{retry_state.attempt_number}, "
+            f"Next try in {retry_state.next_action.sleep:.2f} seconds."
+        )
+
+    @retry(
+        wait=wait_random_exponential(min=1, max=60),
+        stop=stop_after_attempt(6),
+        before_sleep=log_before_retry,
+    )
+    def invoke_with_retry(self, question: str = "What is love?") -> str:
+        response = self.llm_chain.invoke(question)
+        logging.info(f"Question: {question}")
+        logging.info(f"Answer: {response}")
+        return response
+
     def invoke(self, question: str = "What is love?") -> str:
         try:
-            response = self.llm_chain.invoke(question)
-            logging.info(f"Question: {question}")
-            logging.info(f"Answer: {response}")
-            return response
+            response = self.invoke_with_retry(question)
         except Exception as e:
             logging.error(f"Error invoking pipeline: {e}")
             self.error_count += 1
-            return "Answer: None"
+            response = "Answer: None"
+        return response
 
     def stream(self, question: str = "What is love?") -> Iterator:
         return self.llm_chain.stream(question)
@@ -228,8 +271,9 @@ class TableSummaryPipeline(AbstractPipeline):
         )
 
     def predict_table_summary(self, table: str, preceding_sentence: str) -> str:
-        return self.llm_chain.invoke(input={"table": table, "preceding_sentence": preceding_sentence})
-
+        return self.llm_chain.invoke(
+            input={"table": table, "preceding_sentence": preceding_sentence}
+        )
 
 
 class TableHeaderRowsPipeline(AbstractPipeline):

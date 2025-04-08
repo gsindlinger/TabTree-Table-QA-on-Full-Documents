@@ -204,6 +204,11 @@ class Evaluator(ABC, BaseModel):
         if EvaluationType.EVALUATE_IR in self.evaluation_types:
             evaluation_docs = self.get_evaluation_docs()
             ir_results = self._evaluate_ir(evaluation_data=evaluation_docs) # type: ignore
+            
+        if EvaluationType.EVALUATE_QA in self.evaluation_types and isinstance(self.run_setup.pipeline, RAGPipeline):
+            chunk_size_exceed_count = self.run_setup.pipeline.retriever.exceed_chunk_size # type: ignore
+        else:
+            chunk_size_exceed_count = None
 
         full_results = EvaluationResults(
             qa_results=qa_results,
@@ -211,6 +216,8 @@ class Evaluator(ABC, BaseModel):
             dataset_summary=dataset_summary,
             qa_only_results=qa_only_results,
             error_count=self.run_setup.pipeline.error_count,
+            chunk_size_exceed_count=chunk_size_exceed_count,
+            
         )
         return full_results
 
@@ -303,15 +310,10 @@ class Evaluator(ABC, BaseModel):
     def _evaluate_table_qa_single(
         self, evaluation_data: List[EvaluationDocument]
     ) -> QAResults:
-        from .wiki_tables_evaluator.wiki_table_questions_evaluator import (
-            WikiTableQuestionsEvaluator,
-        )
-
         predictions = []
         predictions_parsed = []
         ground_truths = []
 
-        doc_id = ""
         for row in evaluation_data:
             # only run serialization again if doc_id changes
             if isinstance(row, EvaluationDocumentWithTable) and row.html_table.strip() == "":
@@ -359,7 +361,7 @@ class Evaluator(ABC, BaseModel):
             ground_truths.append(answer)
             
             # Sleep to avoid rate limiting
-            # time.sleep(2)
+            time.sleep(1)
 
         evaluation_results = QAResults.calculate_metrics(
             predictions_parsed, ground_truths
@@ -392,7 +394,10 @@ class Evaluator(ABC, BaseModel):
 
     def _evaluate_qa(self, evaluation_data: List[EvaluationDocument]) -> QAResults:
         predictions = []
+        predictions_parsed = []
         ground_truths = []
+        
+        
 
         # For each entry of evaluation data apply RAG model
         for row in evaluation_data:
@@ -404,19 +409,27 @@ class Evaluator(ABC, BaseModel):
                     "Evaluator must be of type RunSetupRAG to run QA evaluation"
                 )
             llm_response = self.run_setup.pipeline.invoke(question=question)
+            
+            print(f"Question: {question}")
+            print(f"Answer: {llm_response}")
+            logging.info(f"LLM Question: {question}")
+            logging.info(f"LLM Response: {llm_response}")
+            
             predictions.append(llm_response.strip())
+            predictions_parsed.append(self.parse_llm_response(llm_response))
             ground_truths.append(answer)
 
             # Sleep to avoid rate limiting
             time.sleep(1)
 
         # Calculate accuracy and F1 score
-        evaluation_results = QAResults.calculate_metrics(predictions, ground_truths)
+        evaluation_results = QAResults.calculate_metrics(predictions_parsed, ground_truths)
 
-        # For debugging purposes, store predictions and ground truths
         evaluation_results.data = {
             "predictions": predictions,
+            "predictions_parsed:": predictions_parsed,
             "ground_truths": ground_truths,
+            "num_documents": len(evaluation_data),
         }
 
         return evaluation_results
@@ -469,7 +482,7 @@ class Evaluator(ABC, BaseModel):
             num_documents_per_iteration=self.evaluation_num_documents,
             iterations=self.evaluation_iterations,
             table_serialization_mode=str(
-                self.llm_config.preprocess_config.table_serialization
+                self.llm_config.preprocess_config.table_serialization.table_serializer
             ),
         )
 
@@ -696,6 +709,11 @@ class Evaluator(ABC, BaseModel):
             preprocess_config=preprocess_config,
             retriever_num_documents=retriever_num_documents,
         )
+        
+        if preprocess_config:
+            evaluation_names = cls.generate_evaluation_names(preprocess_configs=[preprocess_config])
+        else:
+            evaluation_names = [""]
 
         # Check if indexing is required
         evaluator.check_for_indexing(evaluation_types=evaluation_types)
@@ -707,9 +725,24 @@ class Evaluator(ABC, BaseModel):
                 metadata={
                     "num_evaluation_documents": evaluator.evaluation_num_documents
                 },
-                names=[evaluator.llm_config.preprocess_config.name],
+                names=evaluation_names,
             )
         return evaluator
+    
+    @staticmethod
+    def generate_evaluation_names(preprocess_configs: List[PreprocessConfig]) -> List[str]: 
+        evaluation_names = []
+        for preprocess_config in preprocess_configs:
+            if EvaluationType.EVALUATE_QA:
+                if preprocess_config and preprocess_config.table_serialization and preprocess_config.table_serialization.include_related_tables:
+                    evaluation_name = preprocess_config.name + "-RT-" + preprocess_config.table_serialization_related_tables.name # type: ignore
+                else:
+                    evaluation_name = preprocess_config.name + "-NO-RT"
+            else:
+                evaluation_name = preprocess_config.name
+            evaluation_names.append(evaluation_name)
+        return evaluation_names
+            
 
     @classmethod
     def run_multi_evaluation(
@@ -749,7 +782,7 @@ class Evaluator(ABC, BaseModel):
 
         Evaluator.save_evaluation_results(
             evaluation_results=evaluation_results,
-            names=[preprocess_config.name for preprocess_config in preprocess_configs],
+            names=cls.generate_evaluation_names(preprocess_configs=preprocess_configs),
         )
 
     @classmethod
@@ -758,8 +791,11 @@ class Evaluator(ABC, BaseModel):
         preprocess_configs: List[PreprocessConfig],
         retriever_num_documents: List[int],
     ) -> None:
+        
+        
         for retriever_num_documents_temp in retriever_num_documents:
             evaluation_results = []
+            evaluation_names = cls.generate_evaluation_names(preprocess_configs=preprocess_configs)
             for preprocess_config in preprocess_configs:
                 single_evaluation = cls.run_single_evaluation(
                     preprocess_config=preprocess_config,
@@ -771,9 +807,7 @@ class Evaluator(ABC, BaseModel):
             Evaluator.save_evaluation_results(
                 evaluation_results=evaluation_results,
                 metadata={"retriever_num_documents": retriever_num_documents_temp},
-                names=[
-                    preprocess_config.name for preprocess_config in preprocess_configs
-                ],
+                names=evaluation_names
             )
 
     def evaluate_table_header_detection(self) -> None:
