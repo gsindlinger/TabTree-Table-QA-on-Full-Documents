@@ -120,10 +120,10 @@ class TestHTMLTableParsing(unittest.TestCase, AbstractTableTests):
         table_after = self.custom_parser.delete_nan_columns_and_rows(table_before)
         table_after = self.custom_parser.delete_duplicate_columns_and_rows(table_before)
 
-        table_after.to_csv("./src/tests/data/parsed_data/test.csv", include_span=True)
-        table_after.to_csv(
-            "./src/tests/data/parsed_data/test_no_span.csv", include_span=False
-        )
+        # table_after.to_csv("./src/tests/data/parsed_data/test.csv", include_span=True)
+        # table_after.to_csv(
+        #     "./src/tests/data/parsed_data/test_no_span.csv", include_span=False
+        # )
 
         self.assertEqual(len(table_after), 11)
         self.assertEqual(len(table_after[0]), 19)

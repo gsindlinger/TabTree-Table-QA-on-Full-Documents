@@ -1,0 +1,474 @@
+[run]
+pipeline = false
+indexing = false
+analysis = false
+evaluation = false
+evaluation_multi = true
+
+# choose from "sec-filings", "wiki-table-questions"
+dataset = "wiki-table-questions"
+retriever_num_documents = [3] 
+retriever_score_threshold = 0.5
+
+
+[indexing]
+
+# choose from "recursive-character", "recursive-character-html", "semantic", "text-only-chunking"
+chunking_strategy = "semantic"
+
+# choose out of "huggingface", "nomic", "openai", "fast_embed", ...
+embedding_method = "openai"
+
+full_document_storage_path = "./data/preprocessed_documents/"
+
+table_header_path = "./data/tables.json"
+
+approach = "normal" # "normal" or "summary_only"
+
+
+[text_generation]
+
+# choose from "ollama", "huggingface","openai", "azure"...
+
+method = "openai"
+
+prompt_template_table_qa = '''
+You are tasked with answering questions based on the provided table data. Your task is to give the correct answer based on the given table data. Only use the information presented. If you can't find a correct answer based upon the provided data indicate so.
+
+Think step-by-step, but in a short and comprehensive manner (max 500 tokens). After the reasoning, provide your final conclusion to the question as a single statement using the following format:
+Answer: <Answer>
+
+Provide the answer <Answer> as one of the following:
+- A number for questions about quantities.
+- A word or phrase for questions about categories, names, etc.
+- Yes or No for questions that can be answered with a boolean.
+- A semicolon separated list if the question asks for multiple answers (e.g. Brazil; Argentina; Germany).
+- 'None' if the context doesn't provide information about the given question.
+
+Example:
+- What was the sales revenue of Company Y from 2022 to 2024?
+  <Step-by-step reasoning>
+  Answer: 2,500
+- What is the main product of Company Z?
+  <Step-by-step reasoning>
+  Answer: ZetaDrug
+- What's stock market price of Company X in 2021?
+  <Step-by-step reasoning>
+  Answer: None
+
+{table_title}
+
+Table data: 
+{table}
+
+Question: {question}
+'''
+
+
+prompt_template_rag = '''
+You are tasked with answering questions based on document chunks and related tables. Your goal is to provide the most accurate answer using only the provided data. **Do not assume or invent information.** If no sufficient answer can be found, indicate so.
+Think step-by-step, but in a short and comprehensive manner (max 600 tokens). After the reasoning, provide your final conclusion to the question as a single statement using the following format:
+Answer: <Answer>
+
+### **Instructions**:
+1. **Analyze the provided document chunks and related tables carefully.**
+2. **Clearly indicate if neither the chunks nor the tables provide enough data.**
+3. Provide the answer <Answer> after your step-by-step reasoning as one of the following:
+  - A number (without units) for questions about quantities.
+  - A word or phrase for questions about categories, names, etc.
+  - Yes or No for questions that can be answered with a boolean.
+  - 'None' if the context doesn't provide information about the given question.
+
+### **Examples**:
+- **What was the revenue of Company Y in 2022?**  
+  <Step-by-step reasoning>
+  Answer: 2,500  
+
+- **What is the main product of Company Z?**  
+  <Step-by-step reasoning> 
+  Answer: ZetaDrug  
+
+- **What was Company X's stock price in 2021?**  
+  <Step-by-step reasoning> 
+  Answer: None  
+
+### Question: 
+{question}
+
+### **Context**:
+{context}
+
+### **Related Tables**:
+{related_tables}
+'''
+
+prompt_template_without_related_tables = '''
+You are tasked with answering questions based on document chunks and related tables. Your goal is to provide the most accurate answer using only the provided data. **Do not assume or invent information.** If no sufficient answer can be found, indicate so.
+Think step-by-step, but in a short and comprehensive manner (max 600 tokens). After the reasoning, provide your final conclusion to the question as a single statement using the following format:
+Answer: <Answer>
+
+### **Instructions**:
+1. **Analyze the provided document chunks carefully.**
+2. **Clearly indicate if neither the chunks nor the tables provide enough data.**
+3. Provide the answer <Answer> after your step-by-step reasoning as one of the following:
+  - A number (without units) for questions about quantities.
+  - A word or phrase for questions about categories, names, etc.
+  - Yes or No for questions that can be answered with a boolean.
+  - A semicolon separated list if the question asks for multiple answers (e.g. Brazil; Argentina; Germany).
+  - 'None' if the context doesn't provide information about the given question.
+
+### **Examples**:
+- **What was the revenue of Company Y in 2022?**  
+  <Step-by-step reasoning>
+  Answer: 2,500  
+
+- **What is the main product of Company Z?**  
+  <Step-by-step reasoning> 
+  Answer: ZetaDrug  
+
+- **What was Company X's stock price in 2021?**  
+  <Step-by-step reasoning> 
+  Answer: None  
+
+### Question: 
+{question}
+
+### **Context**:
+{context}
+'''
+
+prompt_template_question_domain = """
+You are an expert in analyzing structured data and categorizing information into relevant domains. Given a table and a related question, your task is to determine the most appropriate domain for the question by reasoning through the table content and the nature of the query.  
+
+### **Domains to choose from:**  
+1. **Sports & Entertainment** – Covers sports statistics, rankings, movies, TV shows, books, and awards.  
+2. **Politics & Society** – Includes government data, election results, education statistics, and historical events.  
+3. **Science & Technology** – Encompasses scientific discoveries, technological advancements, and academic research.  
+4. **Business & Economy** – Covers financial reports, market trends, company revenues, and economic indicators.  
+5. **Geography & Transportation** – Includes country and city statistics, population data, infrastructure, and military records.  
+
+### **Instructions:**  
+1. **Analyze the Table Data** – Identify the main subject of the table (e.g., sports statistics, financial data, election results).  
+2. **Understand the Question** – Determine what aspect of the table the question is focused on (e.g., trends, comparisons, rankings).  
+3. **Reasoning (Limited to 500 tokens)** – Briefly explain why the question aligns with a specific domain based on table content and the nature of inquiry.  
+4. **Provide the Final Answer** in the specified format.  
+
+### **Input Format:**  
+- **Table Data:** {table}
+- **Question:** {question}
+
+### **Expected Output Format:**  
+- Reasoning (Max 500 tokens): [Concise explanation of domain selection]  
+- Answer: <domain>  
+
+### **Example:**  
+
+#### **Input:**  
+- **Table Data:**  
+  | Year | Tournament | Winning Team | Final Ranking |  
+  |------|------------|---------------|--------------|  
+  | 1985 | ACC Women's Basketball | Maryland | 1 |  
+  | 1986 | ACC Women's Basketball | NC State | 2 |  
+  | 1987 | ACC Women's Basketball | UNC | 3 |  
+
+- **Question:** *Which team, ranked first, also finished as winner in the 1985 ACC Women's Basketball Tournament?*  
+
+#### **Output:**  
+Reasoning (Max 500 tokens): [Resoning steps] 
+Answer: Sports & Entertainment  
+"""
+
+prompt_template_question_category = """
+Classify a question into one of the following categories based on the provided tabular data:
+
+1. **Lookup** – Directly retrieves a value from the table without any additional operations.
+2. **Advanced Lookup** – Involves counting, sorting, ranking (including mininmum / maximum), or simple comparison of different values.
+3. **Boolean** – Requires a yes/no or true/false answer.
+4. **Calculation** – Requires arithmetic operations like summation, percentage calculation, subtractions, or any other sophisticaded math calculations.
+5. **Position Related** – Asks about the next, previous, or any other positioned item in the table in relation to a given one (e.g., "Who ranked right after Turkey?").
+
+**Provide concise reasoning (within 500 tokens) and a final classification.**
+
+---
+
+**Input:**  
+- **Question:** {question}  
+- **Table Data:** {table}  
+
+---
+
+### **Output Format:**  
+1. **Step-by-step reasoning** (keywords, operations, and table structure).  
+2. **Final classification:**  
+   **Answer: <category>**  
+
+---
+
+### **Examples**  
+
+#### **Example 1**  
+**Question:** *What was the total regulated business operating revenue of American Water Works in 2023?*  
+**Output:**  
+- Retrieves a single value from the "Total Regulated Businesses" row under "Operating Revenues."
+- No calculations or sorting required → **Lookup**.  
+**Answer: Lookup**  
+
+#### **Example 2**  
+**Question:** *Which state had the fourth most customers in the wastewater sector in 2023?*  
+**Output:**  
+- Requires sorting states by customer count to find the fourth highest value.
+- Involves ranking but no arithmetic → **Advanced Lookup**.  
+**Answer: Advanced Lookup**  
+
+#### **Example 3**  
+**Question:** *How large was the share of customers of Pennsylvania and New Jersey in 2023 relative to all customers?*  
+**Output:**  
+- Requires summing customer counts and calculating percentage relative to total customers.
+- Involves arithmetic → **Calculation**.  
+**Answer: Calculation**  
+
+#### **Example 4**  
+**Question:** *Did Pennsylvania have more customers than New Jersey in 2023?*  
+**Output:**  
+- Requires comparing values to answer a yes/no question.
+- Involves a logical comparison → **Boolean**.  
+**Answer: Boolean**  
+
+#### **Example 5**  
+**Question:** *Who was ranked right after Turkey in the competition?*  
+**Output:**  
+- Requires identifying the next column of the cell containing Turkey as value.
+- Involves position-based reasoning → **Position Related**.  
+**Answer: Position Related**
+"""
+
+prompt_template_table_summary = '''
+You are an AI assistant tasked with summarizing tables in a **coherent, structured, and concise manner** for retrieval-based applications. Your goal is to generate a short but meaningful summary that retains the most relevant details while being easy to understand.
+
+### **Instructions:**
+- **Preceding Sentence:** {preceding_sentence}  
+  *(This is the sentence that directly precedes the table. It may provide context, but sometimes it may not be helpful.)*  
+- **Table Summary:**  
+  - The summary **must begin with:** "Presented in this table..."  
+  - Provide a **coherent summary** in **a maximum of 3 sentences**.  
+  - Capture the **columns, row structure, and intent** of the table.  
+  - Highlight **key insights or trends** if applicable.  
+- **Limit the output to 500 tokens** while ensuring clarity and completeness.
+
+Here is the table that needs summarization:
+{table}
+
+Table Summary: Presented in this table <concise summary in 3 sentences>.
+'''
+
+[ollama]
+
+# choose out of "gemma:2b", "mistral-nemo"
+model = "gemma:2b"
+
+[huggingface]
+
+endpoint_url = "https://zau3a2c9fld8j87p.us-east-1.aws.endpoints.huggingface.cloud" # select based on model
+
+
+[nomic]
+embedding_model = "nomic-embed-text-v1.5"
+
+[openai]
+embedding_model = "text-embedding-3-small"
+
+generation_model = "gpt-4o-mini" # gpt-4o-mini or gpt-4o
+max_tokens = 800
+temperature = 0.0
+
+[azure]
+model_name_generation = "Phi-4" # Phi-4 or Llama-3.3-70B-Instruct, Phi-4-multimodal-instruct
+
+max_tokens_generation = 800
+temperature_generation = 0.0
+
+[fast_embed]
+embedding_model = "BAAI/bge-small-en-v1.5"
+
+[sec_filings]
+data_path = "./data/sec_filings/"
+data_path_single = "./data/sec_filings/awk-20231231.htm" #option: "./data/sec_filings/abnb-20231231.htm"  
+evaluation_data_path = "./SEC_Filing_Tables_Dataset.csv"  # option: "./data/evaluation/SEC_Evaluation_Dataset_ABNB.csv"   
+evaluation_get_header_data_path = "./Header_Extraction_Evaluation_SEC_Filings.csv"
+
+[wiki_table_questions]
+is_single_evaluation = false
+single_document_id = "204-577"
+data_path = "./data/wiki_table_questions/"
+evaluation_get_header_data_path = "./Header_Extraction_Evaluation_WikiTableQuestions.csv"
+
+[evaluation]
+evaluate_qa = false
+evaluate_ir = false
+run_document_analysis = false
+evaluate_get_headers = false
+evaluate_table_qa_only = true
+
+num_of_documents = 50 # applied on both wiki-table-questions and sec-filings dataset
+iterations = 4 # only applied when using wiki-table-questions dataset
+
+evaluate_run_document_analysis_path = "./data/sec_filings/"
+evaluate_get_headers_path = "./data/sec_filings/awk-20231231.htm"
+
+[[evaluation.table_serialization_config]]
+name = "tabtree-text-heuristic"
+method = "tabtree"
+context_string_approach = "context_text" # 'context_base' or 'context_text' or 'context_empty'
+context_string_with_context_intersection = false
+value_string_approach = "value_text" # 'value_text', 'value_text', 'value_text_augmented'
+value_string_with_context_intersection = false
+primary_subtree_approach = "heuristic"
+
+[[evaluation.table_serialization_config]]
+name = "tabtree-text-column-header-tree"
+method = "tabtree"
+context_string_approach = "context_text" # 'context_base' or 'context_text' or 'context_empty'
+context_string_with_context_intersection = false
+value_string_approach = "value_text" # 'value_text', 'value_text', 'value_text_augmented'
+value_string_with_context_intersection = false
+primary_subtree_approach = "column_header_tree"
+
+[[evaluation.table_serialization_config]]
+name = "tabtree-text-row-label-tree"
+method = "tabtree"
+context_string_approach = "context_text" # 'context_base' or 'context_text' or 'context_empty'
+context_string_with_context_intersection = false
+value_string_approach = "value_text" # 'value_text', 'value_text', 'value_text_augmented'
+value_string_with_context_intersection = false
+primary_subtree_approach = "row_label_tree"
+
+[[evaluation.table_serialization_config]]
+name = "tabtree-text-concatenate"
+method = "tabtree"
+context_string_approach = "context_text" # 'context_base' or 'context_text' or 'context_empty'
+context_string_with_context_intersection = false
+value_string_approach = "value_text" # 'value_text', 'value_text', 'value_text_augmented'
+value_string_with_context_intersection = false
+primary_subtree_approach = "concatenate"
+
+
+[evaluation.preprocess_config]
+name = ""
+reduced_sections = false
+preprocess_mode = ["basic"]
+ignore_tables_for_embeddings = false
+consider_colspans_rowspans = true
+merge_sentence_infront_of_table = false
+
+
+[tabtree]
+
+header_description = '''
+Header rows serve as a structural component at the top of a dataset or table, defining the meaning and context of the columns below them. Therefore the probability of a row being header row decreases by increasing row index. It also might happen that a table has no header rows.
+Header rows typically contain labels that describe the type of data in each column, acting as a guide for interpreting the table's contents.
+In tables with hierarchical structures, header rows can span multiple levels, using features like colspans to group related columns visually.
+This layered organization allows for the representation of complex relationships between columns, improving clarity and facilitating detailed analysis of multidimensional data.
+'''
+
+label_description = '''
+Label columns act as a structural component in a table, typically positioned on the left side, and provide descriptive or categorical identifiers for each row. The probability of column beeing a label column therefore decrease by increasing column index. It also might happen that a table has no label columns.
+Label columns define the context or grouping of the data within the rows, allowing for easier reference and understanding of the dataset. 
+In hierarchical tables, label columns can represent multiple levels of categorization, employing features like rowspans to visually group related rows under shared labels.
+This structure enables the organization of nested relationships within the data, enhancing readability and supporting more detailed analysis of grouped or hierarchical information.
+'''
+
+negative_description = '''
+A column or row that should not be classified as {mode_header_name} {mode} contain typically the core values or observations of the dataset, i.e., the actual measurements, metrics, or attributes corresponding to the context given by row labels and column headers.
+'''
+
+prompt_template_header_detection = '''
+You are tasked with analyzing table data to determine whether the provided {mode} should be classified as a {mode_header_name} or not.  
+
+Instructions:
+1. Review the provided {mode} and the next and previous {mode}s.
+2. Consider typical properties of a {mode_header_name} {mode} when making your determination. For {mode_header_name} {mode}s typically yield: {mode_description}
+3. End your response with one of the following:
+   - "Answer: Yes" if the {mode} represents a {mode_header_name} {mode}.
+   - "Answer: No" if the {mode} contains actual records or entries (e.g., numerical values, measurements, metrics or attributes corresponding to a category).
+4. Reason your answer with maximum 500 tokens.
+
+{mode} to analyze:  
+{line}
+
+The {mode} index of the provided {mode} is {index}.
+
+{previous_index}
+{second_previous_index}
+
+{next_index}
+{second_next_index}
+
+'''
+
+prompt_template_header_detection_1_range = '''
+You are tasked with analyzing table data to determine whether the provided {mode} should be classified as a {mode_header_name} or not.  
+
+Instructions:
+1. Review the provided {mode} and the next and previous {mode}.
+2. Consider typical properties of a {mode_header_name} {mode} when making your determination. For {mode_header_name} {mode}s typically yield: {mode_description}
+3. End your response with one of the following:
+   - "Answer: Yes" if the {mode} represents a {mode_header_name} {mode}.
+   - "Answer: No" if the {mode} contains actual records or entries (e.g., numerical values, measurements, metrics or attributes corresponding to a category).
+4. Reason your answer with maximum 500 tokens.
+
+{mode} to analyze:  
+{line}
+
+The {mode} index of the provided {mode} is {index}.
+
+{previous_index}
+
+{next_index}
+'''
+
+prompt_template_header_detection_full_table = '''
+You are tasked with analyzing table data to determine whether the provided {mode} should be classified as a {mode_header_name} or not.  
+
+Instructions:
+1. Carefully review the table, provided in HTML format. The table lacks predefined headers, and all rows are wrapped in <tr> tags.  
+2. Consider typical properties of a {mode_header_name} {mode} when making your determination. For {mode_header_name} {mode}s typically yield: {mode_description}
+3. End your response with one of the following:
+   - "Answer: Yes" if the {mode} represents a {mode_header_name} {mode}.
+   - "Answer: No" if the {mode} contains actual records or entries (e.g., numerical values, measurements, metrics or attributes corresponding to a category).
+4. Reason your answer with maximum 500 tokens.
+
+{mode} to analyze:  
+{line}
+
+The {mode} index of the provided {mode} is {index}.
+
+Table data:
+{table}
+'''
+
+context_string_approach = "context_text" # 'context_base' or 'context_text' or 'context_empty'
+context_string_with_context_intersection = false
+
+value_string_approach = "value_text" # 'value_base' or 'value_text'
+value_string_with_context_intersection = false
+
+primary_subtree_approach = "heuristic" # 'column_header_tree' or 'row_label_tree' or 'concatenate' or 'heuristic'
+
+
+[test]
+sample_table_html_path = "./src/tests/data/"
+
+
+[qdrant]
+
+payload_folder_path = "./data/qdrant-data/payloads/"
+
+
+
+
+
+
+
+
+
+

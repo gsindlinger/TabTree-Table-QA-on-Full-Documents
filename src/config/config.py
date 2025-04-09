@@ -48,22 +48,19 @@ class Config(dict[str, ConfigValue], metaclass=ConfigMeta):
     """Singleton-like Config class reading from global config.toml with some extras"""
 
     _path_config: Path = Path("config.toml")
-    _path_help: Path = Path(__file__).parent / "help.toml"
     _config: Config | None = None
-    _help: dict | None
 
-    def __init__(self, data: dict, _help: dict | None = None) -> None:
+    def __init__(self, data: dict) -> None:
         # caveat: the file is only accessed by the class, not by instances!
         # instances are only created for sub-dicts
 
         for key, value in data.items():
 
-            item_help = _help.get(key) if _help else None
             if not isinstance(key, str):
                 raise TypeError(f"Config keys must be strings! Found {type(key)}")
             match value:
                 case dict():
-                    data[key] = Config(value, item_help)
+                    data[key] = Config(value)
                 case Hashable():
                     pass
                 case list():
@@ -71,26 +68,21 @@ class Config(dict[str, ConfigValue], metaclass=ConfigMeta):
                 case t:
                     raise TypeError(f"unsupported Config value type: {t}")
             self.__annotations__[key] = type(value).__name__
-        super().__setattr__("_help", _help)
         super().__init__(data)
 
     @classmethod
     def _read(cls) -> Config:
-        """Create Config by reading global config, help file and env file"""
+        """Create Config by reading global config and env file"""
 
         # First get env variables
         env_vars = cls._load_env()
-
-        # Load help file
-        with open(cls._path_help, "rb") as f:
-            _help = cls(tomllib.load(f))
 
         # Load config file
         with open(cls._path_config, "rb") as f:
             data = tomllib.load(f)
 
         data.update(env_vars)
-        c = cls(data, _help)
+        c = cls(data)
 
         return c
 
@@ -102,6 +94,15 @@ class Config(dict[str, ConfigValue], metaclass=ConfigMeta):
     @classmethod
     def from_args(cls) -> None:
         """Read config from file and override from sys.args"""
+        pre_parser = argparse.ArgumentParser(add_help=False)
+        pre_parser.add_argument(
+            "--config-path", type=str, help="Path to config.toml file"
+        )
+
+        pre_args, remaining_args = pre_parser.parse_known_args()
+        if pre_args.config_path:
+            cls._path_config = Path(pre_args.config_path)
+
         if cls._config is not None:
             # this method may only be called once (typically in the .from_args module)!
             _readonly(cls)
@@ -110,7 +111,7 @@ class Config(dict[str, ConfigValue], metaclass=ConfigMeta):
             formatter_class=argparse.ArgumentDefaultsHelpFormatter
         )
         cls._config._add_args(parser)
-        args = parser.parse_args()
+        args = parser.parse_args(remaining_args)
         for key_path, value in args._get_kwargs():
             o = cls._config
             keys = key_path.split(".")
@@ -169,7 +170,6 @@ class Config(dict[str, ConfigValue], metaclass=ConfigMeta):
                         f"--{key.replace('_', '-')}",
                         default=value,
                         type=t,
-                        help=self._help[subkey] if self._help is not None else None,
                     )
 
     def __getattr__(self, name: str) -> ConfigValue:

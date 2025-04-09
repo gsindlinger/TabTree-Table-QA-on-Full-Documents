@@ -48,7 +48,7 @@ def main() -> None:
             question = input("Please enter your input. To exit, type 'exit': ")
             if question == "exit":
                 break
-            print(run_setup.pipeline.invoke(question=question))
+            run_setup.pipeline.invoke(question=question)
 
     if Config.run.evaluation:
         Evaluator.run_single_evaluation()

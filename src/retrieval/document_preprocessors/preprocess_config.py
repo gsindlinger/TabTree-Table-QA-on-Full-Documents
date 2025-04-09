@@ -8,29 +8,32 @@ from ...model.tabtree.string_generation.approaches import NodeApproach
 from ...config.config import Config
 
 TableSerializerLiteral = Literal[
-            "none",
-            "html",
-            "csv",
-            "tsv",
-            "df-loader",
-            "json-records",
-            "json-split",
-            "json-index",
-            "markdown",
-            "text",
-            "text-bullet-points",
-            "list-item",
-            "matrix",
-            "tabtree",
-            "plain_text",
-        ]
+    "none",
+    "html",
+    "csv",
+    "tsv",
+    "df-loader",
+    "json-records",
+    "json-split",
+    "json-index",
+    "markdown",
+    "text",
+    "text-bullet-points",
+    "list-item",
+    "matrix",
+    "tabtree",
+    "plain_text",
+]
+
 
 class TableSerializerPreprocessConfig(BaseModel):
     table_serializer: TableSerializerLiteral
-    tabtree_approach: Tuple[Optional[NodeApproach], Optional[NodeApproach], Optional[PrimarySubtreeApproach]] = (
+    tabtree_approach: Tuple[
+        Optional[NodeApproach], Optional[NodeApproach], Optional[PrimarySubtreeApproach]
+    ] = (
         None,
         None,  # first context node and second value node
-        None, # primary subtree approach
+        None,  # primary subtree approach
     )
     include_related_tables: bool = False
     name: str
@@ -61,7 +64,7 @@ class PreprocessConfig(BaseModel):
     merge_sentence_infront_of_table: Optional[bool] = False
     table_serialization_related_tables: Optional[TableSerializerPreprocessConfig] = None
     indexing_approach: Literal["normal", "summary_only"] = "normal"
-    
+
     @classmethod
     def from_config(cls, config_data: Optional[Dict] = None) -> PreprocessConfig:
         if not config_data:
@@ -75,7 +78,6 @@ class PreprocessConfig(BaseModel):
 
         table_serializer_data = table_serializer_data[0]
         return cls.from_config_single(preprocess_data, table_serializer_data)
-
 
     @classmethod
     def from_config_single(
@@ -108,34 +110,35 @@ class PreprocessConfig(BaseModel):
             raise ValueError(
                 "The config_data must contain the fields 'method' and 'preprocess_mode'"
             )
-            
-            
+
         table_serializater_config = TableSerializerPreprocessConfig(
-            name=table_serializer_data.get("name", table_serialization if table_serialization else "none"),
+            name=table_serializer_data.get(
+                "name", table_serialization if table_serialization else "none"
+            ),
             table_serializer=table_serialization if table_serialization else "none",
-            tabtree_approach=tabtree_approach
+            tabtree_approach=tabtree_approach,
         )
-        
+
         if preprocess_data.get("name", None) == "summary_only":
             preprocess_data["indexing_approach"] = "summary_only"
-        
 
         obj = cls(
             table_serialization=table_serializater_config,
             **preprocess_data,
-            
         )
 
         if table_serializer_data.get("name"):
             if obj.name.strip() != "":
                 obj.name = f"{obj.name}-{table_serializer_data.get('name')}"
             else:
-                obj.name = table_serializer_data.get("name", "Missing_Table_Serializer_Name")
+                obj.name = table_serializer_data.get(
+                    "name", "Missing_Table_Serializer_Name"
+                )
         return obj
 
     @classmethod
     def from_config_multi(cls) -> List[PreprocessConfig]:
-        
+
         from ...evaluation.evaluator import EvaluationType
 
         evaluation_types = EvaluationType.get_evaluation_type_from_config()
@@ -146,48 +149,85 @@ class PreprocessConfig(BaseModel):
 
     @classmethod
     def from_config_multi_without_rag(cls) -> List[PreprocessConfig]:
-        preprocess_data = Config.evaluation.preprocess_config_multi
+        try:
+            preprocess_data = Config.evaluation.preprocess_config_multi
+        except KeyError:
+            try:
+                preprocess_data = [Config.evaluation.preprocess_config]
+            except KeyError:
+                raise ValueError(
+                    "No valid preprocess_config found in the configuration."
+                )
         table_serializer_data = Config.evaluation.table_serialization_config
         lst = []
         for preprocess_config in preprocess_data:
             for table_serializer_data_single in table_serializer_data:
                 lst.append(
-                    cls.from_config_single(preprocess_config, table_serializer_data_single)
+                    cls.from_config_single(
+                        preprocess_config, table_serializer_data_single
+                    )
                 )
         return lst
-    
+
     @classmethod
     def from_config_multi_rag(cls) -> List[PreprocessConfig]:
-        preprocess_data = Config.evaluation.preprocess_config_multi
+        try:
+            preprocess_data = Config.evaluation.preprocess_config_multi
+        except KeyError:
+            try:
+                preprocess_data = [Config.evaluation.preprocess_config]
+            except KeyError:
+                raise ValueError(
+                    "No valid preprocess_config found in the configuration."
+                )
+
         table_serializer_configs = Config.evaluation.table_serialization_config_rag
         all_table_serializers: Dict = Config.evaluation.table_serialization_config
 
         lst = []
         for preprocess_config in preprocess_data:
             for table_serializer_data_single in table_serializer_configs:
-                
+
                 if table_serializer_data_single["retrieval_config"] == "summary_only":
-                    table_serializer_data_single["retrieval_config"] = "tabtree-text" # based on the stored qdrant collection, might be changed for individual needs
+                    table_serializer_data_single["retrieval_config"] = (
+                        "tabtree-text"  # based on the stored qdrant collection, might be changed for individual needs
+                    )
                     preprocess_config["indexing_approach"] = "summary_only"
 
-                table_serializer_retrieval = [table_serializer for table_serializer in all_table_serializers if table_serializer.get("name", None) == table_serializer_data_single["retrieval_config"]]
-                table_serializer_rag = [table_serializer for table_serializer in all_table_serializers if table_serializer.get("name", None) == table_serializer_data_single["qa_config"]]
-                
-                if len(table_serializer_retrieval) == 0 or len(table_serializer_rag) == 0:
-                    raise ValueError("Missing or invalid table serializer configuration for retrieval or QA.")
-                
-                
-                config_retrieval = cls.from_config_single(preprocess_config, table_serializer_retrieval[0])
-                config_qa = cls.from_config_single(preprocess_config, table_serializer_rag[0])
-                config_retrieval.table_serialization_related_tables = config_qa.table_serialization
-                
+                table_serializer_retrieval = [
+                    table_serializer
+                    for table_serializer in all_table_serializers
+                    if table_serializer.get("name", None)
+                    == table_serializer_data_single["retrieval_config"]
+                ]
+                table_serializer_rag = [
+                    table_serializer
+                    for table_serializer in all_table_serializers
+                    if table_serializer.get("name", None)
+                    == table_serializer_data_single["qa_config"]
+                ]
+
+                if (
+                    len(table_serializer_retrieval) == 0
+                    or len(table_serializer_rag) == 0
+                ):
+                    raise ValueError(
+                        "Missing or invalid table serializer configuration for retrieval or QA."
+                    )
+
+                config_retrieval = cls.from_config_single(
+                    preprocess_config, table_serializer_retrieval[0]
+                )
+                config_qa = cls.from_config_single(
+                    preprocess_config, table_serializer_rag[0]
+                )
+                config_retrieval.table_serialization_related_tables = (
+                    config_qa.table_serialization
+                )
+
                 if table_serializer_data_single.get("include_related_tables", False):
                     config_retrieval.table_serialization.include_related_tables = True
-                
+
                 full_config = config_retrieval
-                lst.append(
-                    full_config
-                )
+                lst.append(full_config)
         return lst
-    
-    

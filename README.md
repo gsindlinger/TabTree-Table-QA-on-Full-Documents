@@ -3,7 +3,7 @@
 
 [![Download Thesis WIP](https://img.shields.io/badge/Download--PDF-Thesis--WIP-orange)](https://www.overleaf.com/read/mqphwrjjhytz#5746a7)
 
-| ![Tab Tree Overview](documents/Images/TabTreeOverview.png) |
+| ![Tab Tree Overview](data/TabTreeOverview.png) |
 | :----------------------------------------------: |
 |            Figure 1: Tab Tree Overview            |
 
@@ -63,60 +63,91 @@ Before starting, ensure you have the following installed:
 
 Before running any code, you need to set up Ollama and Qdrant as services using Docker Compose.
 
-1. **Set up Ollama and Qdrant**:  
-   The `compose.yml` file sets up Ollama (for LLM inference) and Qdrant (for vector storage). Make sure these services are running before executing any code. You can start the services with the following command:
+1. **Set up Qdrant**:  
+   The `compose.yml` file sets up Qdrant (for vector storage). Make sure these services are running before executing code related to indexing and retrieval tasks. You can start the services with the following command:
 
    ```bash
    docker-compose -f compose.yml up -d
    ```
 
-2. Once the services are running, you can run the project with different modes by using the appropriate command-line arguments. Below are the available configurations:
+2. **Run Code**: 
+   We provide different configuration files for the different evaluated tasks of the thesis, i.e. Context / Header Detection, Document / Dataset Analysis, Vanilla Table QA, Chunk Retrieval, and Table QA on Full Documents. For detailed information refer to the documentation within the Thesis.
 
-##### 1. **Run Pipeline**
-   Executes the pipeline logic:
+   To simply index the two evaluation documents of the SEC Filing data, i.e., `data/sec_filings/awk-20231231.htm` and `data/sec_filings/uber-20231231.htm` and run a chat interface using HTML table serialization, you can use the default configuration and run the following command:
+
    ```bash
-   python -m src --run.pipeline=true --run.indexing=false
+   python -m src
    ```
 
-##### 2. **Run Indexing**
-   Runs the indexing logic:
+   **Note:** Each paramater in the configuration files can be overwritten by passing it as a command line argument.
+
+   To run the code for the different evaluated tasks, you can run one of the predefined configuration within the `config` folder. The following tasks are available:
+
+   - **Context / Header Detection**:  
+     ```bash
+     python -m src --config-path ./configs/context_detection/context_detection.toml
+     ```
+
+   - **Document / Dataset Analysis**: 
+      - **SEC-Filing Dataset**:  
+        ```bash
+        python -m src --config-path ./configs/document_analysis/sec_filings.toml
+        ``` 
+      - **WikiTableQuestions Dataset**:  
+        ```bash
+        python -m src --config-path ./configs/document_analysis/wikitablequestions.toml
+        ```
+
+   - **Vanilla Table QA (using WikiTableQuestions Dataset)**:
+      - **Baselines (HTML, CSV, JSON, Markdown)**
+       ```bash
+       python -m src --config-path ./configs/qa_only/baselines.toml
+       ```
+      - **TabTree Primary Subtree Selection**:  
+        ```bash
+        python -m src --config-path ./configs/qa_only/tabtree_primary_subtree.toml
+        ```
+      - **TabTree**:  
+        ```bash
+        python -m src --config-path ./configs/qa_only/tabtree.toml
+        ```
+   - **Chunk Retrieval**:
+      - **Baselines (HTML, CSV, JSON, Markdown)**:  
+        ```bash
+        python -m src --config-path ./configs/retrieval/baselines.toml
+        ```
+      - **TabTree Primary Subtree Selection**:  
+        ```bash
+        python -m src --config-path ./configs/retrieval/tabtree_primary_subtree.toml
+        ```
+      - **TabTree**:  
+        ```bash
+        python -m src --config-path ./configs/retrieval/tabtree.toml
+        ```
+      - **Table Summaries**:  
+        ```bash
+        python -m src --config-path ./configs/retrieval/table_summary.toml
+        ```
+   - **Table QA on Full Documents**:
+      - **Baselines (HTML, CSV, JSON, Markdown)**:  
+        ```bash
+        python -m src --config-path ./configs/full_qa/baselines.toml
+        ```
+      - **TabTree**:  
+        ```bash
+        python -m src --config-path ./configs/full_qa/tabtree.toml
+        ```
+      - **Table Summaries**:  
+        ```bash
+        python -m src --config-path ./configs/full_qa/table_summary.toml
+        ```
+
+
+3. **Run Tests for the TabTree Model**
+   If you want to run the tests for the TabTree model, you can do so by running the following command:
+
    ```bash
-   python -m src --run.indexing=true --run.pipeline=false
+   python -m unittest discover -s src/tests -p tabtree_model_test.py
    ```
 
-##### 3. **Run Analysis**
-   Executes the analysis mode:
-   ```bash
-   python -m src --run.indexing=false --run.pipeline=false --run.analysis=true
-   ```
-
-##### 4. **Run Evaluation**
-   Runs the evaluation logic:
-   ```bash
-   python -m src --run.indexing=false --run.pipeline=false --run.evaluation=true
-   ```
-
-##### 5. **Run Eval Multi**
-   Executes evaluation in multi-mode:
-   ```bash
-   python -m src --run.pipeline=false --run.evaluation-multi=true
-   ```
-
-#### 6. **Run Tests for the TabTree Model**
-   Runs the tests for the TabTree model:
-   ```bash
-   python -m unittest discover -s src/tests -p tabtree_model_test.py -t .
-   ```
-
----
-
-##### Deleting All Qdrant Collections
-
-To delete all collections in Qdrant (if needed), you can run the following command:
-
-```bash
-QDRANT_URL="http://localhost:6333"; curl -s "$QDRANT_URL/collections" | jq -r '.result.collections[].name' | xargs -I {} curl -X DELETE "$QDRANT_URL/collections/{}"; rm -rf ./data/qdrant-data/payloads/*
-```
-
----
 

@@ -303,9 +303,9 @@ data_path = "./data/wiki_table_questions/"
 evaluation_get_header_data_path = "./Header_Extraction_Evaluation_WikiTableQuestions.csv"
 
 [evaluation]
-evaluate_qa = false
+evaluate_qa = true
 evaluate_ir = false
-run_document_analysis = true
+run_document_analysis = false
 evaluate_get_headers = false
 evaluate_table_qa_only = false
 
@@ -323,59 +323,59 @@ method = "html"
 # name = "plain_text"
 # method = "plain_text"
 
-[[evaluation.table_serialization_config]]
-name = "csv"
-method = "csv"
-
-[[evaluation.table_serialization_config]]
-name = "json-records"
-method = "json-records"
-
-[[evaluation.table_serialization_config]]
-name = "markdown"
-method = "markdown"
-
-[[evaluation.table_serialization_config]]
-name = "tabtree-base"
-method = "tabtree"
-context_string_approach = "context_base" # 'context_base' or 'context_text' or 'context_empty'
-context_string_with_context_intersection = false
-value_string_approach = "value_base" # 'value_base' or 'value_text'
-value_string_with_context_intersection = false
-
-[[evaluation.table_serialization_config]]
-name = "tabtree-text"
-method = "tabtree"
-context_string_approach = "context_text" # 'context_base' or 'context_text' or 'context_empty'
-context_string_with_context_intersection = false
-value_string_approach = "value_text" # 'value_base' or 'value_text'
-value_string_with_context_intersection = true
-
-[[evaluation.table_serialization_config]]
-name = "tabtree-text-with-context-intersection"
-method = "tabtree"
-context_string_approach = "context_text" # 'context_base' or 'context_text' or 'context_empty'
-context_string_with_context_intersection = true
-value_string_approach = "value_text" # 'value_base' or 'value_text'
-value_string_with_context_intersection = false
-
-[[evaluation.table_serialization_config]]
-name = "tabtree-text-augmented-with-context-intersection"
-method = "tabtree"
-context_string_approach = "context_text" # 'context_base' or 'context_text' or 'context_empty'
-context_string_with_context_intersection = true
-value_string_approach = "value_text_augmented" # 'value_base' or 'value_text', 'value_text_augmented'
-value_string_with_context_intersection = true
-
-[[evaluation.table_serialization_config]]
-name = "tabtree-context-empty"
-method = "tabtree"
-context_string_approach = "context_empty" # 'context_base' or 'context_text' or 'context_empty'
-context_string_with_context_intersection = true
-value_string_approach = "value_text_augmented" # 'value_base' or 'value_text'
-value_string_with_context_intersection = true
+# [[evaluation.table_serialization_config]]
+# name = "csv"
+# method = "csv"
 
 # [[evaluation.table_serialization_config]]
+# name = "json-records"
+# method = "json-records"
+
+# [[evaluation.table_serialization_config]]
+# name = "markdown"
+# method = "markdown"
+
+# [[evaluation.table_serialization_config]]
+# name = "tabtree-base"
+# method = "tabtree"
+# context_string_approach = "context_base" # 'context_base' or 'context_text' or 'context_empty'
+# context_string_with_context_intersection = false
+# value_string_approach = "value_base" # 'value_base' or 'value_text'
+# value_string_with_context_intersection = false
+
+# [[evaluation.table_serialization_config]]
+# name = "tabtree-text"
+# method = "tabtree"
+# context_string_approach = "context_text" # 'context_base' or 'context_text' or 'context_empty'
+# context_string_with_context_intersection = false
+# value_string_approach = "value_text" # 'value_base' or 'value_text'
+# value_string_with_context_intersection = true
+
+# [[evaluation.table_serialization_config]]
+# name = "tabtree-text-with-context-intersection"
+# method = "tabtree"
+# context_string_approach = "context_text" # 'context_base' or 'context_text' or 'context_empty'
+# context_string_with_context_intersection = true
+# value_string_approach = "value_text" # 'value_base' or 'value_text'
+# value_string_with_context_intersection = false
+
+# [[evaluation.table_serialization_config]]
+# name = "tabtree-text-augmented-with-context-intersection"
+# method = "tabtree"
+# context_string_approach = "context_text" # 'context_base' or 'context_text' or 'context_empty'
+# context_string_with_context_intersection = true
+# value_string_approach = "value_text_augmented" # 'value_base' or 'value_text', 'value_text_augmented'
+# value_string_with_context_intersection = true
+
+# [[evaluation.table_serialization_config]]
+# name = "tabtree-context-empty"
+# method = "tabtree"
+# context_string_approach = "context_empty" # 'context_base' or 'context_text' or 'context_empty'
+# context_string_with_context_intersection = true
+# value_string_approach = "value_text_augmented" # 'value_base' or 'value_text'
+# value_string_with_context_intersection = true
+
+# # [[evaluation.table_serialization_config]]
 # name = "tabtree-text-heuristic"
 # method = "tabtree"
 # context_string_approach = "context_text" # 'context_base' or 'context_text' or 'context_empty'
@@ -482,10 +482,10 @@ value_string_with_context_intersection = true
 # qa_config = "tabtree-text-augmented-with-context-intersection"
 # include_related_tables = false
 
-[[evaluation.table_serialization_config_rag]]
-retrieval_config = "tabtree-base"
-qa_config = "tabtree-base"
-include_related_tables = false
+# [[evaluation.table_serialization_config_rag]]
+# retrieval_config = "tabtree-base"
+# qa_config = "tabtree-base"
+# include_related_tables = false
 
 # [[evaluation.table_serialization_config_rag]]
 # retrieval_config = "tabtree-base"
@@ -514,7 +514,7 @@ include_related_tables = false
 
 
 [evaluation.preprocess_config]
-name = "tabtree"
+name = ""
 reduced_sections = false
 preprocess_mode = ["basic"]
 ignore_tables_for_embeddings = false
@@ -538,13 +538,13 @@ merge_sentence_infront_of_table = false
 # consider_colspans_rowspans = true
 # merge_sentence_infront_of_table = true
 
-[[evaluation.preprocess_config_multi]]
-name = "tabtree-without-merging"
-reduced_sections = false
-preprocess_mode = ["basic"]
-ignore_tables_for_embeddings = false
-consider_colspans_rowspans = true
-merge_sentence_infront_of_table = false
+# [[evaluation.preprocess_config_multi]]
+# name = "tabtree-without-merging"
+# reduced_sections = false
+# preprocess_mode = ["basic"]
+# ignore_tables_for_embeddings = false
+# consider_colspans_rowspans = true
+# merge_sentence_infront_of_table = false
 
 # [[evaluation.preprocess_config_multi]]
 # name = "baselines-with-merging"
