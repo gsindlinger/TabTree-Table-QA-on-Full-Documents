@@ -111,7 +111,7 @@ class ValueStringGenerationText(ValueStringGeneration):
             node, filter_colour=primary_tree.context_colour
         )
 
-        index_str = f"(row index: {node.row_index}, colum index: {node.col_index})"
+        index_str = f"(row index: {node.row_index}, column index: {node.col_index})"
 
         if not isinstance(parent_node, ContextNode):  # so directly connected to root
             if len(value_sequence) < 1:
@@ -237,10 +237,9 @@ class ValueStringGenerationTextAugmented(ValueStringGeneration):
             if secondary_tree.context_colour == NodeColor.YELLOW
             else "row label"
         )
-        
-        index_str = f"(row index: {node.row_index}, colum index: {node.col_index})"
-        
-        
+
+        index_str = f"(row index: {node.row_index}, column index: {node.col_index})"
+
         if len(value_sequence_primary) < 1:
             if len(value_sequence_secondary) < 1:
                 raise ValueError(

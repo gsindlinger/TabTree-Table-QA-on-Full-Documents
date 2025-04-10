@@ -50,6 +50,7 @@ dependencies:
   - conda-package-handling=2.3.0=pyh7900ff3_0
   - conda-package-streaming=0.10.0=pyhd8ed1ab_0
   - contourpy=1.3.1=py312hb23fbb9_0
+  - coverage=7.8.0=py312h998013c_0
   - cpython=3.12.9=py312hd8ed1ab_1
   - cycler=0.12.1=pyhd8ed1ab_1
   - dataclasses-json=0.6.7=pyhd8ed1ab_0
@@ -186,7 +187,7 @@ dependencies:
   - nomkl=1.0=h5ca1d4c_0
   - numpy=1.26.4=py312h8442bc7_0
   - openjpeg=2.5.2=h9f1df11_0
-  - openssl=3.4.1=h81ee809_0
+  - openssl=3.5.0=h81ee809_0
   - orc=2.0.2=h75dedd0_0
   - orjson=3.10.7=py312h552d48e_0
   - packaging=24.1=pyhd8ed1ab_0
@@ -258,6 +259,7 @@ dependencies:
   - tiktoken=0.9.0=py312hf3e4074_0
   - tk=8.6.13=h5083fa2_1
   - tokenizers=0.21.1=py312hf3e4074_0
+  - tomli=2.2.1=pyhd8ed1ab_1
   - tornado=6.4.1=py312h024a12e_1
   - tqdm=4.66.5=pyhd8ed1ab_0
   - traitlets=5.14.3=pyhd8ed1ab_0

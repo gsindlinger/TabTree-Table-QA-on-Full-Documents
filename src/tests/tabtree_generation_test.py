@@ -396,11 +396,11 @@ class TestTabTreeModel(unittest.TestCase, AbstractTableTests):
         node_1 = self.full_tabtree.column_header_tree.get_node_by_index(
             3, 4
         )  # grades / 2023 / english / C; row label: John
-        expected_string_1 = "The value of the row label John and the column header combination grades, 2023, english is C."
+        expected_string_1 = "The value of the row label John and the column header combination grades, 2023, english is C (row index: 3, column index: 4)."
         node_2 = self.full_tabtree.row_label_tree.get_node_by_index(
             3, 2
         )  # A / John / 17; column header: age
-        expected_string_2 = "The value of the column header age and the row label combination A, John is 17."
+        expected_string_2 = "The value of the column header age and the row label combination A, John is 17 (row index: 3, column index: 2)."
 
         approach = NodeApproach(
             approach=ValueNodeApproach.TEXT, include_context_intersection=False
@@ -429,11 +429,11 @@ class TestTabTreeModel(unittest.TestCase, AbstractTableTests):
         node_1 = self.full_tabtree.column_header_tree.get_node_by_index(
             3, 4
         )  # grades / 2023 / english (class & name) / C; row label: John
-        expected_string_1 = "The value of the row label John and the column header combination grades, 2023, class & name & english is C."
+        expected_string_1 = "The value of the row label John and the column header combination grades, 2023, class & name & english is C (row index: 3, column index: 4)."
         node_2 = self.full_tabtree.row_label_tree.get_node_by_index(
             3, 2
         )  # A (grades & class) / John (grades & name) / 17; column header: age
-        expected_string_2 = "The value of the column header age and the row label combination grades & class & A, grades & name & John is 17."
+        expected_string_2 = "The value of the column header age and the row label combination grades & class & A, grades & name & John is 17 (row index: 3, column index: 2)."
 
         approach = NodeApproach(
             approach=ValueNodeApproach.TEXT, include_context_intersection=True
@@ -463,12 +463,12 @@ class TestTabTreeModel(unittest.TestCase, AbstractTableTests):
         node_1 = self.full_tabtree.column_header_tree.get_node_by_index(
             3, 4
         )  # grades / 2023 / english / C; row label: A / John
-        expected_string_1 = "The value of the row label combination A, John and the column header combination grades, 2023, english is C."
+        expected_string_1 = "The value of the row label combination A, John and the column header combination grades, 2023, english is C (row index: 3, column index: 4)."
 
         node_2 = self.full_tabtree.row_label_tree.get_node_by_index(
             3, 2
         )  # A / John / 17; column header: age
-        expected_string_2 = "The value of the column header combination grades, null, age and the row label combination A, John is 17."
+        expected_string_2 = "The value of the column header combination grades, null, age and the row label combination A, John is 17 (row index: 3, column index: 2)."
 
         approach = NodeApproach(
             approach=ValueNodeApproach.TEXT_AUGMENTED,
@@ -498,11 +498,11 @@ class TestTabTreeModel(unittest.TestCase, AbstractTableTests):
         node_1 = self.full_tabtree.column_header_tree.get_node_by_index(
             3, 4
         )  # grades / 2023 / english (class & name) / C; row label: A (grades & class) / John
-        expected_string_1 = "The value of the row label combination grades & class & A, grades & name & John and the column header combination grades, 2023, class & name & english is C."
+        expected_string_1 = "The value of the row label combination grades & class & A, grades & name & John and the column header combination grades, 2023, class & name & english is C (row index: 3, column index: 4)."
         node_2 = self.full_tabtree.row_label_tree.get_node_by_index(
             3, 2
         )  # A (grades & class) / John (grades & name) / 17; column header: age
-        expected_string_2 = "The value of the column header combination grades, null, class & name & age and the row label combination grades & class & A, grades & name & John is 17."
+        expected_string_2 = "The value of the column header combination grades, null, class & name & age and the row label combination grades & class & A, grades & name & John is 17 (row index: 3, column index: 2)."
 
         approach = NodeApproach(
             approach=ValueNodeApproach.TEXT_AUGMENTED, include_context_intersection=True
@@ -540,27 +540,27 @@ class TestTabTreeModel(unittest.TestCase, AbstractTableTests):
         # Select nodes
         node_1 = self.full_tabtree.column_header_tree.get_node_by_index(3, 2)  # 2,143
         expected_str_1 = [
-            "The value of the column header Revenue and the row label Residential is 2,143.",
-            "The value of the column header combination 2023, Revenue and the row label Residential is 2,143.",
-            "The value of the column header combination 2023, (In millions) & Revenue and the row label (In millions) & Residential is 2,143.",
+            "The value of the column header Revenue and the row label Residential is 2,143 (row index: 3, column index: 2).",
+            "The value of the column header combination 2023, Revenue and the row label Residential is 2,143 (row index: 3, column index: 2).",
+            "The value of the column header combination 2023, (In millions) & Revenue and the row label (In millions) & Residential is 2,143 (row index: 3, column index: 2).",
         ]
         self.assertIsInstance(node_1, ValueNode)
         self.assertEqual(node_1.value, "2,143")  # type: ignore
 
         node_2 = self.full_tabtree.row_label_tree.get_node_by_index(7, 7)  # 267
         expected_str_2 = [
-            "The value of the row label Public and other water (a) and the column header combination 2022, Revenue is 267.",
-            "The value of the row label Public and other water (a) and the column header combination 2022, Revenue is 267.",
-            "The value of the row label (In millions) & Public and other water (a) and the column header combination 2022, (In millions) & Revenue is 267.",
+            "The value of the row label Public and other water (a) and the column header combination 2022, Revenue is 267 (row index: 7, column index: 7).",
+            "The value of the row label Public and other water (a) and the column header combination 2022, Revenue is 267 (row index: 7, column index: 7).",
+            "The value of the row label (In millions) & Public and other water (a) and the column header combination 2022, (In millions) & Revenue is 267 (row index: 7, column index: 7).",
         ]
         self.assertIsInstance(node_2, ValueNode)
         self.assertEqual(node_2.value, "267")  # type: ignore
 
         node_3 = self.full_tabtree.row_label_tree.get_node_by_index(3, 2)  # 2,143
         expected_str_3 = [
-            "The value of the row label Residential and the column header combination 2023, Revenue is 2,143.",
-            "The value of the row label Residential and the column header combination 2023, Revenue is 2,143.",
-            "The value of the row label (In millions) & Residential and the column header combination 2023, (In millions) & Revenue is 2,143.",
+            "The value of the row label Residential and the column header combination 2023, Revenue is 2,143 (row index: 3, column index: 2).",
+            "The value of the row label Residential and the column header combination 2023, Revenue is 2,143 (row index: 3, column index: 2).",
+            "The value of the row label (In millions) & Residential and the column header combination 2023, (In millions) & Revenue is 2,143 (row index: 3, column index: 2).",
         ]
         self.assertIsInstance(node_3, ValueNode)
 
@@ -628,15 +628,13 @@ class TestTabTreeModel(unittest.TestCase, AbstractTableTests):
         node_1 = self.full_tabtree.column_header_tree.get_node_by_index(
             3, 2
         )  # MD, MO, NJ, WV
-        expected_str_1 = (
-            "The value of the column header States Allowed is MD, MO, NJ, WV."
-        )
+        expected_str_1 = "The value of the column header States Allowed is MD, MO, NJ, WV (row index: 3, column index: 2)."
 
         self.assertIsInstance(node_1, ValueNode)
         self.assertEqual(node_1.value, "MD, MO, NJ, WV")  # type: ignore
 
         node_2 = self.full_tabtree.row_label_tree.get_node_by_index(4, 0)  # 267
-        expected_str_2 = "The value of the column header Regulatory Practices is Utility plant recovery mechanisms."
+        expected_str_2 = "The value of the column header Regulatory Practices is Utility plant recovery mechanisms (row index: 4, column index: 0)."
         self.assertIsInstance(node_2, ValueNode)
         self.assertEqual(node_2.value, "Utility plant recovery mechanisms")  # type: ignore
 
@@ -692,7 +690,7 @@ class TestTabTreeModel(unittest.TestCase, AbstractTableTests):
 
         # Select nodes
         node_1 = self.full_tabtree.column_header_tree.get_node_by_index(1, 1)
-        expected_str_1 = "The value of the column header Surface Water and the row label New Jersey is 74%."
+        expected_str_1 = "The value of the column header Surface Water and the row label New Jersey is 74% (row index: 1, column index: 1)."
 
         self.assertIsInstance(node_1, ValueNode)
         self.assertEqual(node_1.value, "74%")  # type: ignore
@@ -760,61 +758,93 @@ class TestTabTreeModel(unittest.TestCase, AbstractTableTests):
     The column header grades has no siblings. The children of grades are null, 2023, 2024.
     The column header null has siblings 2023, 2024. The children of null are age.
     The values of the column header age are:
-    The value of the column header age and the row label combination B, Michael is 17.
-    The value of the column header age and the row label combination A, Tiffany is 16.
-    The value of the column header age and the row label combination A, John is 17.
+    The value of the column header age and the row label combination A, John is 17 (row index: 3, column index: 2).
+    The value of the column header age and the row label combination A, Tiffany is 16 (row index: 4, column index: 2).
+    The value of the column header age and the row label combination B, Michael is 17 (row index: 5, column index: 2).
     The column header 2023 has siblings null, 2024. The children of 2023 are math, english.
     The column header math has siblings english. The values of math are:
-    The value of the column header math and the row label combination B, Michael is D.
-    The value of the column header math and the row label combination A, Tiffany is B.
-    The value of the column header math and the row label combination A, John is A.
+    The value of the column header math and the row label combination A, John is A (row index: 3, column index: 3).
+    The value of the column header math and the row label combination A, Tiffany is B (row index: 4, column index: 3).
+    The value of the column header math and the row label combination B, Michael is D (row index: 5, column index: 3).
     The column header english has siblings math. The values of english are:
-    The value of the column header english and the row label combination B, Michael is D.
-    The value of the column header english and the row label combination A, Tiffany is B.
-    The value of the column header english and the row label combination A, John is C.
+    The value of the column header english and the row label combination A, John is C (row index: 3, column index: 4).
+    The value of the column header english and the row label combination A, Tiffany is B (row index: 4, column index: 4).
+    The value of the column header english and the row label combination B, Michael is D (row index: 5, column index: 4).
     The column header 2024 has siblings null, 2023. The children of 2024 are math, english.
     The column header math has siblings english. The values of math are:
-    The value of the column header math and the row label combination B, Michael is D.
-    The value of the column header math and the row label combination A, Tiffany is C.
-    The value of the column header math and the row label combination A, John is A.
+    The value of the column header math and the row label combination A, John is A (row index: 3, column index: 5).
+    The value of the column header math and the row label combination A, Tiffany is C (row index: 4, column index: 5).
+    The value of the column header math and the row label combination B, Michael is D (row index: 5, column index: 5).
     The column header english has siblings math. The values of english are:
-    The value of the column header english and the row label combination B, Michael is D.
-    The value of the column header english and the row label combination A, Tiffany is B.
-    The value of the column header english and the row label combination A, John is B.
+    The value of the column header english and the row label combination A, John is B (row index: 3, column index: 6).
+    The value of the column header english and the row label combination A, Tiffany is B (row index: 4, column index: 6).
+    The value of the column header english and the row label combination B, Michael is D (row index: 5, column index: 6).
     """
 
         pattern = re.compile(r"\s+")
         full_str_mod = re.sub(pattern, "", full_str)
         expected_str_mod = re.sub(pattern, "", expected_str)
         self.assertEqual(full_str_mod, expected_str_mod)
-        
-        
+
     def test_and_write_all_serializations_for_sample_table(self):
         base = (
-            NodeApproach(approach=ContextNodeApproach.BASE, include_context_intersection=False),
-            NodeApproach(approach=ValueNodeApproach.BASE, include_context_intersection=False),
+            NodeApproach(
+                approach=ContextNodeApproach.BASE, include_context_intersection=False
+            ),
+            NodeApproach(
+                approach=ValueNodeApproach.BASE, include_context_intersection=False
+            ),
         )
         text = (
-            NodeApproach(approach=ContextNodeApproach.TEXT, include_context_intersection=False),
-            NodeApproach(approach=ValueNodeApproach.TEXT, include_context_intersection=False),
+            NodeApproach(
+                approach=ContextNodeApproach.TEXT, include_context_intersection=False
+            ),
+            NodeApproach(
+                approach=ValueNodeApproach.TEXT, include_context_intersection=False
+            ),
         )
         text_with_context_intersection = (
-            NodeApproach(approach=ContextNodeApproach.TEXT, include_context_intersection=True),
-            NodeApproach(approach=ValueNodeApproach.TEXT, include_context_intersection=True),
+            NodeApproach(
+                approach=ContextNodeApproach.TEXT, include_context_intersection=True
+            ),
+            NodeApproach(
+                approach=ValueNodeApproach.TEXT, include_context_intersection=True
+            ),
         )
         text_augmented_with_context_intersection = (
-            NodeApproach(approach=ContextNodeApproach.TEXT, include_context_intersection=True),
-            NodeApproach(approach=ValueNodeApproach.TEXT_AUGMENTED, include_context_intersection=True),
+            NodeApproach(
+                approach=ContextNodeApproach.TEXT, include_context_intersection=True
+            ),
+            NodeApproach(
+                approach=ValueNodeApproach.TEXT_AUGMENTED,
+                include_context_intersection=True,
+            ),
         )
         context_empty = (
-            NodeApproach(approach=ContextNodeApproach.EMPTY, include_context_intersection=False),
-            NodeApproach(approach=ValueNodeApproach.TEXT_AUGMENTED, include_context_intersection=True),
+            NodeApproach(
+                approach=ContextNodeApproach.EMPTY, include_context_intersection=False
+            ),
+            NodeApproach(
+                approach=ValueNodeApproach.TEXT_AUGMENTED,
+                include_context_intersection=True,
+            ),
         )
-        
-        approaches = [base, text, text_with_context_intersection, text_augmented_with_context_intersection, context_empty]
-        names = ["Base", "Text", "Text w/ Context-Intersection", "Text-Augmentation w/ Context-Intersection", "Context-Empty"]
-    
-    
+
+        approaches = [
+            base,
+            text,
+            text_with_context_intersection,
+            text_augmented_with_context_intersection,
+            context_empty,
+        ]
+        names = [
+            "Base",
+            "Text",
+            "Text w/ Context-Intersection",
+            "Text-Augmentation w/ Context-Intersection",
+            "Context-Empty",
+        ]
+
         results = {}
         for approach, name in zip(approaches, names):
             full_str = self.tabtree_service.generate_serialized_string(
@@ -823,15 +853,11 @@ class TestTabTreeModel(unittest.TestCase, AbstractTableTests):
                 approaches=approach,
             )
             results[name] = full_str
-            
+
         # write results to json at "./analysis/sample_tabtree_serializations.json"
-        
-        with open("./analysis/sample_tabtree_serializations.yaml", "w") as f:
-            for name, string in results.items():
-                f.write(f"--- {name} ---\n")
-                f.write(string)
-                f.write("\n\n")
-            
-        
-        
-        
+
+        # with open("./analysis/sample_tabtree_serializations.yaml", "w") as f:
+        #     for name, string in results.items():
+        #         f.write(f"--- {name} ---\n")
+        #         f.write(string)
+        #         f.write("\n\n")
