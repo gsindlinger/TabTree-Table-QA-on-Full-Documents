@@ -1,7 +1,7 @@
 data/*
 !data/sec_filings/
 !data/tables.json
-!data/TabTreeOverview.png
+!data/*.png
 data/sec_filings/*
 !data/sec_filings/awk-20231231.htm
 !data/sec_filings/uber-20231231.htm
@@ -10,6 +10,7 @@ data/sec_filings/*
 !data/wiki_table_questions/
 data/wiki_table_questions/*
 !data/wiki_table_questions/id_mapper_questions.json
+
 
 
 documents/Alte Masterarbeiten
