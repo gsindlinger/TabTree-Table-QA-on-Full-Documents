@@ -203,7 +203,7 @@ Before running any code, you need to set up Ollama and Qdrant as services using 
    If you want to run the tests for the TabTree model, you can do so by running the following command, when you are in the root directory of the project:
 
    ```bash
-  python -m unittest discover -s src/tests -p "*test.py" -t .
+   python -m unittest discover -s src/tests -p "*test.py" -t .
    ```
 
 
