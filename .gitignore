@@ -13,8 +13,7 @@ data/wiki_table_questions/*
 
 
 
-documents/Alte Masterarbeiten
-documents/Korrekturen
+documents/
 
 /compose.override.yml
 ._*
