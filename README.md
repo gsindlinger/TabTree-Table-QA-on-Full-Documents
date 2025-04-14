@@ -1,7 +1,7 @@
 
 # Exploring Table Representations for Question Answering
 
-[![Download Thesis](https://img.shields.io/badge/Download--PDF-Thesis-orange)](https://www.overleaf.com/read/mqphwrjjhytz#5746a7)
+[![Download Thesis](https://img.shields.io/badge/Download--PDF-Thesis-orange)](/data/Masterthesis_Johannes_Sindlinger-2025-04-14.pdf)
 
 | ![Tab Tree Overview](data/TabTreeOverview.png) |
 | :----------------------------------------------: |
