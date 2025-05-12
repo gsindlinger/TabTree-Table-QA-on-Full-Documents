@@ -1,7 +1,7 @@
 
 # Exploring Table Representations for Question Answering
 
-[![Download Presentation](https://img.shields.io/badge/Download--PDF-Presentation-yellow)](/data/Masterthesis_Presentation_Sindlinger_Johannes.pdf)
+[![Download Presentation](https://img.shields.io/badge/Download--PDF-Presentation-yellow)](https://github.com/gsindlinger/TabTree-Table-QA-on-Full-Documents/raw/main/data/Masterthesis_Presentation_Sindlinger_Johannes.pdf)
 
 [![Download Thesis](https://img.shields.io/badge/Download--PDF-Thesis-orange)](https://raw.githubusercontent.com/gsindlinger/TabTree-Table-QA-on-Full-Documents/main/data/Masterthesis_Johannes_Sindlinger-2025-04-14.pdf)
 
